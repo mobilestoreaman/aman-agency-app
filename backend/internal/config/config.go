@@ -82,7 +82,8 @@ func Load() (*Config, error) {
 
 	// ── App ─────────────────────────────────────────────────────────
 	cfg.App.Env = getEnv("APP_ENV", "development")
-	cfg.App.Port = getEnv("APP_PORT", "3000")
+	// PORT is set by Railway (and most PaaS platforms); fall back to APP_PORT for local dev.
+	cfg.App.Port = getEnv("PORT", getEnv("APP_PORT", "3000"))
 	cfg.App.Version = getEnv("APP_VERSION", "dev")
 
 	// ── MongoDB ──────────────────────────────────────────────────────
