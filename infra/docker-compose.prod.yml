@@ -1,0 +1,118 @@
+# ============================================================
+# Aman Agency — Production Resource Limits Override
+#
+# Applies memory + CPU caps, structured logging, and tighter
+# restart policies on top of docker-compose.yml.
+#
+# Usage:
+#   docker compose \
+#     -f docker-compose.yml \
+#     -f docker-compose.prod.yml \
+#     up -d
+#
+# Tune the limits below to match your VPS/server spec.
+# Reference sizing (baseline: 2 vCPU, 2 GB RAM VPS):
+#   nginx    ~32 MB     (static proxy)
+#   frontend ~32 MB     (nginx static serving)
+#   backend  ~128 MB    (Go binary, MongoDB driver pool)
+#   mongo    ~512 MB    (WiredTiger cache)
+#   certbot  ~32 MB     (certbot Python process)
+# ============================================================
+
+version: "3.9"
+
+services:
+
+  # ── Nginx ─────────────────────────────────────────────────
+  nginx:
+    restart: always
+    deploy:
+      resources:
+        limits:
+          memory: 64M
+          cpus: "0.25"
+        reservations:
+          memory: 32M
+          cpus: "0.10"
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  # ── Frontend ──────────────────────────────────────────────
+  frontend:
+    restart: always
+    deploy:
+      resources:
+        limits:
+          memory: 64M
+          cpus: "0.25"
+        reservations:
+          memory: 32M
+          cpus: "0.05"
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "5m"
+        max-file: "2"
+
+  # ── Backend ───────────────────────────────────────────────
+  backend:
+    restart: always
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+          cpus: "0.75"
+        reservations:
+          memory: 128M
+          cpus: "0.25"
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "20m"
+        max-file: "5"
+    environment:
+      APP_ENV: production
+      # Increase Go GC target in production for lower latency
+      GOGC: "80"
+      GOMAXPROCS: "1"
+
+  # ── MongoDB ───────────────────────────────────────────────
+  mongo:
+    restart: always
+    deploy:
+      resources:
+        limits:
+          memory: 768M
+          cpus: "1.00"
+        reservations:
+          memory: 512M
+          cpus: "0.50"
+    # WiredTiger cache = ~50% of mem limit (set via command)
+    command:
+      - mongod
+      - --wiredTigerCacheSizeGB=0.35   # 35% of 768M limit
+      - --quiet
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "20m"
+        max-file: "3"
+
+  # ── Certbot ───────────────────────────────────────────────
+  certbot:
+    restart: always
+    deploy:
+      resources:
+        limits:
+          memory: 64M
+          cpus: "0.10"
+        reservations:
+          memory: 32M
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "5m"
+        max-file: "2"

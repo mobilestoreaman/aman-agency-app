@@ -1,0 +1,27 @@
+# ── Secrets ──────────────────────────────────────────────────
+infra/.env
+**/*.env.local
+
+# ── Build outputs ─────────────────────────────────────────────
+backend/server
+frontend/dist
+frontend/node_modules
+/tmp
+
+# ── Go ────────────────────────────────────────────────────────
+*.exe
+*.test
+*.out
+vendor/
+
+# ── MongoDB data (host volume) ────────────────────────────────
+infra/mongo-data/
+
+# ── PDF storage ───────────────────────────────────────────────
+backend/storage/
+
+# ── IDE ───────────────────────────────────────────────────────
+.idea/
+.vscode/
+*.swp
+.DS_Store

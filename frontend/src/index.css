@@ -1,0 +1,144 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    /* ── Base surfaces ── */
+    --background: 210 20% 98%;
+    --foreground: 222 39% 11%;
+
+    --card: 0 0% 100%;
+    --card-foreground: 222 39% 11%;
+
+    --popover: 0 0% 100%;
+    --popover-foreground: 222 39% 11%;
+
+    /* ── Brand — rich indigo ── */
+    --primary: 243 75% 59%;
+    --primary-foreground: 0 0% 100%;
+
+    /* ── Secondary / muted ── */
+    --secondary: 220 14% 96%;
+    --secondary-foreground: 222 39% 11%;
+
+    --muted: 220 14% 95%;
+    --muted-foreground: 220 9% 46%;
+
+    --accent: 220 14% 94%;
+    --accent-foreground: 222 39% 11%;
+
+    /* ── State ── */
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 0 0% 100%;
+
+    --success: 142 71% 45%;
+    --success-foreground: 0 0% 100%;
+
+    --warning: 38 92% 50%;
+    --warning-foreground: 0 0% 100%;
+
+    /* ── Borders & inputs ── */
+    --border: 220 13% 90%;
+    --input: 220 13% 90%;
+    --ring: 243 75% 59%;
+
+    /* ── Radius ── */
+    --radius: 0.625rem;
+
+    /* ── Sidebar (dark) ── */
+    --sidebar-background: 234 45% 12%;
+    --sidebar-foreground: 220 20% 92%;
+    --sidebar-primary: 243 75% 64%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 234 35% 20%;
+    --sidebar-accent-foreground: 220 20% 96%;
+    --sidebar-border: 234 30% 18%;
+    --sidebar-ring: 243 75% 64%;
+
+    /* ── Shadows ── */
+    --shadow-xs: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+    --shadow-sm: 0 1px 3px 0 rgb(0 0 0 / 0.08), 0 1px 2px -1px rgb(0 0 0 / 0.08);
+    --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.08), 0 2px 4px -2px rgb(0 0 0 / 0.08);
+    --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.08), 0 4px 6px -4px rgb(0 0 0 / 0.08);
+  }
+
+  .dark {
+    --background: 234 45% 8%;
+    --foreground: 220 20% 95%;
+
+    --card: 234 40% 11%;
+    --card-foreground: 220 20% 95%;
+
+    --popover: 234 40% 11%;
+    --popover-foreground: 220 20% 95%;
+
+    --primary: 243 75% 68%;
+    --primary-foreground: 0 0% 100%;
+
+    --secondary: 234 30% 18%;
+    --secondary-foreground: 220 20% 95%;
+
+    --muted: 234 30% 16%;
+    --muted-foreground: 220 14% 55%;
+
+    --accent: 234 30% 18%;
+    --accent-foreground: 220 20% 95%;
+
+    --destructive: 0 62% 40%;
+    --destructive-foreground: 0 0% 100%;
+
+    --border: 234 26% 20%;
+    --input: 234 26% 20%;
+    --ring: 243 75% 68%;
+
+    --sidebar-background: 234 45% 8%;
+    --sidebar-foreground: 220 20% 88%;
+    --sidebar-primary: 243 75% 68%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 234 35% 15%;
+    --sidebar-accent-foreground: 220 20% 92%;
+    --sidebar-border: 234 30% 14%;
+    --sidebar-ring: 243 75% 68%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-foreground antialiased;
+    font-feature-settings: "rlig" 1, "calt" 1;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    @apply tracking-tight;
+  }
+
+  /* Safe area insets for iOS PWA */
+  .safe-top    { padding-top:    env(safe-area-inset-top); }
+  .safe-bottom { padding-bottom: env(safe-area-inset-bottom); }
+  .safe-left   { padding-left:   env(safe-area-inset-left); }
+  .safe-right  { padding-right:  env(safe-area-inset-right); }
+}
+
+@layer utilities {
+  /* Card / surface elevation */
+  .shadow-card { box-shadow: var(--shadow-sm); }
+  .shadow-elevated { box-shadow: var(--shadow-md); }
+
+  /* Gradient text utility */
+  .gradient-text {
+    @apply bg-clip-text text-transparent;
+    background-image: linear-gradient(135deg, hsl(var(--primary)) 0%, hsl(243 85% 72%) 100%);
+  }
+}
+
+/* Thin, modern scrollbar */
+::-webkit-scrollbar { width: 5px; height: 5px; }
+::-webkit-scrollbar-track { @apply bg-transparent; }
+::-webkit-scrollbar-thumb { @apply bg-border rounded-full; }
+::-webkit-scrollbar-thumb:hover { @apply bg-muted-foreground/30; }

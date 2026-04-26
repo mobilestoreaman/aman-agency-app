@@ -1,0 +1,9 @@
+# Ignore local storage and generated files
+storage/pdfs/*
+storage/static/*
+docs/
+scripts/
+*.md
+.env
+.env.*
+!.env.example

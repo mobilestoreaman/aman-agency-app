@@ -1,0 +1,382 @@
+import { useState } from 'react'
+import { Plus, Pencil, Trash2, Search, TrendingDown, PackageCheck, Download } from 'lucide-react'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Badge } from '@/components/ui/badge'
+import {
+  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
+} from '@/components/ui/select'
+import {
+  DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu'
+import { DataTable, type Column } from '@/components/shared/DataTable'
+import PageHeader from '@/components/shared/PageHeader'
+import ConfirmDialog from '@/components/shared/ConfirmDialog'
+import PurchaseFormModal from '@/components/purchases/PurchaseFormModal'
+import { usePurchases, useDeletePurchase, useReceivePurchase } from '@/hooks/usePurchases'
+import { useVendors } from '@/hooks/useVendors'
+import { useIsAdmin } from '@/store/authStore'
+import { useDebounce } from '@/hooks/useDebounce'
+import { formatCurrency } from '@/utils/currency'
+import { formatDate } from '@/utils/date'
+import { downloadExport, type ExportFormat } from '@/utils/export'
+import { purchasesApi } from '@/api/purchases'
+import { toast } from 'sonner'
+import type { Purchase } from '@/types'
+
+function StatusBadge({ status }: { status: string }) {
+  switch (status) {
+    case 'received':
+      return <Badge className="bg-emerald-100 text-emerald-700 hover:bg-emerald-100">Received</Badge>
+    case 'pending':
+      return <Badge className="bg-amber-100 text-amber-700 hover:bg-amber-100">Pending</Badge>
+    case 'cancelled':
+      return <Badge className="bg-red-100 text-red-700 hover:bg-red-100">Cancelled</Badge>
+    default:
+      return <Badge variant="outline">{status}</Badge>
+  }
+}
+
+export default function PurchasesPage() {
+  const isAdmin = useIsAdmin()
+
+  const [page, setPage]                 = useState(1)
+  const [search, setSearch]             = useState('')
+  const [vendorId, setVendorId]         = useState('')
+  const [fromDate, setFromDate]         = useState('')
+  const [toDate, setToDate]             = useState('')
+  const [formOpen, setFormOpen]         = useState(false)
+  const [editing, setEditing]           = useState<Purchase | null>(null)
+  const [deleting, setDeleting]         = useState<Purchase | null>(null)
+  const [receiving, setReceiving]       = useState<Purchase | null>(null)
+  const [isExporting, setExporting]     = useState(false)
+
+  const q = useDebounce(search)
+
+  /** Convert YYYY-MM-DD (native date input) → DD-MM-YYYY (API) */
+  const toApi = (d: string) => {
+    if (!d) return undefined
+    const [y, m, day] = d.split('-')
+    return `${day}-${m}-${y}`
+  }
+
+  const { data, isLoading } = usePurchases({
+    page,
+    limit:  15,
+    search:      q          || undefined,
+    vendor_id:  vendorId   || undefined,
+    from_date:  toApi(fromDate),
+    to_date:    toApi(toDate),
+  })
+
+  const { data: vendorsData } = useVendors({ limit: 200 })
+  const vendors = vendorsData?.data ?? []
+
+  const deletePurchase  = useDeletePurchase()
+  const receivePurchase = useReceivePurchase()
+
+  const openCreate = () => { setEditing(null); setFormOpen(true) }
+  const openEdit   = (p: Purchase) => { setEditing(p); setFormOpen(true) }
+
+  const clearFilters = () => { setSearch(''); setVendorId(''); setFromDate(''); setToDate(''); setPage(1) }
+  const hasFilters   = !!search || !!vendorId || !!fromDate || !!toDate
+
+  const handleExport = async (format: ExportFormat) => {
+    setExporting(true)
+    try {
+      const res = await purchasesApi.list({
+        page: 1, limit: 10000,
+        search:    q             || undefined,
+        vendor_id: vendorId      || undefined,
+        from_date: toApi(fromDate),
+        to_date:   toApi(toDate),
+      })
+      const purchases = res.data.data ?? []
+
+      const headers = [
+        'Vendor', 'Status',
+        'Product', 'Brand', 'IMEI 1', 'IMEI 2', 'Condition', 'Color', 'Storage',
+        'Purchase Price', 'Selling Price',
+        'Total Cost', 'Purchase Date', 'Received Date', 'Notes',
+      ]
+
+      // One row per purchase item
+      const rows = purchases.flatMap((p) =>
+        p.items.map((item) => ({
+          'Vendor':         p.vendor_name,
+          'Status':         p.status.charAt(0).toUpperCase() + p.status.slice(1),
+          'Product':        item.product_name,
+          'Brand':          item.brand_name ?? '',
+          'IMEI 1':         item.imei1,
+          'IMEI 2':         item.imei2 ?? '',
+          'Condition':      item.condition,
+          'Color':          item.color ?? '',
+          'Storage':        item.storage ?? '',
+          'Purchase Price': item.purchase_price,
+          'Selling Price':  item.selling_price ?? '',
+          'Total Cost':     p.total_cost,
+          'Purchase Date':  formatDate(p.purchased_at),
+          'Received Date':  p.received_at ? formatDate(p.received_at) : '',
+          'Notes':          p.notes ?? '',
+        }))
+      )
+
+      downloadExport(format, 'Purchases', headers, rows)
+    } catch {
+      toast.error('Export failed. Please try again.')
+    } finally {
+      setExporting(false)
+    }
+  }
+
+  const handleDelete = () => {
+    if (!deleting) return
+    deletePurchase.mutate(deleting.id, { onSuccess: () => setDeleting(null) })
+  }
+
+  const handleReceive = () => {
+    if (!receiving) return
+    receivePurchase.mutate({ id: receiving.id }, { onSuccess: () => setReceiving(null) })
+  }
+
+  // Summary totals from current page
+  const pageTotal = (data?.data ?? []).reduce((s, p) => s + p.total_cost, 0)
+
+  const columns: Column<Purchase>[] = [
+    {
+      key:    'items',
+      header: 'Items',
+      cell:   (p) => {
+        const first = p.items[0]
+        return (
+          <div>
+            <p className="font-medium">
+              {first ? `${first.brand_name} ${first.product_name}` : '—'}
+            </p>
+            <p className="text-xs text-muted-foreground">
+              {p.items.length === 1
+                ? `IMEI: ${first?.imei1}`
+                : `${p.items.length} devices`}
+            </p>
+          </div>
+        )
+      },
+    },
+    {
+      key:    'vendor',
+      header: 'Vendor',
+      cell:   (p) => <span className="text-sm">{p.vendor_name}</span>,
+      className: 'hidden sm:table-cell',
+      sortValue: (p) => p.vendor_name,
+    },
+    {
+      key:    'status',
+      header: 'Status',
+      cell:   (p) => <StatusBadge status={p.status} />,
+      sortValue: (p) => p.status,
+    },
+    {
+      key:    'total',
+      header: 'Total cost',
+      cell:   (p) => (
+        <span className="font-semibold">{formatCurrency(p.total_cost)}</span>
+      ),
+      sortValue: (p) => p.total_cost,
+    },
+    {
+      key:    'date',
+      header: 'Date',
+      cell:   (p) => <span className="text-sm text-muted-foreground">{formatDate(p.purchased_at)}</span>,
+      className: 'hidden sm:table-cell',
+      sortValue: (p) => p.purchased_at,
+    },
+    {
+      key:    'actions',
+      header: '',
+      cell:   (p) =>
+        isAdmin ? (
+          <div className="flex items-center justify-end gap-1">
+            {/* "Receive Stock" is only shown for pending purchases */}
+            {p.status === 'pending' && (
+              <Button
+                variant="outline"
+                size="sm"
+                className="h-8 gap-1.5 text-emerald-700 border-emerald-300 hover:bg-emerald-50"
+                onClick={() => setReceiving(p)}
+                title="Mark as received and add devices to inventory"
+              >
+                <PackageCheck className="h-3.5 w-3.5" />
+                <span className="hidden sm:inline">Receive</span>
+              </Button>
+            )}
+            {/* Edit — only pending purchases can be edited */}
+            <Button
+              variant="ghost" size="icon" className="h-8 w-8"
+              onClick={() => openEdit(p)}
+              aria-label="Edit purchase"
+              disabled={p.status !== 'pending'}
+              title={p.status !== 'pending' ? 'Only pending purchases can be edited' : 'Edit purchase'}
+            >
+              <Pencil className="h-3.5 w-3.5" />
+            </Button>
+            <Button
+              variant="ghost" size="icon"
+              className="h-8 w-8 text-destructive hover:text-destructive"
+              onClick={() => setDeleting(p)}
+              aria-label="Delete purchase"
+              disabled={p.status === 'received'}
+              title={p.status === 'received' ? 'Received purchases cannot be deleted' : 'Delete purchase'}
+            >
+              <Trash2 className="h-3.5 w-3.5" />
+            </Button>
+          </div>
+        ) : null,
+      className: 'w-36',
+    },
+  ]
+
+  return (
+    <div className="flex flex-col gap-6">
+      <PageHeader
+        title="Purchases"
+        description="Track all procurement — devices and accessories bought from vendors."
+        action={
+          <div className="flex items-center gap-2">
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="outline" size="sm" className="gap-1.5" disabled={isExporting}>
+                  <Download className="h-4 w-4" />
+                  {isExporting ? 'Exporting…' : 'Export'}
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuItem onClick={() => handleExport('csv')}>
+                  Export as CSV
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => handleExport('excel')}>
+                  Export as Excel
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+            {isAdmin && (
+              <Button onClick={openCreate} className="gap-1.5">
+                <Plus className="h-4 w-4" /> Record Purchase
+              </Button>
+            )}
+          </div>
+        }
+      />
+
+      {/* Page total callout */}
+      {!isLoading && (data?.data?.length ?? 0) > 0 && (
+        <div className="flex items-center gap-2.5 rounded-xl border border-border/70 bg-rose-50/50 dark:bg-rose-950/20 px-4 py-3 text-sm shadow-card">
+          <TrendingDown className="h-4 w-4 text-rose-500 shrink-0" />
+          <span className="text-muted-foreground">Total on this page:</span>
+          <span className="font-bold text-rose-600 dark:text-rose-400">{formatCurrency(pageTotal)}</span>
+          {data?.meta && (
+            <span className="ml-auto text-xs text-muted-foreground">
+              Showing {data.data.length} of {data.meta.total} records
+            </span>
+          )}
+        </div>
+      )}
+
+      {/* Filters */}
+      <div className="flex flex-wrap items-end gap-3">
+        <div className="relative min-w-[180px] flex-1">
+          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+          <Input
+            placeholder="Search product, vendor…"
+            value={search}
+            onChange={(e) => { setSearch(e.target.value); setPage(1) }}
+            className="pl-9"
+          />
+        </div>
+
+        <Select value={vendorId} onValueChange={(v) => { setVendorId(v === 'all' ? '' : v); setPage(1) }}>
+          <SelectTrigger className="w-[180px]">
+            <SelectValue placeholder="All vendors" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All vendors</SelectItem>
+            {vendors.map((v) => (
+              <SelectItem key={v.id} value={v.id}>{v.name}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+
+        <div className="flex items-center gap-2">
+          <Input
+            type="date"
+            value={fromDate}
+            max={toDate || undefined}
+            onChange={(e) => { setFromDate(e.target.value); setPage(1) }}
+            className="w-[150px]"
+            title="From date"
+          />
+          <span className="text-muted-foreground">–</span>
+          <Input
+            type="date"
+            value={toDate}
+            min={fromDate || undefined}
+            onChange={(e) => { setToDate(e.target.value); setPage(1) }}
+            className="w-[150px]"
+            title="To date"
+          />
+        </div>
+
+        {hasFilters && (
+          <Button variant="ghost" size="sm" onClick={clearFilters} className="text-muted-foreground">
+            Clear filters
+          </Button>
+        )}
+      </div>
+
+      <DataTable
+        columns={columns}
+        data={data?.data ?? []}
+        isLoading={isLoading}
+        meta={data?.meta}
+        onPageChange={setPage}
+        emptyMessage="No purchases found. Adjust filters or record the first purchase."
+      />
+
+      <PurchaseFormModal
+        key={editing?.id ?? 'new'}
+        open={formOpen}
+        onClose={() => { setEditing(null); setFormOpen(false) }}
+        purchase={editing}
+      />
+
+      {/* Receive confirmation */}
+      <ConfirmDialog
+        open={!!receiving}
+        onClose={() => setReceiving(null)}
+        onConfirm={handleReceive}
+        isPending={receivePurchase.isPending}
+        title="Receive this stock?"
+        description={
+          receiving
+            ? `This will add ${receiving.items.length} device(s) from ${receiving.vendor_name} to your inventory as available stock. This cannot be undone.`
+            : ''
+        }
+        confirmLabel="Receive stock"
+      />
+
+      {/* Delete confirmation */}
+      <ConfirmDialog
+        open={!!deleting}
+        onClose={() => setDeleting(null)}
+        onConfirm={handleDelete}
+        isPending={deletePurchase.isPending}
+        title="Delete this purchase record?"
+        description={
+          deleting
+            ? `${deleting.items.length} device(s) from ${deleting.vendor_name}. This action cannot be undone.`
+            : ''
+        }
+        confirmLabel="Delete purchase"
+      />
+    </div>
+  )
+}
