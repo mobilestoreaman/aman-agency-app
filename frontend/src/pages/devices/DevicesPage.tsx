@@ -540,7 +540,7 @@ export default function DevicesPage() {
         </div>
 
         {/* Status filter */}
-        <Select value={statusFilter} onValueChange={(v) => { setStatus(v === 'all' ? '' : v); setPage(1) }}>
+        <Select value={statusFilter} onValueChange={(v) => { setStatus(v === 'all' ? '' : v as DeviceStatus); setPage(1) }}>
           <SelectTrigger className="w-[150px]">
             <SelectValue placeholder="All statuses" />
           </SelectTrigger>

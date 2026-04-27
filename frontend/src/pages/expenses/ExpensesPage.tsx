@@ -97,7 +97,7 @@ function ExpenseFormModal({ open, onClose, expense }: {
   }, [open, expense]) // eslint-disable-line react-hooks/exhaustive-deps
 
   const onSubmit = (values: FormValues) => {
-    const payload = { ...values, date: toApiDate(values.date) }
+    const payload = { ...values, date: toApiDate(values.date) ?? values.date }
     if (isEdit && expense) {
       update.mutate(
         { id: expense.id, ...payload },

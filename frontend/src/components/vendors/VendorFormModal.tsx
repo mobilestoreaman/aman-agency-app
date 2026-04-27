@@ -59,7 +59,7 @@ export default function VendorFormModal({ open, onClose, vendor }: Props) {
   const onSubmit = (values: FormValues) => {
     const payload = {
       name:    values.name,
-      phone:   values.phone,
+      phone:   values.phone ?? '',
       address: values.address || undefined,
       notes:   values.notes   || undefined,
     }
