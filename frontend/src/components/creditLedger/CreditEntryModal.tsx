@@ -1,4 +1,4 @@
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
@@ -16,11 +16,13 @@ import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from '@/components/ui/select'
 import { ScrollArea } from '@/components/ui/scroll-area'
-import { useCustomers } from '@/hooks/useCustomers'
+import { CustomerSearchBox } from '@/components/shared/CustomerSearchBox'
+import { useCustomer } from '@/hooks/useCustomers'
 import { useSales } from '@/hooks/useSales'
 import { useAddCreditEntry } from '@/hooks/useCreditLedger'
 import { formatCurrency } from '@/utils/currency'
 import { formatDate } from '@/utils/date'
+import type { Customer } from '@/types'
 
 const schema = z.object({
   customer_id: z.string().min(1, 'Customer is required'),
@@ -46,8 +48,12 @@ export default function CreditEntryModal({
   const addEntry  = useAddCreditEntry()
   const isPending = addEntry.isPending
 
-  const { data: customersData } = useCustomers({ limit: 200 })
-  const customers = customersData?.data ?? []
+  // When customerId is pre-set (opened from customer detail), fetch that customer
+  // so we can display it in the locked picker and show their balance.
+  const { data: preselectedCustomer } = useCustomer(customerId ?? '')
+
+  // Tracks the customer selected in the search box (null = none).
+  const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null)
 
   const form = useForm<FormValues>({
     resolver: zodResolver(schema),
@@ -69,15 +75,20 @@ export default function CreditEntryModal({
         sale_id:     '',
         notes:       '',
       })
+      // If no pre-selected customer, clear the picker state too
+      if (!customerId) setSelectedCustomer(null)
     }
   }, [open, customerId, defaultType, form])
+
+  // When preselectedCustomer loads (async), sync it into local state
+  useEffect(() => {
+    if (preselectedCustomer) setSelectedCustomer(preselectedCustomer)
+  }, [preselectedCustomer])
 
   const watchType       = form.watch('type')
   const watchCustomerId = form.watch('customer_id')
 
-  // Find the selected customer to display their live balance.
-  const selectedCustomer = customers.find((c) => c.id === watchCustomerId)
-  const outstanding      = selectedCustomer?.credit_balance ?? 0
+  const outstanding = selectedCustomer?.credit_balance ?? 0
 
   // Fetch this customer's completed sales with an outstanding balance
   // so the user can optionally link the payment to a specific invoice.
@@ -104,7 +115,7 @@ export default function CreditEntryModal({
         notes:       values.notes || undefined,
         ...(values.type === 'payment' && values.sale_id ? { sale_id: values.sale_id } : {}),
       },
-      { onSuccess: () => { form.reset(); onClose() } },
+      { onSuccess: () => { form.reset(); setSelectedCustomer(null); onClose() } },
     )
   }
 
@@ -121,34 +132,28 @@ export default function CreditEntryModal({
         <Form {...form}>
           <form id="credit-entry-form" onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 p-1">
 
-            {/* Customer */}
+            {/* Customer — searchable picker with inline quick-create */}
             <FormField
               control={form.control}
               name="customer_id"
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>Customer <span className="text-destructive">*</span></FormLabel>
-                  <Select
-                    onValueChange={field.onChange}
-                    value={field.value}
-                    disabled={!!customerId || isPending}
-                  >
-                    <FormControl>
-                      <SelectTrigger><SelectValue placeholder="Select customer" /></SelectTrigger>
-                    </FormControl>
-                    <SelectContent>
-                      {customers.map((c) => (
-                        <SelectItem key={c.id} value={c.id}>
-                          {c.name}
-                          {c.credit_balance > 0 && (
-                            <span className="ml-2 text-xs text-destructive">
-                              {formatCurrency(c.credit_balance)} owed
-                            </span>
-                          )}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                  <FormControl>
+                    <div>
+                      <input type="hidden" {...field} />
+                      <CustomerSearchBox
+                        disabled={!!customerId || isPending}
+                        initialCustomer={selectedCustomer}
+                        onSelect={(id) => {
+                          field.onChange(id)
+                          // Reset sale link when customer changes
+                          form.setValue('sale_id', '')
+                        }}
+                        onCustomerChange={(c) => setSelectedCustomer(c)}
+                      />
+                    </div>
+                  </FormControl>
                   <FormMessage />
                 </FormItem>
               )}

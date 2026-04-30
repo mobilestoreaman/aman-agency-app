@@ -105,8 +105,9 @@ export function DataTable<T>({
 
   return (
     <div className="flex flex-col gap-3">
-      <div className="rounded-xl border border-border/70 bg-card shadow-card overflow-hidden">
-        <Table>
+      <div className="rounded-xl border border-border/70 bg-card shadow-card">
+        <div className="overflow-x-auto">
+        <Table className="min-w-[560px]">
           <TableHeader>
             <TableRow className="hover:bg-transparent border-border/70">
               {columns.map((col) => {
@@ -174,6 +175,7 @@ export function DataTable<T>({
             )}
           </TableBody>
         </Table>
+        </div>
       </div>
 
       {/* Pagination — always visible when data exists so users always see the record count */}

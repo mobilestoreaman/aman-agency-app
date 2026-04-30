@@ -27,7 +27,7 @@ export default function DashboardPage() {
   const today = formatDate(new Date())
 
   return (
-    <div className="flex flex-col gap-6">
+    <div className="flex flex-col gap-4 sm:gap-6">
       {/* ── Header ──────────────────────────────────────── */}
       <PageHeader
         title="Dashboard"
@@ -58,7 +58,7 @@ export default function DashboardPage() {
       <QuickActions />
 
       {/* ── KPI Cards ────────────────────────────────────── */}
-      <div className="grid grid-cols-2 gap-3 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="grid grid-cols-2 gap-2 sm:gap-3 md:grid-cols-4">
         <KpiCard
           label="Today's Sales"
           value={isLoading ? '…' : data?.today_sales.count ?? 0}

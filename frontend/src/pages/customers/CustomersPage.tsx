@@ -176,7 +176,7 @@ export default function CustomersPage() {
           )}
         </div>
       ),
-      className: 'w-44',
+      className: 'w-auto whitespace-nowrap',
     },
   ]
 
@@ -208,7 +208,7 @@ export default function CustomersPage() {
 
       {/* Filters */}
       <div className="flex flex-wrap items-center gap-3">
-        <div className="relative min-w-[180px] flex-1 max-w-sm">
+        <div className="relative min-w-0 flex-1">
           <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
           <Input
             placeholder="Search by name or phone…"
@@ -222,7 +222,7 @@ export default function CustomersPage() {
           value={creditFilter || 'all'}
           onValueChange={(v) => { setCreditFilter(v === 'all' ? '' : v); setPage(1) }}
         >
-          <SelectTrigger className="w-[200px]">
+          <SelectTrigger className="w-full sm:w-[190px]">
             <SelectValue placeholder="Credit status" />
           </SelectTrigger>
           <SelectContent>

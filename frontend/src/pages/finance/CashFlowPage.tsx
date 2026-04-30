@@ -63,14 +63,14 @@ export default function CashFlowPage() {
 
       {/* Filters */}
       <div className="flex flex-wrap items-end gap-3">
-        <div className="flex items-center gap-2">
-          <Calendar className="h-4 w-4 text-muted-foreground" />
-          <Input type="date" value={from} onChange={(e) => setFrom(e.target.value)} className="w-[150px]" max={to || undefined} />
-          <span className="text-muted-foreground">–</span>
-          <Input type="date" value={to}   onChange={(e) => setTo(e.target.value)}   className="w-[150px]" min={from || undefined} />
+        <div className="flex w-full items-center gap-2 sm:w-auto">
+          <Calendar className="h-4 w-4 shrink-0 text-muted-foreground" />
+          <Input type="date" value={from} onChange={(e) => setFrom(e.target.value)} className="flex-1 sm:w-[140px] sm:flex-none" max={to || undefined} />
+          <span className="shrink-0 text-muted-foreground">–</span>
+          <Input type="date" value={to}   onChange={(e) => setTo(e.target.value)}   className="flex-1 sm:w-[140px] sm:flex-none" min={from || undefined} />
         </div>
         <Select value={groupBy} onValueChange={setGroupBy}>
-          <SelectTrigger className="h-9 w-[110px] text-xs"><SelectValue /></SelectTrigger>
+          <SelectTrigger className="h-9 w-full sm:w-[110px] text-xs"><SelectValue /></SelectTrigger>
           <SelectContent>
             <SelectItem value="daily">Daily</SelectItem>
             <SelectItem value="weekly">Weekly</SelectItem>

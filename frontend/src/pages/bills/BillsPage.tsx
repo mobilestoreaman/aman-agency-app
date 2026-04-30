@@ -357,7 +357,7 @@ export default function BillsPage() {
           <Eye className="h-3 w-3" /> View
         </Button>
       ),
-      className: 'w-20',
+      className: 'w-20 whitespace-nowrap',
     },
   ]
 
@@ -371,7 +371,7 @@ export default function BillsPage() {
       {/* Filters */}
       <div className="flex flex-wrap items-end gap-3">
         {/* Search */}
-        <div className="relative min-w-[200px] flex-1">
+        <div className="relative min-w-0 flex-1 basis-40">
           <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
           <Input
             placeholder="Search by bill #, customer, phone…"
@@ -392,7 +392,7 @@ export default function BillsPage() {
           value={statusFilter}
           onValueChange={(v) => { setStatus((v === 'all' ? '' : v) as BillStatus | ''); setPage(1) }}
         >
-          <SelectTrigger className="w-[160px]">
+          <SelectTrigger className="w-full sm:w-[160px]">
             <SelectValue placeholder="All statuses" />
           </SelectTrigger>
           <SelectContent>
@@ -404,19 +404,19 @@ export default function BillsPage() {
         </Select>
 
         {/* Date range */}
-        <div className="flex items-center gap-2">
+        <div className="flex w-full items-center gap-2 sm:w-auto">
           <Input
             type="date" value={fromDate}
             max={toDate || undefined}
             onChange={(e) => { setFromDate(e.target.value); setPage(1) }}
-            className="w-[150px]" title="From date"
+            className="flex-1 sm:w-[140px] sm:flex-none" title="From date"
           />
-          <span className="text-muted-foreground">–</span>
+          <span className="shrink-0 text-muted-foreground">–</span>
           <Input
             type="date" value={toDate}
             min={fromDate || undefined}
             onChange={(e) => { setToDate(e.target.value); setPage(1) }}
-            className="w-[150px]" title="To date"
+            className="flex-1 sm:w-[140px] sm:flex-none" title="To date"
           />
         </div>
 

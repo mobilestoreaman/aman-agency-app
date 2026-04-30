@@ -205,7 +205,7 @@ export default function LoanReferencesPage() {
             </Button>
           </div>
         ) : null,
-      className: 'w-40',
+      className: 'w-40 whitespace-nowrap',
     },
   ]
 
@@ -254,7 +254,7 @@ export default function LoanReferencesPage() {
 
       {/* Filters */}
       <div className="flex flex-wrap items-center gap-3">
-        <div className="relative min-w-[180px] flex-1">
+        <div className="relative min-w-0 flex-1 basis-40">
           <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
           <Input
             placeholder="Search customer, account no…"
@@ -265,7 +265,7 @@ export default function LoanReferencesPage() {
         </div>
 
         <Select value={statusFilter} onValueChange={(v) => { setStatus((v === 'all' ? '' : v) as LoanStatus | ''); setPage(1) }}>
-          <SelectTrigger className="w-[140px]">
+          <SelectTrigger className="w-full sm:w-[140px]">
             <SelectValue placeholder="All statuses" />
           </SelectTrigger>
           <SelectContent>
@@ -277,7 +277,7 @@ export default function LoanReferencesPage() {
         </Select>
 
         <Select value={providerFilter} onValueChange={(v) => { setProvider((v === 'all' ? '' : v) as LoanProvider | ''); setPage(1) }}>
-          <SelectTrigger className="w-[160px]">
+          <SelectTrigger className="w-full sm:w-[160px]">
             <SelectValue placeholder="All providers" />
           </SelectTrigger>
           <SelectContent>

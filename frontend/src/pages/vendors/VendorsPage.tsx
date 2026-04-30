@@ -107,7 +107,7 @@ export default function VendorsPage() {
             </Button>
           </div>
         ) : null,
-      className: 'w-20',
+      className: 'w-20 whitespace-nowrap',
     },
   ]
 

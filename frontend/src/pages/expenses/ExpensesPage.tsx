@@ -305,7 +305,7 @@ export default function ExpensesPage() {
           )}
         </div>
       ),
-      className: 'w-20',
+      className: 'w-20 whitespace-nowrap',
     },
   ]
 
@@ -346,7 +346,7 @@ export default function ExpensesPage() {
 
       {/* Filters */}
       <div className="flex flex-wrap items-end gap-3">
-        <div className="relative min-w-[180px] flex-1">
+        <div className="relative min-w-0 flex-1 basis-40">
           <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
           <Input
             placeholder="Search description…"
@@ -357,7 +357,7 @@ export default function ExpensesPage() {
         </div>
 
         <Select value={categoryFilter} onValueChange={(v) => { setCategory((v === 'all' ? '' : v) as ExpenseCategory | ''); setPage(1) }}>
-          <SelectTrigger className="w-[160px]">
+          <SelectTrigger className="w-full sm:w-[160px]">
             <SelectValue placeholder="All categories" />
           </SelectTrigger>
           <SelectContent>
@@ -368,19 +368,19 @@ export default function ExpensesPage() {
           </SelectContent>
         </Select>
 
-        <div className="flex items-center gap-2">
+        <div className="flex w-full items-center gap-2 sm:w-auto">
           <Input
             type="date" value={fromDate}
             max={toDate || undefined}
             onChange={(e) => { setFromDate(e.target.value); setPage(1) }}
-            className="w-[150px]" title="From date"
+            className="flex-1 sm:w-[140px] sm:flex-none" title="From date"
           />
-          <span className="text-muted-foreground">–</span>
+          <span className="shrink-0 text-muted-foreground">–</span>
           <Input
             type="date" value={toDate}
             min={fromDate || undefined}
             onChange={(e) => { setToDate(e.target.value); setPage(1) }}
-            className="w-[150px]" title="To date"
+            className="flex-1 sm:w-[140px] sm:flex-none" title="To date"
           />
         </div>
 

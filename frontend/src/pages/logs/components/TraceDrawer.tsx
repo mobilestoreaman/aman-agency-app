@@ -107,7 +107,7 @@ export default function TraceDrawer({ open, onClose, traceId }: TraceDrawerProps
 
   return (
     <Sheet open={open} onOpenChange={onClose}>
-      <SheetContent className="w-full sm:max-w-2xl overflow-y-auto">
+      <SheetContent className="w-[calc(100%-1rem)] sm:w-full sm:max-w-2xl overflow-y-auto">
         <SheetHeader>
           <SheetTitle className="flex items-center gap-2">
             Request Trace
@@ -144,7 +144,7 @@ export default function TraceDrawer({ open, onClose, traceId }: TraceDrawerProps
 
             {/* Summary */}
             <div className="bg-muted/50 rounded-lg p-4 space-y-3">
-              <div className="grid grid-cols-3 gap-4 text-center">
+              <div className="grid grid-cols-3 gap-2 text-center sm:gap-4">
                 <div>
                   <p className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">Duration</p>
                   <p className="text-base font-bold font-mono">{fmtDuration(totalDuration)}</p>
@@ -216,7 +216,7 @@ export default function TraceDrawer({ open, onClose, traceId }: TraceDrawerProps
                   {/* Method + path + status */}
                   <div className="flex items-center gap-2 text-xs mb-2 flex-wrap">
                     <span className="font-semibold font-mono text-muted-foreground">{log.method}</span>
-                    <span className="font-mono text-foreground/80 truncate max-w-[200px]" title={log.path}>
+                    <span className="font-mono text-foreground/80 truncate max-w-[120px] sm:max-w-[200px]" title={log.path}>
                       {log.path}
                     </span>
                     <span className={`ml-auto font-bold text-xs ${

@@ -29,14 +29,14 @@ export default function KpiCard({
   if (isLoading) {
     return (
       <Card className="shadow-card">
-        <CardContent className="p-5">
-          <div className="flex items-start justify-between gap-3">
-            <div className="flex-1 space-y-2">
-              <Skeleton className="h-3.5 w-20" />
-              <Skeleton className="h-8 w-28" />
+        <CardContent className="p-3 sm:p-5">
+          <div className="flex items-start justify-between gap-2">
+            <div className="flex-1 space-y-2 min-w-0">
               <Skeleton className="h-3 w-16" />
+              <Skeleton className="h-6 w-24" />
+              <Skeleton className="h-3 w-14" />
             </div>
-            <Skeleton className="h-10 w-10 rounded-xl" />
+            <Skeleton className="h-8 w-8 rounded-xl shrink-0" />
           </div>
         </CardContent>
       </Card>
@@ -54,36 +54,36 @@ export default function KpiCard({
       )}
       onClick={onClick}
     >
-      <CardContent className="p-5">
-        <div className="flex items-start justify-between gap-3">
+      <CardContent className="p-3 sm:p-5">
+        <div className="flex items-start justify-between gap-2">
           <div className="min-w-0 flex-1">
-            <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
+            <p className="text-[10px] sm:text-xs font-medium text-muted-foreground uppercase tracking-wide leading-tight">
               {label}
             </p>
-            <p className="mt-1.5 text-2xl font-bold tracking-tight text-foreground tabular-nums">
+            <p className="mt-1 text-lg sm:text-2xl font-bold tracking-tight text-foreground tabular-nums truncate">
               {value}
             </p>
             {trendLabel && (
               <div
                 className={cn(
-                  'mt-1.5 flex items-center gap-1 text-xs font-medium',
+                  'mt-1 flex items-center gap-1 text-[10px] sm:text-xs font-medium',
                   trend === 'up'      && 'text-emerald-600 dark:text-emerald-400',
                   trend === 'down'    && 'text-destructive',
                   trend === 'neutral' && 'text-muted-foreground',
                 )}
               >
-                <TrendIcon className="h-3 w-3 shrink-0" />
-                <span>{trendLabel}</span>
+                <TrendIcon className="h-2.5 w-2.5 sm:h-3 sm:w-3 shrink-0" />
+                <span className="truncate">{trendLabel}</span>
               </div>
             )}
           </div>
           <div
             className={cn(
-              'flex h-10 w-10 shrink-0 items-center justify-center rounded-xl',
+              'flex h-8 w-8 sm:h-10 sm:w-10 shrink-0 items-center justify-center rounded-xl',
               iconBg,
             )}
           >
-            <Icon className={cn('h-5 w-5', iconColor)} />
+            <Icon className={cn('h-4 w-4 sm:h-5 sm:w-5', iconColor)} />
           </div>
         </div>
       </CardContent>

@@ -105,7 +105,7 @@ export default function CustomerDetailPage() {
           </Link>
         </Button>
       ),
-      className: 'w-12',
+      className: 'w-12 whitespace-nowrap',
     },
   ]
 

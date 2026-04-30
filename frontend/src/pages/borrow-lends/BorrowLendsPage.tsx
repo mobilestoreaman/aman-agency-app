@@ -217,7 +217,7 @@ export default function BorrowLendsPage() {
           )}
         </div>
       ),
-      className: 'w-44',
+      className: 'w-44 whitespace-nowrap',
     },
   ]
 
@@ -259,7 +259,7 @@ export default function BorrowLendsPage() {
 
       {/* Filters */}
       <div className="flex flex-wrap items-center gap-3">
-        <div className="relative min-w-[180px] flex-1">
+        <div className="relative min-w-0 flex-1 basis-40">
           <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
           <Input
             placeholder="Search party, IMEI, product…"
@@ -270,7 +270,7 @@ export default function BorrowLendsPage() {
         </div>
 
         <Select value={typeFilter} onValueChange={(v) => { setType((v === 'all' ? '' : v) as BorrowLendType | ''); setPage(1) }}>
-          <SelectTrigger className="w-[140px]">
+          <SelectTrigger className="w-full sm:w-[130px]">
             <SelectValue placeholder="All types" />
           </SelectTrigger>
           <SelectContent>
@@ -281,7 +281,7 @@ export default function BorrowLendsPage() {
         </Select>
 
         <Select value={statusFilter} onValueChange={(v) => { setStatus((v === 'all' ? '' : v) as BorrowLendStatus | ''); setPage(1) }}>
-          <SelectTrigger className="w-[140px]">
+          <SelectTrigger className="w-full sm:w-[130px]">
             <SelectValue placeholder="All statuses" />
           </SelectTrigger>
           <SelectContent>
@@ -292,20 +292,20 @@ export default function BorrowLendsPage() {
           </SelectContent>
         </Select>
 
-        {/* Date range (filters on borrow date) */}
-        <div className="flex items-center gap-2">
+        {/* Date range */}
+        <div className="flex w-full items-center gap-2 sm:w-auto">
           <Input
             type="date" value={fromDate}
             max={toDate || undefined}
             onChange={(e) => { setFromDate(e.target.value); setPage(1) }}
-            className="w-[150px]" title="From borrow date"
+            className="flex-1 sm:w-[140px] sm:flex-none" title="From borrow date"
           />
-          <span className="text-muted-foreground">–</span>
+          <span className="shrink-0 text-muted-foreground">–</span>
           <Input
             type="date" value={toDate}
             min={fromDate || undefined}
             onChange={(e) => { setToDate(e.target.value); setPage(1) }}
-            className="w-[150px]" title="To borrow date"
+            className="flex-1 sm:w-[140px] sm:flex-none" title="To borrow date"
           />
         </div>
 

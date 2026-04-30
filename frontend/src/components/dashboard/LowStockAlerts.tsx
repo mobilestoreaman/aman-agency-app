@@ -70,11 +70,11 @@ export default function LowStockAlerts({ alerts, isLoading }: Props) {
             <p className="text-sm text-muted-foreground">All stock levels are healthy.</p>
           </div>
         ) : (
-          <ul className="space-y-1.5">
+          <ul className="space-y-1">
             {alerts.slice(0, 8).map((alert) => (
               <li
                 key={alert.product_id}
-                className="flex items-center justify-between gap-3 rounded-lg px-2 py-1.5 hover:bg-muted/40 transition-colors"
+                className="flex items-center justify-between gap-2 rounded-lg px-2 py-1.5 hover:bg-muted/40 transition-colors"
               >
                 <Link
                   to="/devices"
@@ -82,7 +82,7 @@ export default function LowStockAlerts({ alerts, isLoading }: Props) {
                 >
                   {alert.product_name}
                 </Link>
-                <Badge variant={severityVariant(alert.available)} className="shrink-0 text-xs">
+                <Badge variant={severityVariant(alert.available)} className="shrink-0 text-xs whitespace-nowrap">
                   {alert.available === 0 ? 'Out of stock' : `${alert.available} left`}
                 </Badge>
               </li>

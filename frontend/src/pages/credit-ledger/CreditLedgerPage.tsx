@@ -144,7 +144,7 @@ export default function CreditLedgerPage() {
       cell:   (e) => {
         const debit = isDebit(e)
         return (
-          <span className={`font-mono font-semibold ${debit ? 'text-destructive' : 'text-emerald-600'}`}>
+          <span className={`font-mono font-semibold whitespace-nowrap ${debit ? 'text-destructive' : 'text-emerald-600'}`}>
             {debit ? '+' : '−'}{formatCurrency(Math.abs(e.amount))}
           </span>
         )
@@ -157,7 +157,7 @@ export default function CreditLedgerPage() {
       cell:   (e) => {
         const owed = e.balance_after > 0
         return (
-          <span className={`font-mono text-sm ${owed ? 'text-destructive' : 'text-emerald-600'}`}>
+          <span className={`font-mono text-sm whitespace-nowrap ${owed ? 'text-destructive' : 'text-emerald-600'}`}>
             {owed ? '' : '−'}{formatCurrency(Math.abs(e.balance_after))}
             {!owed && e.balance_after < 0 && (
               <span className="ml-1 text-xs font-normal opacity-70">(credit)</span>
@@ -239,18 +239,18 @@ export default function CreditLedgerPage() {
       {/* Filters */}
       <div className="flex flex-wrap items-end gap-3">
         {/* Search */}
-        <div className="relative">
+        <div className="relative min-w-0 flex-1 basis-40">
           <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
           <Input
             placeholder="Search by customer or reference…"
             value={search}
             onChange={(e) => { setSearch(e.target.value); setPage(1) }}
-            className="pl-9 w-[260px]"
+            className="pl-9"
           />
         </div>
 
         <Select value={customerId} onValueChange={(v) => { setCustomer(v === 'all' ? '' : v); setPage(1) }}>
-          <SelectTrigger className="w-[200px]">
+          <SelectTrigger className="w-full sm:w-[180px]">
             <SelectValue placeholder="All customers" />
           </SelectTrigger>
           <SelectContent>
@@ -266,17 +266,17 @@ export default function CreditLedgerPage() {
           </SelectContent>
         </Select>
 
-        <div className="flex items-center gap-2">
+        <div className="flex w-full items-center gap-2 sm:w-auto">
           <Input
             type="date" value={fromDate}
             onChange={(e) => { setFromDate(e.target.value); setPage(1) }}
-            className="w-[150px]" title="From date"
+            className="flex-1 sm:w-[140px] sm:flex-none" title="From date"
           />
-          <span className="text-muted-foreground">–</span>
+          <span className="shrink-0 text-muted-foreground">–</span>
           <Input
             type="date" value={toDate}
             onChange={(e) => { setToDate(e.target.value); setPage(1) }}
-            className="w-[150px]" title="To date"
+            className="flex-1 sm:w-[140px] sm:flex-none" title="To date"
           />
         </div>
 

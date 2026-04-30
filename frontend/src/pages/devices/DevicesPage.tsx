@@ -369,7 +369,7 @@ export default function DevicesPage() {
       header: 'IMEI / Device',
       cell:   (d) => (
         <div className="min-w-0">
-          <p className="font-mono text-sm font-medium">{d.imei1}</p>
+          <p className="font-mono text-sm font-medium truncate max-w-[160px] sm:max-w-none">{d.imei1}</p>
           <p className="truncate text-xs text-muted-foreground">
             {d.product_name}
             {d.color   ? ` · ${d.color}`   : ''}
@@ -438,7 +438,7 @@ export default function DevicesPage() {
           )}
         </div>
       ),
-      className: 'w-36',
+      className: 'w-36 whitespace-nowrap',
     },
   ]
 
@@ -529,7 +529,7 @@ export default function DevicesPage() {
       {/* ── Toolbar ──────────────────────────────────────────────────────── */}
       <div className="flex flex-wrap items-center gap-3">
         {/* Text search */}
-        <div className="relative min-w-[200px] flex-1">
+        <div className="relative min-w-0 flex-1 basis-40">
           <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
           <Input
             placeholder="Search IMEI, product, brand…"
@@ -541,7 +541,7 @@ export default function DevicesPage() {
 
         {/* Status filter */}
         <Select value={statusFilter} onValueChange={(v) => { setStatus(v === 'all' ? '' : v as DeviceStatus); setPage(1) }}>
-          <SelectTrigger className="w-[150px]">
+          <SelectTrigger className="w-full sm:w-[140px]">
             <SelectValue placeholder="All statuses" />
           </SelectTrigger>
           <SelectContent>
@@ -554,7 +554,7 @@ export default function DevicesPage() {
 
         {/* Product filter */}
         <Select value={productId} onValueChange={(v) => { setProductId(v === 'all' ? '' : v); setPage(1) }}>
-          <SelectTrigger className="w-[180px]">
+          <SelectTrigger className="w-full sm:w-[160px]">
             <SelectValue placeholder="All products" />
           </SelectTrigger>
           <SelectContent>
@@ -571,7 +571,7 @@ export default function DevicesPage() {
           </Button>
         )}
 
-        {/* View toggle */}
+        {/* View toggle — always right-aligned */}
         <div className="flex items-center rounded-md border bg-muted/40 p-0.5 gap-0.5 ml-auto">
           <Button
             variant={view === 'grid' ? 'secondary' : 'ghost'}

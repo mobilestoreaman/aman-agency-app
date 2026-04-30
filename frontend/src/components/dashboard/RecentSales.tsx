@@ -34,12 +34,12 @@ export default function RecentSales({ sales, isLoading }: Props) {
         {isLoading ? (
           <div className="space-y-0">
             {Array.from({ length: 5 }).map((_, i) => (
-              <div key={i} className="flex items-center justify-between gap-4 px-6 py-3 border-b last:border-0">
-                <div className="space-y-1.5 flex-1">
+              <div key={i} className="flex items-center justify-between gap-3 px-4 sm:px-6 py-3 border-b last:border-0">
+                <div className="space-y-1.5 flex-1 min-w-0">
                   <Skeleton className="h-3.5 w-24" />
                   <Skeleton className="h-3 w-16" />
                 </div>
-                <Skeleton className="h-4 w-16" />
+                <Skeleton className="h-4 w-16 shrink-0" />
               </div>
             ))}
           </div>
@@ -55,7 +55,7 @@ export default function RecentSales({ sales, isLoading }: Props) {
             {sales.map((sale) => (
               <div
                 key={sale.sale_id}
-                className="flex items-center justify-between gap-4 px-6 py-3 border-b border-border/50 last:border-0 hover:bg-muted/20 transition-colors"
+                className="flex items-center justify-between gap-3 px-4 sm:px-6 py-3 border-b border-border/50 last:border-0 hover:bg-muted/20 transition-colors"
               >
                 {/* Invoice + customer */}
                 <div className="min-w-0 flex-1">
@@ -71,12 +71,12 @@ export default function RecentSales({ sales, isLoading }: Props) {
                 </div>
 
                 {/* Amount */}
-                <span className="shrink-0 text-[13px] font-bold text-foreground tabular-nums">
+                <span className="shrink-0 text-[13px] font-bold text-foreground tabular-nums whitespace-nowrap">
                   {formatCurrency(sale.total_amount)}
                 </span>
 
                 {/* Date */}
-                <span className="hidden shrink-0 text-xs text-muted-foreground sm:block min-w-[70px] text-right">
+                <span className="hidden shrink-0 text-xs text-muted-foreground sm:block min-w-[70px] text-right whitespace-nowrap">
                   {formatDate(sale.created_at)}
                 </span>
               </div>

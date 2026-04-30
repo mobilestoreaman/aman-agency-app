@@ -179,7 +179,7 @@ export default function PurchasesPage() {
       key:    'total',
       header: 'Total cost',
       cell:   (p) => (
-        <span className="font-semibold">{formatCurrency(p.total_cost)}</span>
+        <span className="font-semibold whitespace-nowrap">{formatCurrency(p.total_cost)}</span>
       ),
       sortValue: (p) => p.total_cost,
     },
@@ -231,7 +231,7 @@ export default function PurchasesPage() {
             </Button>
           </div>
         ) : null,
-      className: 'w-36',
+      className: 'w-auto whitespace-nowrap',
     },
   ]
 
@@ -283,7 +283,7 @@ export default function PurchasesPage() {
 
       {/* Filters */}
       <div className="flex flex-wrap items-end gap-3">
-        <div className="relative min-w-[180px] flex-1">
+        <div className="relative min-w-0 flex-1 basis-40">
           <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
           <Input
             placeholder="Search product, vendor…"
@@ -294,7 +294,7 @@ export default function PurchasesPage() {
         </div>
 
         <Select value={vendorId} onValueChange={(v) => { setVendorId(v === 'all' ? '' : v); setPage(1) }}>
-          <SelectTrigger className="w-[180px]">
+          <SelectTrigger className="w-full sm:w-[160px]">
             <SelectValue placeholder="All vendors" />
           </SelectTrigger>
           <SelectContent>
@@ -305,22 +305,22 @@ export default function PurchasesPage() {
           </SelectContent>
         </Select>
 
-        <div className="flex items-center gap-2">
+        <div className="flex w-full items-center gap-2 sm:w-auto">
           <Input
             type="date"
             value={fromDate}
             max={toDate || undefined}
             onChange={(e) => { setFromDate(e.target.value); setPage(1) }}
-            className="w-[150px]"
+            className="flex-1 sm:w-[140px] sm:flex-none"
             title="From date"
           />
-          <span className="text-muted-foreground">–</span>
+          <span className="shrink-0 text-muted-foreground">–</span>
           <Input
             type="date"
             value={toDate}
             min={fromDate || undefined}
             onChange={(e) => { setToDate(e.target.value); setPage(1) }}
-            className="w-[150px]"
+            className="flex-1 sm:w-[140px] sm:flex-none"
             title="To date"
           />
         </div>

@@ -56,7 +56,7 @@ export default function LogFilters({ filters, onChange, onReset, hasFilters }: L
     <div className="flex flex-col gap-3 rounded-xl border border-border/70 bg-card p-3 shadow-sm">
       {/* Row 1: search + quick presets */}
       <div className="flex flex-wrap items-center gap-2">
-        <div className="relative min-w-[220px] flex-1">
+        <div className="relative min-w-0 flex-1 basis-44">
           <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
           <Input
             placeholder="Search message, path, email, trace ID…"
@@ -113,7 +113,7 @@ export default function LogFilters({ filters, onChange, onReset, hasFilters }: L
           value={filters.module || 'all'}
           onValueChange={(v) => onChange({ module: v === 'all' ? '' : v as LogModule, page: 1 })}
         >
-          <SelectTrigger className="h-8 w-[130px] text-xs">
+          <SelectTrigger className="h-8 w-full sm:w-[130px] text-xs">
             <SelectValue placeholder="All modules" />
           </SelectTrigger>
           <SelectContent>
@@ -129,7 +129,7 @@ export default function LogFilters({ filters, onChange, onReset, hasFilters }: L
           value={filters.status || 'all'}
           onValueChange={(v) => onChange({ status: v === 'all' ? '' : v as 'success' | 'failure', page: 1 })}
         >
-          <SelectTrigger className="h-8 w-[120px] text-xs">
+          <SelectTrigger className="h-8 w-full sm:w-[120px] text-xs">
             <SelectValue placeholder="All statuses" />
           </SelectTrigger>
           <SelectContent>
@@ -139,21 +139,21 @@ export default function LogFilters({ filters, onChange, onReset, hasFilters }: L
           </SelectContent>
         </Select>
 
-        {/* Date range */}
-        <div className="flex items-center gap-1">
+        {/* Date range — stacks cleanly on mobile */}
+        <div className="flex w-full items-center gap-1 sm:w-auto">
           <Input
             type="date"
             value={filters.from_date ?? ''}
             onChange={(e) => onChange({ from_date: e.target.value, page: 1 })}
-            className="h-8 w-[138px] text-xs"
+            className="h-8 flex-1 sm:w-[130px] sm:flex-none text-xs"
             title="From date"
           />
-          <span className="text-muted-foreground text-xs">→</span>
+          <span className="shrink-0 text-muted-foreground text-xs">→</span>
           <Input
             type="date"
             value={filters.to_date ?? ''}
             onChange={(e) => onChange({ to_date: e.target.value, page: 1 })}
-            className="h-8 w-[138px] text-xs"
+            className="h-8 flex-1 sm:w-[130px] sm:flex-none text-xs"
             title="To date"
           />
         </div>

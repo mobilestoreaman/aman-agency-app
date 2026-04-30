@@ -217,7 +217,7 @@ export default function SalesPage() {
           View
         </Button>
       ),
-      className: 'w-16',
+      className: 'w-16 whitespace-nowrap',
     },
   ]
 
@@ -269,7 +269,8 @@ export default function SalesPage() {
 
       {/* Filters */}
       <div className="flex flex-wrap items-end gap-3">
-        <div className="relative min-w-[180px] flex-1">
+        {/* Search — takes all available space */}
+        <div className="relative min-w-0 flex-1 basis-40">
           <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
           <Input
             placeholder="Search invoice, customer…"
@@ -286,7 +287,7 @@ export default function SalesPage() {
         />
 
         <Select value={customerId} onValueChange={(v) => { setCustomer(v === 'all' ? '' : v); setPage(1) }}>
-          <SelectTrigger className="w-[180px]">
+          <SelectTrigger className="w-full sm:w-[160px]">
             <SelectValue placeholder="All customers" />
           </SelectTrigger>
           <SelectContent>
@@ -298,7 +299,7 @@ export default function SalesPage() {
         </Select>
 
         <Select value={statusFilter} onValueChange={(v) => { setStatus((v === 'all' ? '' : v) as SaleStatus | ''); setPage(1) }}>
-          <SelectTrigger className="w-[140px]">
+          <SelectTrigger className="w-full sm:w-[130px]">
             <SelectValue placeholder="All statuses" />
           </SelectTrigger>
           <SelectContent>
@@ -308,17 +309,18 @@ export default function SalesPage() {
           </SelectContent>
         </Select>
 
-        <div className="flex items-center gap-2">
+        {/* Date range — wraps to its own row on mobile */}
+        <div className="flex w-full items-center gap-2 sm:w-auto">
           <Input
             type="date" value={fromDate}
             onChange={(e) => { setFromDate(e.target.value); setPage(1) }}
-            className="w-[150px]" title="From date"
+            className="flex-1 sm:w-[140px] sm:flex-none" title="From date"
           />
-          <span className="text-muted-foreground">–</span>
+          <span className="shrink-0 text-muted-foreground">–</span>
           <Input
             type="date" value={toDate}
             onChange={(e) => { setToDate(e.target.value); setPage(1) }}
-            className="w-[150px]" title="To date"
+            className="flex-1 sm:w-[140px] sm:flex-none" title="To date"
           />
         </div>
 

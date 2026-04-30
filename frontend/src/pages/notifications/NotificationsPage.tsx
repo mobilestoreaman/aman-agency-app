@@ -165,7 +165,7 @@ export default function NotificationsPage() {
           )}
         </div>
       ),
-      className: 'w-44',
+      className: 'w-44 whitespace-nowrap',
     },
   ]
 
@@ -208,7 +208,7 @@ export default function NotificationsPage() {
           value={statusFilter}
           onValueChange={(v) => { setStatus((v === 'all' ? '' : v) as NotificationStatus | ''); setPage(1) }}
         >
-          <SelectTrigger className="w-[160px]">
+          <SelectTrigger className="w-full sm:w-[160px]">
             <SelectValue placeholder="All statuses" />
           </SelectTrigger>
           <SelectContent>

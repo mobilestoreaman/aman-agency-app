@@ -185,7 +185,7 @@ export default function BrandsPage() {
           )}
         </div>
       ),
-      className: 'w-20',
+      className: 'w-20 whitespace-nowrap',
     },
   ]
 
