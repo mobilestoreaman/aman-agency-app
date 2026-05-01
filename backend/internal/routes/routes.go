@@ -196,22 +196,36 @@ func Setup(app *fiber.App, db *database.Client, cfg *config.Config) {
 	// ── Step 7: Vendors & Purchases ─────────────────────────────────
 	vendorRepo := repository.NewVendorRepository(db.DB)
 	purchaseRepo := repository.NewPurchaseRepository(db.DB)
+	vendorLedgerRepo := repository.NewVendorLedgerRepository(db.DB)
 
 	vendorSvc := service.NewVendorService(vendorRepo, purchaseRepo)
-	purchaseSvc := service.NewPurchaseService(purchaseRepo, vendorRepo, productRepo, deviceRepo)
+	vendorLedgerSvc := service.NewVendorLedgerService(vendorLedgerRepo, vendorRepo)
+	purchaseSvc := service.NewPurchaseService(purchaseRepo, vendorRepo, productRepo, deviceRepo, vendorLedgerSvc)
 
 	vendorCtrl := controller.NewVendorController(vendorSvc)
 	purchaseCtrl := controller.NewPurchaseController(purchaseSvc)
+	vendorLedgerCtrl := controller.NewVendorLedgerController(vendorLedgerSvc, auditSvc)
 
 	// Vendors — staff read, admin write
+	// IMPORTANT: /ledger and /payments must be registered before /:id to avoid shadowing.
 	vendorsPublic := v1.Group("/vendors", middleware.Authenticate(jwtManager), middleware.AnyStaff())
 	vendorsPublic.Get("", vendorCtrl.List)
+	vendorsPublic.Get("/:id/ledger", vendorLedgerCtrl.ListByVendor)
+	vendorsPublic.Post("/:id/payments", vendorLedgerCtrl.RecordPayment)
 	vendorsPublic.Get("/:id", vendorCtrl.GetByID)
 
 	vendorsAdmin := v1.Group("/vendors", middleware.Authenticate(jwtManager), middleware.AdminOnly())
 	vendorsAdmin.Post("", vendorCtrl.Create)
 	vendorsAdmin.Put("/:id", vendorCtrl.Update)
 	vendorsAdmin.Delete("/:id", vendorCtrl.Delete)
+	vendorsAdmin.Post("/:id/adjustments", vendorLedgerCtrl.RecordAdjustment)
+
+	// Global vendor ledger listing (any staff can read across all vendors)
+	v1.Get("/vendor-ledger",
+		middleware.Authenticate(jwtManager),
+		middleware.AnyStaff(),
+		vendorLedgerCtrl.List,
+	)
 
 	// Purchases — staff read, admin write + receive
 	purchasesPublic := v1.Group("/purchases", middleware.Authenticate(jwtManager), middleware.AnyStaff())

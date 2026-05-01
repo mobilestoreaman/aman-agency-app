@@ -22,6 +22,7 @@ import {
   UserCheck,
   Boxes,
   Landmark,
+  HandCoins,
   type LucideIcon,
 } from 'lucide-react'
 
@@ -69,8 +70,9 @@ export const navGroups: NavGroup[] = [
   {
     label: 'Procurement',
     items: [
-      { label: 'Vendors',    path: '/vendors',    icon: Truck },
-      { label: 'Purchases',  path: '/purchases',  icon: ShoppingBag },
+      { label: 'Vendors',        path: '/vendors',        icon: Truck },
+      { label: 'Purchases',      path: '/purchases',      icon: ShoppingBag },
+      { label: 'Vendor Ledger',  path: '/vendor-ledger',  icon: HandCoins },
     ],
   },
   {

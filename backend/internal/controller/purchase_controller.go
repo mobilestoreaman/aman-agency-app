@@ -2,6 +2,7 @@ package controller
 
 import (
 	"aman-agency/backend/internal/dto"
+	"aman-agency/backend/internal/middleware"
 	"aman-agency/backend/internal/service"
 	"aman-agency/backend/pkg/apperror"
 	"aman-agency/backend/pkg/response"
@@ -152,7 +153,8 @@ func (ctrl *PurchaseController) Receive(c *fiber.Ctx) error {
 	if err := appvalidator.Struct(req); err != nil {
 		return err
 	}
-	p, err := ctrl.svc.Receive(c.Context(), id, req)
+	staffName := middleware.GetUserEmail(c)
+	p, err := ctrl.svc.Receive(c.Context(), id, staffName, req)
 	if err != nil {
 		return err
 	}

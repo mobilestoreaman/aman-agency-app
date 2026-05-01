@@ -7,90 +7,117 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Skeleton } from '@/components/ui/skeleton'
 import PageHeader from '@/components/shared/PageHeader'
 import { Link } from 'react-router-dom'
+import { ResponsiveTable, type Column } from '@/components/shared/ResponsiveTable'
 import { useCustomerInsights } from '@/hooks/useReports'
 import { formatCurrency } from '@/utils/currency'
 import { toApiDate } from '@/utils/date'
 import { formatDistanceToNow } from 'date-fns'
 import type { CustomerInsightEntry } from '@/types'
 
-type SortField = 'total_spent' | 'total_purchases' | 'total_paid' | 'credit_balance' | 'credit_risk_pct' | 'avg_ticket' | 'customer_name'
-type SortDirection = 'asc' | 'desc'
+const getCreditRiskColor = (risk: number) => {
+  if (risk >= 80) return 'bg-red-100 text-red-900 font-bold'
+  if (risk >= 30) return 'bg-amber-50 text-amber-900'
+  if (risk < 10)  return 'bg-green-50 text-green-900'
+  return 'bg-red-50 text-red-900'
+}
 
 export default function CustomerInsightsPage() {
   const [fromDate, setFromDate] = useState('')
-  const [toDate, setToDate] = useState('')
-  const [sortField, setSortField] = useState<SortField>('total_spent')
-  const [sortDirection, setSortDirection] = useState<SortDirection>('desc')
+  const [toDate, setToDate]     = useState('')
 
   const apiFromDate = fromDate ? toApiDate(fromDate) : undefined
-  const apiToDate = toDate ? toApiDate(toDate) : undefined
+  const apiToDate   = toDate   ? toApiDate(toDate)   : undefined
 
   const { data: customers, isLoading, isError, dataUpdatedAt, refetch } = useCustomerInsights({
     from: apiFromDate,
-    to: apiToDate,
+    to:   apiToDate,
   })
 
-  const handleSort = (field: SortField) => {
-    if (sortField === field) {
-      setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc')
-    } else {
-      setSortField(field)
-      setSortDirection('desc')
-    }
-  }
-
-  const sortedCustomers = useMemo(() => {
-    if (!customers) return []
-    const sorted = [...customers].sort((a, b) => {
-      let aVal = a[sortField]
-      let bVal = b[sortField]
-
-      if (typeof aVal === 'string') {
-        aVal = aVal.toLowerCase()
-        bVal = (bVal as string).toLowerCase()
-      }
-
-      if (aVal < bVal) return sortDirection === 'asc' ? -1 : 1
-      if (aVal > bVal) return sortDirection === 'asc' ? 1 : -1
-      return 0
-    })
-    return sorted
-  }, [customers, sortField, sortDirection])
-
+  // Chart: always top-10 by total spent, independent of table sort
   const chartData = useMemo(() => {
-    return sortedCustomers.slice(0, 10).map((c) => ({
-      name: c.customer_name || 'Unknown',
-      spent: c.total_spent,
-      paid: c.total_paid,
-      outstanding: c.credit_balance,
-    }))
-  }, [sortedCustomers])
+    if (!customers) return []
+    return [...customers]
+      .sort((a, b) => b.total_spent - a.total_spent)
+      .slice(0, 10)
+      .map((c) => ({
+        name:        c.customer_name || 'Unknown',
+        spent:       c.total_spent,
+        paid:        c.total_paid,
+        outstanding: c.credit_balance,
+      }))
+  }, [customers])
 
   const summary = useMemo(() => {
     if (!customers) return { count: 0, totalSpent: 0, totalOutstanding: 0, avgTicket: 0 }
-    const totalSpent = customers.reduce((sum, c) => sum + c.total_spent, 0)
-    const totalOutstanding = customers.reduce((sum, c) => sum + c.credit_balance, 0)
-    const avgTicket = customers.length > 0 ? customers.reduce((sum, c) => sum + c.avg_ticket, 0) / customers.length : 0
-
-    return {
-      count: customers.length,
-      totalSpent,
-      totalOutstanding,
-      avgTicket,
-    }
+    const totalSpent       = customers.reduce((s, c) => s + c.total_spent,     0)
+    const totalOutstanding = customers.reduce((s, c) => s + c.credit_balance,  0)
+    const avgTicket        = customers.length > 0
+      ? customers.reduce((s, c) => s + c.avg_ticket, 0) / customers.length
+      : 0
+    return { count: customers.length, totalSpent, totalOutstanding, avgTicket }
   }, [customers])
 
-  const getSortIndicator = (field: SortField) => {
-    if (sortField !== field) return null
-    return sortDirection === 'asc' ? ' ↑' : ' ↓'
-  }
-
-  const getCreditRiskColor = (risk: number) => {
-    if (risk >= 80) return 'bg-red-100 text-red-900 font-bold'
-    if (risk < 10) return 'bg-green-50 text-green-900'
-    if (risk >= 30) return 'bg-amber-50 text-amber-900'
-    return 'bg-red-50 text-red-900'
-  }
+  const columns: Column<CustomerInsightEntry>[] = [
+    {
+      key:       'customer',
+      header:    'Customer',
+      sortValue: (c) => c.customer_name,
+      cell:      (c) => (
+        <Link
+          to={`/customers/${c.customer_id}`}
+          className="text-sm font-medium hover:underline text-primary"
+        >
+          {c.customer_name || 'Unknown'}
+        </Link>
+      ),
+    },
+    {
+      key:       'phone',
+      header:    'Phone',
+      cell:      (c) => <span className="text-sm text-muted-foreground">{c.phone || '—'}</span>,
+      className: 'hidden sm:table-cell',
+    },
+    {
+      key:       'purchases',
+      header:    'Purchases',
+      sortValue: (c) => c.total_purchases,
+      cell:      (c) => <span className="text-sm">{c.total_purchases.toLocaleString()}</span>,
+      className: 'hidden md:table-cell',
+    },
+    {
+      key:       'spent',
+      header:    'Total Spent',
+      sortValue: (c) => c.total_spent,
+      cell:      (c) => <span className="font-semibold text-sm">{formatCurrency(c.total_spent)}</span>,
+    },
+    {
+      key:       'paid',
+      header:    'Paid',
+      sortValue: (c) => c.total_paid,
+      cell:      (c) => <span className="text-sm text-green-600">{formatCurrency(c.total_paid)}</span>,
+      className: 'hidden lg:table-cell',
+    },
+    {
+      key:       'outstanding',
+      header:    'Outstanding',
+      sortValue: (c) => c.credit_balance,
+      cell:      (c) => (
+        <span className={`font-semibold text-sm ${c.credit_balance > 0 ? 'text-amber-600' : 'text-muted-foreground'}`}>
+          {formatCurrency(c.credit_balance)}
+        </span>
+      ),
+    },
+    {
+      key:       'risk',
+      header:    'Credit Risk %',
+      sortValue: (c) => c.credit_risk_pct,
+      cell:      (c) => (
+        <span className={`rounded px-2 py-1 text-xs font-medium ${getCreditRiskColor(c.credit_risk_pct)}`}>
+          {c.credit_risk_pct.toFixed(2)}%
+        </span>
+      ),
+    },
+  ]
 
   return (
     <div className="space-y-6">
@@ -99,7 +126,6 @@ export default function CustomerInsightsPage() {
         description="Analyze customer spending, credit health, and transaction patterns"
       />
 
-      {/* Error Card */}
       {isError && (
         <Card className="border-destructive">
           <CardContent className="py-6 text-center text-sm text-destructive">
@@ -121,27 +147,22 @@ export default function CustomerInsightsPage() {
             <div className="space-y-2">
               <label className="text-sm font-medium">From Date</label>
               <Input
-                type="date"
-                value={fromDate}
+                type="date" value={fromDate}
                 onChange={(e) => setFromDate(e.target.value)}
-                max={toDate || undefined}
-                className="w-full"
+                max={toDate || undefined} className="w-full"
               />
             </div>
             <div className="space-y-2">
               <label className="text-sm font-medium">To Date</label>
               <Input
-                type="date"
-                value={toDate}
+                type="date" value={toDate}
                 onChange={(e) => setToDate(e.target.value)}
-                min={fromDate || undefined}
-                className="w-full"
+                min={fromDate || undefined} className="w-full"
               />
             </div>
-            <div className="flex gap-2">
+            <div>
               <Button onClick={() => refetch()} variant="outline" size="sm" className="gap-2">
-                <RefreshCw className="h-4 w-4" />
-                Refresh
+                <RefreshCw className="h-4 w-4" /> Refresh
               </Button>
             </div>
           </div>
@@ -155,56 +176,37 @@ export default function CustomerInsightsPage() {
       )}
 
       {/* Summary Cards */}
-      <div className="grid grid-cols-1 gap-4 md:grid-cols-4">
+      <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
         <Card>
           <CardHeader className="pb-2">
             <CardTitle className="text-sm font-medium text-muted-foreground">Total Customers</CardTitle>
           </CardHeader>
           <CardContent>
-            {isLoading ? (
-              <Skeleton className="h-8 w-20" />
-            ) : (
-              <div className="text-2xl font-bold">{summary.count.toLocaleString()}</div>
-            )}
+            {isLoading ? <Skeleton className="h-8 w-20" /> : <div className="text-2xl font-bold">{summary.count.toLocaleString()}</div>}
           </CardContent>
         </Card>
-
         <Card>
           <CardHeader className="pb-2">
             <CardTitle className="text-sm font-medium text-muted-foreground">Total Spent</CardTitle>
           </CardHeader>
           <CardContent>
-            {isLoading ? (
-              <Skeleton className="h-8 w-32" />
-            ) : (
-              <div className="text-2xl font-bold">{formatCurrency(summary.totalSpent)}</div>
-            )}
+            {isLoading ? <Skeleton className="h-8 w-32" /> : <div className="text-2xl font-bold">{formatCurrency(summary.totalSpent)}</div>}
           </CardContent>
         </Card>
-
         <Card>
           <CardHeader className="pb-2">
             <CardTitle className="text-sm font-medium text-muted-foreground">Outstanding Credit</CardTitle>
           </CardHeader>
           <CardContent>
-            {isLoading ? (
-              <Skeleton className="h-8 w-32" />
-            ) : (
-              <div className="text-2xl font-bold text-amber-600">{formatCurrency(summary.totalOutstanding)}</div>
-            )}
+            {isLoading ? <Skeleton className="h-8 w-32" /> : <div className="text-2xl font-bold text-amber-600">{formatCurrency(summary.totalOutstanding)}</div>}
           </CardContent>
         </Card>
-
         <Card>
           <CardHeader className="pb-2">
             <CardTitle className="text-sm font-medium text-muted-foreground">Avg Ticket Size</CardTitle>
           </CardHeader>
           <CardContent>
-            {isLoading ? (
-              <Skeleton className="h-8 w-32" />
-            ) : (
-              <div className="text-2xl font-bold">{formatCurrency(summary.avgTicket)}</div>
-            )}
+            {isLoading ? <Skeleton className="h-8 w-32" /> : <div className="text-2xl font-bold">{formatCurrency(summary.avgTicket)}</div>}
           </CardContent>
         </Card>
       </div>
@@ -212,27 +214,19 @@ export default function CustomerInsightsPage() {
       {/* Spending Chart */}
       {isLoading ? (
         <Card>
-          <CardHeader>
-            <CardTitle>Top 10 Customers by Total Spent</CardTitle>
-          </CardHeader>
-          <CardContent className="h-80">
-            <Skeleton className="h-full w-full" />
-          </CardContent>
+          <CardHeader><CardTitle>Top 10 Customers by Total Spent</CardTitle></CardHeader>
+          <CardContent className="h-80"><Skeleton className="h-full w-full" /></CardContent>
         </Card>
       ) : chartData.length === 0 ? (
         <Card>
-          <CardHeader>
-            <CardTitle>Top 10 Customers by Total Spent</CardTitle>
-          </CardHeader>
+          <CardHeader><CardTitle>Top 10 Customers by Total Spent</CardTitle></CardHeader>
           <CardContent className="flex h-80 items-center justify-center text-muted-foreground">
             No customer data available for the selected period
           </CardContent>
         </Card>
       ) : (
         <Card>
-          <CardHeader>
-            <CardTitle>Top 10 Customers by Total Spent</CardTitle>
-          </CardHeader>
+          <CardHeader><CardTitle>Top 10 Customers by Total Spent</CardTitle></CardHeader>
           <CardContent className="h-80">
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={chartData} margin={{ top: 20, right: 30, left: 0, bottom: 80 }}>
@@ -241,8 +235,8 @@ export default function CustomerInsightsPage() {
                 <YAxis />
                 <Tooltip formatter={(value: any) => formatCurrency(value as number)} />
                 <Legend />
-                <Bar dataKey="spent" fill="#3b82f6" name="Total Spent" />
-                <Bar dataKey="paid" fill="#10b981" name="Total Paid" />
+                <Bar dataKey="spent"       fill="#3b82f6" name="Total Spent" />
+                <Bar dataKey="paid"        fill="#10b981" name="Total Paid" />
                 <Bar dataKey="outstanding" fill="#ef4444" name="Outstanding Credit" />
               </BarChart>
             </ResponsiveContainer>
@@ -252,83 +246,19 @@ export default function CustomerInsightsPage() {
 
       {/* Customers Table */}
       <Card>
-        <CardHeader>
-          <CardTitle>Customer Rankings</CardTitle>
-        </CardHeader>
-        <CardContent>
-          {isLoading ? (
-            <div className="space-y-2">
-              {Array.from({ length: 5 }).map((_, i) => (
-                <Skeleton key={i} className="h-12 w-full" />
-              ))}
-            </div>
-          ) : sortedCustomers.length === 0 ? (
-            <div className="py-12 text-center text-muted-foreground">No customers found for the selected period</div>
-          ) : (
-            <div className="overflow-x-auto">
-              <table className="w-full">
-                <thead>
-                  <tr className="border-b">
-                    <th className="px-4 py-3 text-left text-sm font-semibold text-muted-foreground">#</th>
-                    <th
-                      className="cursor-pointer px-4 py-3 text-left text-sm font-semibold text-muted-foreground hover:bg-muted/50"
-                      onClick={() => handleSort('customer_name')}
-                    >
-                      Customer {getSortIndicator('customer_name')}
-                    </th>
-                    <th className="px-4 py-3 text-left text-sm font-semibold text-muted-foreground">Phone</th>
-                    <th
-                      className="cursor-pointer px-4 py-3 text-right text-sm font-semibold text-muted-foreground hover:bg-muted/50"
-                      onClick={() => handleSort('total_purchases')}
-                    >
-                      Purchases {getSortIndicator('total_purchases')}
-                    </th>
-                    <th
-                      className="cursor-pointer px-4 py-3 text-right text-sm font-semibold text-muted-foreground hover:bg-muted/50"
-                      onClick={() => handleSort('total_spent')}
-                    >
-                      Total Spent {getSortIndicator('total_spent')}
-                    </th>
-                    <th
-                      className="cursor-pointer px-4 py-3 text-right text-sm font-semibold text-muted-foreground hover:bg-muted/50"
-                      onClick={() => handleSort('total_paid')}
-                    >
-                      Paid {getSortIndicator('total_paid')}
-                    </th>
-                    <th className="px-4 py-3 text-right text-sm font-semibold text-muted-foreground">Outstanding</th>
-                    <th
-                      className="cursor-pointer px-4 py-3 text-right text-sm font-semibold text-muted-foreground hover:bg-muted/50"
-                      onClick={() => handleSort('credit_risk_pct')}
-                    >
-                      Credit Risk % {getSortIndicator('credit_risk_pct')}
-                    </th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y">
-                  {sortedCustomers.map((customer, idx) => (
-                    <tr key={customer.customer_id} className="hover:bg-muted/50">
-                      <td className="px-4 py-3 text-sm font-medium">{idx + 1}</td>
-                      <td className="px-4 py-3 text-sm">
-                        <Link to={`/customers/${customer.customer_id}`} className="hover:underline text-primary">
-                          {customer.customer_name || 'Unknown'}
-                        </Link>
-                      </td>
-                      <td className="px-4 py-3 text-sm">{customer.phone || '-'}</td>
-                      <td className="px-4 py-3 text-right text-sm">{customer.total_purchases.toLocaleString()}</td>
-                      <td className="px-4 py-3 text-right text-sm font-semibold">{formatCurrency(customer.total_spent)}</td>
-                      <td className="px-4 py-3 text-right text-sm text-green-600">{formatCurrency(customer.total_paid)}</td>
-                      <td className="px-4 py-3 text-right text-sm font-semibold text-amber-600">{formatCurrency(customer.credit_balance)}</td>
-                      <td className="px-4 py-3 text-right text-sm">
-                        <span className={`rounded px-2 py-1 ${getCreditRiskColor(customer.credit_risk_pct)}`}>
-                          {customer.credit_risk_pct.toFixed(2)}%
-                        </span>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          )}
+        <CardHeader><CardTitle>Customer Rankings</CardTitle></CardHeader>
+        <CardContent className="p-0 sm:p-6">
+          <ResponsiveTable
+            columns={columns}
+            data={customers ?? []}
+            isLoading={isLoading}
+            emptyMessage="No customers found for the selected period"
+            mobileCard={{
+              top:    ['customer', 'risk'],
+              middle: ['spent', 'outstanding'],
+              bottom: ['purchases', 'paid'],
+            }}
+          />
         </CardContent>
       </Card>
     </div>

@@ -1,5 +1,6 @@
 import { useState } from 'react'
-import { Plus, Pencil, Trash2, Search, Phone, MapPin } from 'lucide-react'
+import { Link } from 'react-router-dom'
+import { Plus, Pencil, Trash2, Search, Phone, MapPin, BookOpen } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { ResponsiveTable, type Column } from '@/components/shared/ResponsiveTable'
@@ -10,6 +11,7 @@ import { useVendors, useDeleteVendor } from '@/hooks/useVendors'
 import { useIsAdmin } from '@/store/authStore'
 import { useDebounce } from '@/hooks/useDebounce'
 import { formatDate } from '@/utils/date'
+import { formatCurrency } from '@/utils/currency'
 import type { Vendor } from '@/types'
 
 export default function VendorsPage() {
@@ -80,6 +82,17 @@ export default function VendorsPage() {
       className: 'hidden lg:table-cell',
     },
     {
+      key:    'balance',
+      header: 'Balance',
+      sortValue: (v) => v.payable_balance,
+      cell:   (v) => (
+        v.payable_balance > 0
+          ? <span className="font-mono text-sm font-semibold text-destructive">{formatCurrency(v.payable_balance)}</span>
+          : <span className="text-sm text-muted-foreground">Nil</span>
+      ),
+      className: 'hidden sm:table-cell',
+    },
+    {
       key:    'since',
       header: 'Added',
       sortValue: (v) => v.created_at,
@@ -89,25 +102,33 @@ export default function VendorsPage() {
     {
       key:    'actions',
       header: '',
-      cell:   (v) =>
-        isAdmin ? (
-          <div className="flex items-center justify-end gap-1">
-            <Button
-              variant="ghost" size="icon" className="h-8 w-8"
-              onClick={() => openEdit(v)} aria-label="Edit vendor"
-            >
-              <Pencil className="h-3.5 w-3.5" />
+      cell:   (v) => (
+        <div className="flex items-center justify-end gap-1">
+          <Link to={`/vendor-ledger?vendor=${v.id}`} tabIndex={-1}>
+            <Button variant="ghost" size="icon" className="h-8 w-8" title="View ledger" aria-label="View ledger">
+              <BookOpen className="h-3.5 w-3.5" />
             </Button>
-            <Button
-              variant="ghost" size="icon"
-              className="h-8 w-8 text-destructive hover:text-destructive"
-              onClick={() => setDeleting(v)} aria-label="Delete vendor"
-            >
-              <Trash2 className="h-3.5 w-3.5" />
-            </Button>
-          </div>
-        ) : null,
-      className: 'w-20 whitespace-nowrap',
+          </Link>
+          {isAdmin && (
+            <>
+              <Button
+                variant="ghost" size="icon" className="h-8 w-8"
+                onClick={() => openEdit(v)} aria-label="Edit vendor"
+              >
+                <Pencil className="h-3.5 w-3.5" />
+              </Button>
+              <Button
+                variant="ghost" size="icon"
+                className="h-8 w-8 text-destructive hover:text-destructive"
+                onClick={() => setDeleting(v)} aria-label="Delete vendor"
+              >
+                <Trash2 className="h-3.5 w-3.5" />
+              </Button>
+            </>
+          )}
+        </div>
+      ),
+      className: 'w-28 whitespace-nowrap',
     },
   ]
 
@@ -146,7 +167,7 @@ export default function VendorsPage() {
         minWidth="360px"
         mobileCard={{
           top:     ['name'],
-          middle:  [],
+          middle:  ['balance'],
           bottom:  ['contact', 'since'],
           actions: 'actions',
         }}

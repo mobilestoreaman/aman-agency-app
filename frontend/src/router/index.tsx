@@ -26,6 +26,7 @@ const NotificationsPage = lazy(() => import('@/pages/notifications/Notifications
 const SettingsPage     = lazy(() => import('@/pages/settings/SettingsPage'))
 const ExpensesPage      = lazy(() => import('@/pages/expenses/ExpensesPage'))
 const CreditLedgerPage      = lazy(() => import('@/pages/credit-ledger/CreditLedgerPage'))
+const VendorLedgerPage      = lazy(() => import('@/pages/vendor-ledger/VendorLedgerPage'))
 const PaymentPromisesPage   = lazy(() => import('@/pages/payment-promises/PaymentPromisesPage'))
 const LogsPage              = lazy(() => import('@/pages/logs/LogsPage'))
 const NotFoundPage          = lazy(() => import('@/pages/NotFoundPage'))
@@ -92,6 +93,7 @@ export const router = createBrowserRouter([
           { path: 'notifications',   element: withSuspense(<NotificationsPage />) },
           { path: 'expenses',        element: withSuspense(<ExpensesPage />) },
           { path: 'credit-ledger',    element: withSuspense(<CreditLedgerPage />) },
+          { path: 'vendor-ledger',    element: withSuspense(<VendorLedgerPage />) },
           { path: 'payment-promises', element: withSuspense(<PaymentPromisesPage />) },
 
           // Admin-only routes

@@ -142,6 +142,8 @@ export interface Vendor {
   phone: string
   address?: string
   notes?: string
+  /** Running total of what the business owes this vendor. Positive = owes vendor. */
+  payable_balance: number
   created_at: string
   updated_at: string
 }
@@ -623,4 +625,26 @@ export interface CashFlowEntry {
   expense_cost: number
   money_out: number
   net_cash_flow: number
+}
+
+// ── Vendor Ledger ─────────────────────────────────────────────
+// Backend types: purchase | payment | adjustment | reversal
+// Amount sign: > 0 = debit (business owes vendor more), < 0 = credit (balance reduced)
+export type VendorLedgerEntryType = 'purchase' | 'payment' | 'adjustment' | 'reversal'
+
+export interface VendorLedgerEntry {
+  id: string
+  vendor_id: string
+  vendor_name: string
+  type: VendorLedgerEntryType
+  /** Positive = debit (business owes vendor more). Negative = credit (balance reduced). */
+  amount: number
+  balance_after: number
+  /** Purchase ID or free-text reference (present for purchase/reversal entries). */
+  reference?: string
+  /** Purchase ObjectID — present when type is 'purchase' or 'reversal'. */
+  purchase_id?: string
+  notes?: string
+  created_by: string
+  created_at: string
 }

@@ -23,6 +23,9 @@ type VendorRepository interface {
 	List(ctx context.Context, f dto.VendorFilter) ([]*models.Vendor, int64, error)
 	Update(ctx context.Context, id primitive.ObjectID, fields bson.M) (*models.Vendor, error)
 	Delete(ctx context.Context, id primitive.ObjectID) error
+	// IncrementPayable atomically adds delta to the vendor's payable_balance.
+	// delta > 0 increases the payable (business owes more); delta < 0 reduces it.
+	IncrementPayable(ctx context.Context, id primitive.ObjectID, delta float64) error
 }
 
 type vendorRepository struct {
@@ -142,6 +145,25 @@ func (r *vendorRepository) Delete(ctx context.Context, id primitive.ObjectID) er
 		return err
 	}
 	if res.DeletedCount == 0 {
+		return ErrNotFound
+	}
+	return nil
+}
+
+// IncrementPayable atomically adds delta to the vendor's payable_balance field.
+func (r *vendorRepository) IncrementPayable(ctx context.Context, id primitive.ObjectID, delta float64) error {
+	res, err := r.col.UpdateOne(
+		ctx,
+		bson.M{"_id": id},
+		bson.M{
+			"$inc": bson.M{"payable_balance": delta},
+			"$set": bson.M{"updated_at": time.Now().UTC()},
+		},
+	)
+	if err != nil {
+		return err
+	}
+	if res.MatchedCount == 0 {
 		return ErrNotFound
 	}
 	return nil

@@ -27,16 +27,18 @@ type PurchaseService interface {
 	// Received purchases cannot be edited.
 	Update(ctx context.Context, id string, req dto.UpdatePurchaseRequest) (*dto.PurchaseResponse, error)
 	// Receive marks a pending purchase as received, creating Device documents for
-	// every line item and linking them back via device_id.
-	Receive(ctx context.Context, id string, req dto.ReceivePurchaseRequest) (*dto.PurchaseResponse, error)
+	// every line item and linking them back via device_id. staffName is used to
+	// record who triggered the receive event in the vendor ledger.
+	Receive(ctx context.Context, id, staffName string, req dto.ReceivePurchaseRequest) (*dto.PurchaseResponse, error)
 	Delete(ctx context.Context, id string) error
 }
 
 type purchaseService struct {
-	purchaseRepo repository.PurchaseRepository
-	vendorRepo   repository.VendorRepository
-	productRepo  repository.ProductRepository
-	deviceRepo   repository.DeviceRepository
+	purchaseRepo     repository.PurchaseRepository
+	vendorRepo       repository.VendorRepository
+	productRepo      repository.ProductRepository
+	deviceRepo       repository.DeviceRepository
+	vendorLedgerSvc  VendorLedgerService
 }
 
 // NewPurchaseService constructs a PurchaseService with all required repositories.
@@ -45,12 +47,14 @@ func NewPurchaseService(
 	vendorRepo repository.VendorRepository,
 	productRepo repository.ProductRepository,
 	deviceRepo repository.DeviceRepository,
+	vendorLedgerSvc VendorLedgerService,
 ) PurchaseService {
 	return &purchaseService{
-		purchaseRepo: purchaseRepo,
-		vendorRepo:   vendorRepo,
-		productRepo:  productRepo,
-		deviceRepo:   deviceRepo,
+		purchaseRepo:    purchaseRepo,
+		vendorRepo:      vendorRepo,
+		productRepo:     productRepo,
+		deviceRepo:      deviceRepo,
+		vendorLedgerSvc: vendorLedgerSvc,
 	}
 }
 
@@ -297,7 +301,7 @@ func (s *purchaseService) Update(ctx context.Context, id string, req dto.UpdateP
 // Receive materialises every line item as a Device document and marks the
 // purchase as received. If any IMEI already exists the whole operation aborts
 // before any devices are persisted, so the caller can fix the conflict.
-func (s *purchaseService) Receive(ctx context.Context, id string, req dto.ReceivePurchaseRequest) (*dto.PurchaseResponse, error) {
+func (s *purchaseService) Receive(ctx context.Context, id, staffName string, req dto.ReceivePurchaseRequest) (*dto.PurchaseResponse, error) {
 	oid, err := parsePurchaseOID(id)
 	if err != nil {
 		return nil, err
@@ -380,6 +384,22 @@ func (s *purchaseService) Receive(ctx context.Context, id string, req dto.Receiv
 	// Persist the receive event atomically.
 	if err := s.purchaseRepo.UpdateReceived(ctx, oid, updatedItems); err != nil {
 		return nil, err
+	}
+
+	// Record a vendor ledger debit for the total cost of this purchase.
+	// Non-fatal: if this fails we log but do not roll back the receive operation,
+	// since inventory is already committed. The balance can be corrected via
+	// a manual adjustment.
+	if s.vendorLedgerSvc != nil && purchase.TotalCost > 0 {
+		_ = s.vendorLedgerSvc.RecordPurchase(
+			ctx,
+			purchase.VendorID.Hex(),
+			purchase.VendorName,
+			purchase.ID.Hex(),
+			purchase.ID.Hex(), // reference — will be enriched in service
+			staffName,
+			purchase.TotalCost,
+		)
 	}
 
 	// Return the updated purchase.
