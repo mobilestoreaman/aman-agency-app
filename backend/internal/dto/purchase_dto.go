@@ -3,13 +3,13 @@ package dto
 // PurchaseItemRequest describes a single device line in a purchase order.
 type PurchaseItemRequest struct {
 	ProductID     string  `json:"product_id"     validate:"required,objectid"`
-	IMEI1         string  `json:"imei1"          validate:"required,min=14,max=16"`
-	IMEI2         string  `json:"imei2"          validate:"omitempty,min=14,max=16"`
+	IMEI1         string  `json:"imei1"          validate:"required,len=15"`
+	IMEI2         string  `json:"imei2"          validate:"omitempty,len=15"`
 	Condition     string  `json:"condition"      validate:"required,oneof=new used refurbished"`
 	Color         string  `json:"color"          validate:"omitempty,max=50"`
 	Storage       string  `json:"storage"        validate:"omitempty,max=20"`
-	PurchasePrice float64 `json:"purchase_price" validate:"required,min=0,max=10000000"`
-	SellingPrice  float64 `json:"selling_price"  validate:"omitempty,min=0,max=10000000"`
+	PurchasePrice float64 `json:"purchase_price" validate:"required,gt=0,max=10000000"`
+	SellingPrice  float64 `json:"selling_price"  validate:"omitempty,gt=0,max=10000000"`
 }
 
 // CreatePurchaseRequest is the body for POST /api/v1/purchases.

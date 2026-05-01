@@ -180,6 +180,17 @@ func (s *vendorLedgerService) RecordPayment(
 		return nil, apperror.NotFound("vendor not found")
 	}
 
+	// Guard: refuse payment if there is nothing owed.
+	if vendor.PayableBalance <= 0 {
+		return nil, apperror.BadRequest("vendor has no outstanding balance to pay")
+	}
+	// Guard: refuse if the payment would exceed the outstanding balance.
+	if req.Amount > vendor.PayableBalance {
+		return nil, apperror.BadRequest(
+			fmt.Sprintf("payment amount (%.2f) exceeds outstanding balance (%.2f)", req.Amount, vendor.PayableBalance),
+		)
+	}
+
 	// Payment reduces what the business owes — delta is negative.
 	delta := -req.Amount
 	newBalance := vendor.PayableBalance + delta

@@ -26,14 +26,19 @@ type VendorService interface {
 }
 
 type vendorService struct {
-	repo         repository.VendorRepository
-	purchaseRepo repository.PurchaseRepository
+	repo           repository.VendorRepository
+	purchaseRepo   repository.PurchaseRepository
+	ledgerRepo     repository.VendorLedgerRepository
 }
 
 // NewVendorService constructs a VendorService.
-// purchaseRepo is used to enforce deletion constraints.
-func NewVendorService(repo repository.VendorRepository, purchaseRepo repository.PurchaseRepository) VendorService {
-	return &vendorService{repo: repo, purchaseRepo: purchaseRepo}
+// purchaseRepo and ledgerRepo are used to enforce deletion constraints.
+func NewVendorService(
+	repo repository.VendorRepository,
+	purchaseRepo repository.PurchaseRepository,
+	ledgerRepo repository.VendorLedgerRepository,
+) VendorService {
+	return &vendorService{repo: repo, purchaseRepo: purchaseRepo, ledgerRepo: ledgerRepo}
 }
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
@@ -159,14 +164,22 @@ func (s *vendorService) Delete(ctx context.Context, id string) error {
 	}
 
 	// Block deletion if the vendor has any purchase records.
-	// Purchases are the vendor's transaction history — deleting the vendor
-	// would orphan those financial records.
 	hasPurchases, err := s.purchaseRepo.HasByVendor(ctx, oid)
 	if err != nil {
 		return fmt.Errorf("failed to check vendor purchases: %w", err)
 	}
 	if hasPurchases {
 		return apperror.Conflict("cannot delete vendor: they have existing purchase records — delete the purchases first")
+	}
+
+	// Block deletion if the vendor has any ledger entries (payments or adjustments).
+	// Deleting the vendor would orphan those financial records and break the audit trail.
+	hasLedger, err := s.ledgerRepo.HasEntriesByVendor(ctx, oid)
+	if err != nil {
+		return fmt.Errorf("failed to check vendor ledger: %w", err)
+	}
+	if hasLedger {
+		return apperror.Conflict("cannot delete vendor: they have ledger entries — settle all balances and clear the ledger first")
 	}
 
 	if err := s.repo.Delete(ctx, oid); err != nil {

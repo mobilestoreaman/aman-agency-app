@@ -381,25 +381,33 @@ func (s *purchaseService) Receive(ctx context.Context, id, staffName string, req
 		updatedItems[cd.index].DeviceID = &devID
 	}
 
-	// Persist the receive event atomically.
-	if err := s.purchaseRepo.UpdateReceived(ctx, oid, updatedItems); err != nil {
-		return nil, err
-	}
-
-	// Record a vendor ledger debit for the total cost of this purchase.
-	// Non-fatal: if this fails we log but do not roll back the receive operation,
-	// since inventory is already committed. The balance can be corrected via
-	// a manual adjustment.
+	// Record a vendor ledger debit BEFORE persisting the receive status so that,
+	// if the ledger call fails, we can still roll back the devices cleanly and
+	// return an error while leaving the purchase in pending state (clean recovery).
 	if s.vendorLedgerSvc != nil && purchase.TotalCost > 0 {
-		_ = s.vendorLedgerSvc.RecordPurchase(
+		if err := s.vendorLedgerSvc.RecordPurchase(
 			ctx,
 			purchase.VendorID.Hex(),
 			purchase.VendorName,
 			purchase.ID.Hex(),
-			purchase.ID.Hex(), // reference — will be enriched in service
+			purchase.ID.Hex(),
 			staffName,
 			purchase.TotalCost,
-		)
+		); err != nil {
+			// Roll back every device we just created so inventory stays clean.
+			for _, cd := range createdDevices {
+				_ = s.deviceRepo.Delete(ctx, cd.deviceID)
+			}
+			return nil, fmt.Errorf("failed to record vendor ledger entry — receive aborted: %w", err)
+		}
+	}
+
+	// Persist the receive event. If this fails after the ledger entry has already
+	// been written we return an error; the purchase remains pending but devices
+	// and a ledger entry exist. This edge-case requires manual cleanup and is an
+	// inherent limitation of operating without a replica-set transaction.
+	if err := s.purchaseRepo.UpdateReceived(ctx, oid, updatedItems); err != nil {
+		return nil, fmt.Errorf("failed to mark purchase as received (ledger already updated): %w", err)
 	}
 
 	// Return the updated purchase.

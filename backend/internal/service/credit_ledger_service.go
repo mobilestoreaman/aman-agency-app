@@ -185,6 +185,17 @@ func (s *creditLedgerService) RecordPayment(
 		return nil, apperror.NotFound("customer not found")
 	}
 
+	// Guard: refuse payment if there is nothing owed.
+	if customer.CreditBalance <= 0 {
+		return nil, apperror.BadRequest("customer has no outstanding balance to pay")
+	}
+	// Guard: refuse if the payment would exceed the outstanding balance.
+	if req.Amount > customer.CreditBalance {
+		return nil, apperror.BadRequest(
+			fmt.Sprintf("payment amount (%.2f) exceeds outstanding balance (%.2f)", req.Amount, customer.CreditBalance),
+		)
+	}
+
 	// Payment reduces what the customer owes — delta is negative.
 	delta := -req.Amount
 	newBalance := customer.CreditBalance + delta

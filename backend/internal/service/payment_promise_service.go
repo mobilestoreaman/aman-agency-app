@@ -80,9 +80,11 @@ func (s *paymentPromiseService) Create(
 	}
 	promised = promised.UTC()
 
-	// Ensure the promised date is in the future.
-	if promised.Before(time.Now().UTC()) {
-		return nil, apperror.BadRequest("promised_date must be in the future")
+	// Ensure the promised date is today or later (compare at day granularity so
+	// creating a promise for today doesn't fail because midnight < current time).
+	today := time.Now().UTC().Truncate(24 * time.Hour)
+	if promised.Before(today) {
+		return nil, apperror.BadRequest("promised_date must be today or in the future")
 	}
 
 	promise := &models.PaymentPromise{
@@ -187,9 +189,10 @@ func (s *paymentPromiseService) Reschedule(
 		return nil, apperror.BadRequest("new_date must be YYYY-MM-DD")
 	}
 
-	// Ensure the new date is in the future.
-	if newDate.Before(time.Now().UTC()) {
-		return nil, apperror.BadRequest("new_date must be in the future")
+	// Ensure the new date is today or later (compare at day granularity).
+	today := time.Now().UTC().Truncate(24 * time.Hour)
+	if newDate.UTC().Before(today) {
+		return nil, apperror.BadRequest("new_date must be today or in the future")
 	}
 
 	// Determine amount for the new promise.

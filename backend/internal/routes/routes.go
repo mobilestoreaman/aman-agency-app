@@ -198,7 +198,7 @@ func Setup(app *fiber.App, db *database.Client, cfg *config.Config) {
 	purchaseRepo := repository.NewPurchaseRepository(db.DB)
 	vendorLedgerRepo := repository.NewVendorLedgerRepository(db.DB)
 
-	vendorSvc := service.NewVendorService(vendorRepo, purchaseRepo)
+	vendorSvc := service.NewVendorService(vendorRepo, purchaseRepo, vendorLedgerRepo)
 	vendorLedgerSvc := service.NewVendorLedgerService(vendorLedgerRepo, vendorRepo)
 	purchaseSvc := service.NewPurchaseService(purchaseRepo, vendorRepo, productRepo, deviceRepo, vendorLedgerSvc)
 
