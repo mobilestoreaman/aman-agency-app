@@ -47,6 +47,13 @@ interface DataTableProps<T> {
   onPageChange?: (page: number) => void
   emptyMessage?: string
   skeletonRows?: number
+  /**
+   * Minimum table width before horizontal scroll kicks in.
+   * Defaults to '560px' which suits most multi-column tables.
+   * Pass a narrower value (e.g. '340px') for simple 2–3 column tables
+   * like Brands or Vendors so mobile devices don't scroll unnecessarily.
+   */
+  minWidth?: string
 }
 
 export function DataTable<T>({
@@ -57,6 +64,7 @@ export function DataTable<T>({
   onPageChange,
   emptyMessage = 'No records found.',
   skeletonRows = 6,
+  minWidth = '560px',
 }: DataTableProps<T>) {
   const [sort, setSort] = useState<SortState | null>(null)
 
@@ -107,7 +115,7 @@ export function DataTable<T>({
     <div className="flex flex-col gap-3">
       <div className="rounded-xl border border-border/70 bg-card shadow-card">
         <div className="overflow-x-auto">
-        <Table className="min-w-[560px]">
+        <Table style={{ minWidth }}>
           <TableHeader>
             <TableRow className="hover:bg-transparent border-border/70">
               {columns.map((col) => {

@@ -349,9 +349,10 @@ export default function PaymentPromisesPage() {
               size="sm"
               className="h-8 gap-1 text-xs text-green-700 hover:text-green-700 hover:bg-green-50"
               onClick={() => setMarkingPaid(p)}
+              title="Mark as paid"
             >
               <CheckCircle2 className="h-3.5 w-3.5" />
-              Paid
+              <span className="hidden sm:inline">Paid</span>
             </Button>
             {/* Reschedule */}
             <Button
@@ -359,9 +360,10 @@ export default function PaymentPromisesPage() {
               size="sm"
               className="h-8 gap-1 text-xs"
               onClick={() => setRescheduling(p)}
+              title="Reschedule payment"
             >
               <RefreshCw className="h-3.5 w-3.5" />
-              Reschedule
+              <span className="hidden sm:inline">Reschedule</span>
             </Button>
             {/* Mark broken — admin only */}
             {isAdmin && (
@@ -370,15 +372,16 @@ export default function PaymentPromisesPage() {
                 size="sm"
                 className="h-8 gap-1 text-xs text-destructive hover:text-destructive"
                 onClick={() => markBroken.mutate(p.id)}
+                title="Mark as broken promise"
               >
                 <XCircle className="h-3.5 w-3.5" />
-                Broken
+                <span className="hidden sm:inline">Broken</span>
               </Button>
             )}
           </div>
         )
       },
-      className: 'w-56 whitespace-nowrap',
+      className: 'w-auto whitespace-nowrap',
     },
   ]
 

@@ -144,10 +144,7 @@ function IMEIScanner({
             <div className="absolute bottom-0 left-0  h-4 w-4 border-b-2 border-l-2 border-primary rounded-bl" />
             <div className="absolute bottom-0 right-0 h-4 w-4 border-b-2 border-r-2 border-primary rounded-br" />
             {/* Animated scan line */}
-            <div
-              className="absolute inset-x-0 h-0.5 bg-primary/70"
-              style={{ animation: 'scanLine 1.6s ease-in-out infinite' }}
-            />
+            <div className="absolute inset-x-0 h-0.5 bg-primary/70 animate-scan-line" />
           </div>
         </div>
       )}
@@ -178,14 +175,6 @@ function IMEIScanner({
         </div>
       )}
 
-      {/* Scan line keyframe injected inline */}
-      <style>{`
-        @keyframes scanLine {
-          0%   { top: 10%; }
-          50%  { top: 80%; }
-          100% { top: 10%; }
-        }
-      `}</style>
     </div>
   )
 }

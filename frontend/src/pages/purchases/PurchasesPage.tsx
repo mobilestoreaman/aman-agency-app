@@ -18,7 +18,7 @@ import { useVendors } from '@/hooks/useVendors'
 import { useIsAdmin } from '@/store/authStore'
 import { useDebounce } from '@/hooks/useDebounce'
 import { formatCurrency } from '@/utils/currency'
-import { formatDate } from '@/utils/date'
+import { formatDate, toApiDate } from '@/utils/date'
 import { downloadExport, type ExportFormat } from '@/utils/export'
 import { purchasesApi } from '@/api/purchases'
 import { toast } from 'sonner'
@@ -53,20 +53,13 @@ export default function PurchasesPage() {
 
   const q = useDebounce(search)
 
-  /** Convert YYYY-MM-DD (native date input) → DD-MM-YYYY (API) */
-  const toApi = (d: string) => {
-    if (!d) return undefined
-    const [y, m, day] = d.split('-')
-    return `${day}-${m}-${y}`
-  }
-
   const { data, isLoading } = usePurchases({
     page,
     limit:  15,
     search:      q          || undefined,
     vendor_id:  vendorId   || undefined,
-    from_date:  toApi(fromDate),
-    to_date:    toApi(toDate),
+    from_date:  toApiDate(fromDate),
+    to_date:    toApiDate(toDate),
   })
 
   const { data: vendorsData } = useVendors({ limit: 200 })
@@ -88,8 +81,8 @@ export default function PurchasesPage() {
         page: 1, limit: 10000,
         search:    q             || undefined,
         vendor_id: vendorId      || undefined,
-        from_date: toApi(fromDate),
-        to_date:   toApi(toDate),
+        from_date: toApiDate(fromDate),
+        to_date:   toApiDate(toDate),
       })
       const purchases = res.data.data ?? []
 

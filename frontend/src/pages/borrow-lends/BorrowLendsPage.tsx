@@ -240,18 +240,18 @@ export default function BorrowLendsPage() {
         <div className="flex flex-wrap gap-3">
           <div className="flex items-center gap-2 rounded-full border bg-blue-50 px-3 py-1.5 text-sm dark:bg-blue-950/20">
             <ArrowUpRight className="h-4 w-4 text-blue-600" />
-            <span className="text-muted-foreground">Active lent:</span>
+            <span className="text-muted-foreground">Active lent (this page):</span>
             <span className="font-semibold text-blue-700 dark:text-blue-400">{activeLent}</span>
           </div>
           <div className="flex items-center gap-2 rounded-full border bg-amber-50 px-3 py-1.5 text-sm dark:bg-amber-950/20">
             <ArrowDownLeft className="h-4 w-4 text-amber-600" />
-            <span className="text-muted-foreground">Active borrowed:</span>
+            <span className="text-muted-foreground">Active borrowed (this page):</span>
             <span className="font-semibold text-amber-700 dark:text-amber-400">{activeBorrow}</span>
           </div>
           {overdue > 0 && (
             <div className="flex items-center gap-2 rounded-full border border-destructive/30 bg-destructive/5 px-3 py-1.5 text-sm">
               <AlertTriangle className="h-4 w-4 text-destructive" />
-              <span className="font-semibold text-destructive">{overdue} overdue</span>
+              <span className="font-semibold text-destructive">{overdue} overdue (this page)</span>
             </div>
           )}
         </div>

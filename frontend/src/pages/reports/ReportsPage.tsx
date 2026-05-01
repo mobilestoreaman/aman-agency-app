@@ -60,18 +60,18 @@ export default function ReportsPage() {
 
       {/* Date range filter */}
       <div className="flex flex-wrap items-end gap-3">
-        <div className="flex items-center gap-2">
-          <Calendar className="h-4 w-4 text-muted-foreground" />
+        <div className="flex w-full items-center gap-2 sm:w-auto">
+          <Calendar className="h-4 w-4 shrink-0 text-muted-foreground" />
           <Input
             type="date" value={from}
             onChange={(e) => setFrom(e.target.value)}
-            className="w-[150px]" title="From date"
+            className="flex-1 sm:w-[140px] sm:flex-none" title="From date"
           />
-          <span className="text-muted-foreground">–</span>
+          <span className="shrink-0 text-muted-foreground">–</span>
           <Input
             type="date" value={to}
             onChange={(e) => setTo(e.target.value)}
-            className="w-[150px]" title="To date"
+            className="flex-1 sm:w-[140px] sm:flex-none" title="To date"
           />
         </div>
         {(from || to) && (

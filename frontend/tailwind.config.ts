@@ -94,12 +94,18 @@ const config: Config = {
           from: { opacity: '0', transform: 'translateX(-8px)' },
           to:   { opacity: '1', transform: 'translateX(0)' },
         },
+        'scan-line': {
+          '0%':   { top: '0%' },
+          '50%':  { top: '100%' },
+          '100%': { top: '0%' },
+        },
       },
       animation: {
         'accordion-down':  'accordion-down 0.2s ease-out',
         'accordion-up':    'accordion-up 0.2s ease-out',
         'fade-in':         'fade-in 0.2s ease-out',
         'slide-in-left':   'slide-in-left 0.2s ease-out',
+        'scan-line':       'scan-line 1.6s ease-in-out infinite',
       },
     },
   },

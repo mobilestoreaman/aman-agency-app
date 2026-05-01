@@ -330,6 +330,7 @@ export default function BrandsPage() {
           meta={data?.meta}
           onPageChange={setPage}
           emptyMessage="No brands found. Add your first brand to get started."
+          minWidth="320px"
         />
       )}
 

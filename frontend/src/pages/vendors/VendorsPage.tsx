@@ -143,6 +143,7 @@ export default function VendorsPage() {
         meta={data?.meta}
         onPageChange={setPage}
         emptyMessage="No vendors yet. Add your first supplier to get started."
+        minWidth="360px"
       />
 
       <VendorFormModal
