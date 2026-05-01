@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
-import { Plus, TrendingUp, TrendingDown, ArrowUpRight, Search, Download } from 'lucide-react'
+import { TrendingUp, TrendingDown, ArrowUpRight, Search, Download } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
@@ -10,10 +10,8 @@ import {
 } from '@/components/ui/select'
 import { ResponsiveTable, type Column } from '@/components/shared/ResponsiveTable'
 import PageHeader from '@/components/shared/PageHeader'
-import VendorLedgerEntryModal from '@/components/vendorLedger/VendorLedgerEntryModal'
 import { useVendorLedger } from '@/hooks/useVendorLedger'
 import { useVendors } from '@/hooks/useVendors'
-import { useIsAdmin } from '@/store/authStore'
 import { useDebounce } from '@/hooks/useDebounce'
 import { formatCurrency } from '@/utils/currency'
 import { formatDate, toApiDate } from '@/utils/date'
@@ -86,13 +84,7 @@ function RefBadge({ entry }: { entry: VendorLedgerEntry }) {
 
 // ── Page ───────────────────────────────────────────────────────────────────────
 
-interface ActiveVendor {
-  id:   string
-  name: string
-}
-
 export default function VendorLedgerPage() {
-  const isAdmin = useIsAdmin()
   const [searchParams] = useSearchParams()
 
   const [page, setPage]                     = useState(1)
@@ -101,7 +93,6 @@ export default function VendorLedgerPage() {
   const [fromDate, setFromDate]             = useState('')
   const [toDate, setToDate]                 = useState('')
   const [search, setSearch]                 = useState('')
-  const [activeVendor, setActiveVendor]     = useState<ActiveVendor | null>(null)
 
   const q = useDebounce(search)
 
@@ -124,9 +115,6 @@ export default function VendorLedgerPage() {
   const selectedVendor   = vendors.find((v) => v.id === vendorId) ?? null
   const totalOutstanding = vendors.reduce((s, v) => s + (v.payable_balance > 0 ? v.payable_balance : 0), 0)
   const vendorsWithDebt  = vendors.filter((v) => v.payable_balance > 0).length
-
-  // Lookup map: vendor_id → current payable_balance (for Pay button visibility)
-  const vendorBalanceMap = new Map(vendors.map((v) => [v.id, v.payable_balance]))
 
   const clearFilters = () => {
     setVendorId(''); setTypeFilter('all'); setFromDate(''); setToDate(''); setSearch(''); setPage(1)
@@ -228,26 +216,6 @@ export default function VendorLedgerPage() {
       ),
       className: 'hidden xl:table-cell',
     },
-    // Pay button — admin only; only for vendors that still have an outstanding balance
-    ...(isAdmin ? [{
-      key:    'actions',
-      header: '',
-      cell:   (e: VendorLedgerEntry) => {
-        const balance = vendorBalanceMap.get(e.vendor_id) ?? 0
-        if (balance <= 0) return null
-        return (
-          <Button
-            variant="outline"
-            size="sm"
-            className="h-7 px-2 text-xs gap-1 whitespace-nowrap"
-            onClick={() => setActiveVendor({ id: e.vendor_id, name: e.vendor_name })}
-          >
-            <Plus className="h-3 w-3" /> Pay
-          </Button>
-        )
-      },
-      className: 'w-20 whitespace-nowrap',
-    }] as Column<VendorLedgerEntry>[] : []),
   ]
 
   return (
@@ -399,13 +367,6 @@ export default function VendorLedgerPage() {
         }}
       />
 
-      <VendorLedgerEntryModal
-        open={!!activeVendor}
-        onClose={() => setActiveVendor(null)}
-        vendorId={activeVendor?.id ?? ''}
-        vendorName={activeVendor?.name}
-        payableBalance={vendors.find((v) => v.id === activeVendor?.id)?.payable_balance ?? 0}
-      />
     </div>
   )
 }
