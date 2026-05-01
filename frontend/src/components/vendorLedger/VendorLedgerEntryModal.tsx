@@ -1,8 +1,8 @@
-import { useEffect } from 'react'
+import { useEffect, useMemo } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
-import { Loader2, TrendingDown } from 'lucide-react'
+import { Loader2, TrendingDown, AlertCircle } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
@@ -16,22 +16,40 @@ import { ScrollArea } from '@/components/ui/scroll-area'
 import { useAddVendorEntry } from '@/hooks/useVendorLedger'
 import { formatCurrency } from '@/utils/currency'
 
-const schema = z.object({
-  vendor_id:  z.string().min(1, 'Vendor is required'),
-  type:       z.enum(['payment', 'adjustment']),
-  amount:     z.coerce.number().min(0.01, 'Amount must be > 0'),
-  notes:      z.string().max(300).optional().or(z.literal('')),
-}).superRefine((data, ctx) => {
-  // Backend requires notes for manual adjustments (audit trail).
-  if (data.type === 'adjustment' && !data.notes?.trim()) {
-    ctx.addIssue({
-      code: z.ZodIssueCode.custom,
-      message: 'Notes are required for adjustments',
-      path: ['notes'],
-    })
-  }
-})
-type FormValues = z.infer<typeof schema>
+/** Build a schema that captures payableBalance so the payment cap is enforced client-side. */
+function buildSchema(payableBalance: number) {
+  return z.object({
+    vendor_id:  z.string().min(1, 'Vendor is required'),
+    type:       z.enum(['payment', 'adjustment']),
+    amount:     z.coerce.number().min(0.01, 'Amount must be greater than 0'),
+    notes:      z.string().max(300).optional().or(z.literal('')),
+  }).superRefine((data, ctx) => {
+    if (data.type === 'payment') {
+      if (payableBalance <= 0) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: 'This vendor has no outstanding balance to pay',
+          path: ['amount'],
+        })
+      } else if (data.amount > payableBalance) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: `Payment cannot exceed outstanding balance of ${formatCurrency(payableBalance)}`,
+          path: ['amount'],
+        })
+      }
+    }
+    // Backend requires notes for manual adjustments (audit trail).
+    if (data.type === 'adjustment' && !data.notes?.trim()) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: 'Notes are required for adjustments',
+        path: ['notes'],
+      })
+    }
+  })
+}
+type FormValues = z.infer<ReturnType<typeof buildSchema>>
 
 interface Props {
   open:         boolean
@@ -50,6 +68,9 @@ export default function VendorLedgerEntryModal({
 }: Props) {
   const addEntry  = useAddVendorEntry()
   const isPending = addEntry.isPending
+
+  // Rebuild resolver whenever payableBalance changes so the cap stays current.
+  const schema = useMemo(() => buildSchema(payableBalance), [payableBalance])
 
   const form = useForm<FormValues>({
     resolver: zodResolver(schema),
@@ -73,6 +94,8 @@ export default function VendorLedgerEntryModal({
   }, [open, vendorId, defaultType, form])
 
   const watchType = form.watch('type')
+  const isPaymentMode   = watchType === 'payment'
+  const noBalanceToPay  = isPaymentMode && payableBalance <= 0
 
   const onSubmit = (values: FormValues) => {
     addEntry.mutate(
@@ -156,6 +179,14 @@ export default function VendorLedgerEntryModal({
               )}
             />
 
+            {/* No-balance warning — shown when trying to pay a fully settled vendor */}
+            {noBalanceToPay && (
+              <div className="flex items-center gap-2 rounded-md border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm text-emerald-700 dark:border-emerald-800 dark:bg-emerald-950/20 dark:text-emerald-400">
+                <AlertCircle className="h-4 w-4 shrink-0" />
+                This vendor has no outstanding balance — nothing to pay.
+              </div>
+            )}
+
             {/* Amount */}
             <FormField
               control={form.control}
@@ -167,7 +198,7 @@ export default function VendorLedgerEntryModal({
                       Amount (₹) <span className="text-destructive">*</span>
                     </FormLabel>
                     {/* Pay-full shortcut — only in payment mode with positive balance */}
-                    {watchType === 'payment' && payableBalance > 0 && (
+                    {isPaymentMode && payableBalance > 0 && (
                       <button
                         type="button"
                         className="flex items-center gap-1 rounded-md bg-emerald-50 px-2 py-0.5 text-xs font-medium text-emerald-700 hover:bg-emerald-100 dark:bg-emerald-950/30 dark:text-emerald-400 dark:hover:bg-emerald-950/50"
@@ -182,12 +213,18 @@ export default function VendorLedgerEntryModal({
                     <Input
                       {...field}
                       type="number"
-                      min={watchType === 'payment' ? 0.01 : undefined}
+                      min={0.01}
+                      max={isPaymentMode && payableBalance > 0 ? payableBalance : undefined}
                       step="0.01"
-                      disabled={isPending}
+                      disabled={isPending || noBalanceToPay}
                       autoFocus
                     />
                   </FormControl>
+                  {isPaymentMode && payableBalance > 0 && (
+                    <FormDescription className="text-xs">
+                      Maximum payable: {formatCurrency(payableBalance)}
+                    </FormDescription>
+                  )}
                   <FormMessage />
                 </FormItem>
               )}
@@ -227,9 +264,9 @@ export default function VendorLedgerEntryModal({
           <Button type="button" variant="outline" onClick={onClose} disabled={isPending}>
             Cancel
           </Button>
-          <Button type="submit" form="vendor-entry-form" disabled={isPending}>
+          <Button type="submit" form="vendor-entry-form" disabled={isPending || noBalanceToPay}>
             {isPending && <Loader2 className="animate-spin" />}
-            {watchType === 'payment' ? 'Record payment' : 'Record adjustment'}
+            {isPaymentMode ? 'Record payment' : 'Record adjustment'}
           </Button>
         </DialogFooter>
       </DialogContent>
