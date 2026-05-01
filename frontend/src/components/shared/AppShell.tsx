@@ -29,7 +29,7 @@ export default function AppShell() {
       </Sheet>
 
       {/* ── Main area ─────────────────────────────────────── */}
-      <div className="flex flex-1 flex-col overflow-hidden">
+      <div className="flex flex-1 min-w-0 flex-col overflow-hidden">
         {/* Mobile top bar */}
         <TopBar onMenuOpen={() => setMobileOpen(true)} />
 
@@ -44,7 +44,7 @@ export default function AppShell() {
 
         {/* Page content */}
         <ScrollArea className="flex-1">
-          <main className="min-h-full p-4 pb-24 sm:p-5 lg:p-7 lg:pb-7 animate-fade-in">
+          <main className="min-h-full w-full p-4 pb-24 sm:p-5 lg:p-7 lg:pb-7 animate-fade-in overflow-x-hidden">
             <Outlet />
           </main>
         </ScrollArea>

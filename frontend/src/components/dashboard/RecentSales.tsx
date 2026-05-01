@@ -22,7 +22,7 @@ interface Props {
 
 export default function RecentSales({ sales, isLoading }: Props) {
   return (
-    <Card className="shadow-card border-border/70">
+    <Card className="shadow-card border-border/70 overflow-hidden">
       <CardHeader className="pb-3">
         <CardTitle className="flex items-center gap-2 text-sm font-semibold">
           <ShoppingBag className="h-4 w-4 text-primary/70" />
@@ -48,7 +48,7 @@ export default function RecentSales({ sales, isLoading }: Props) {
             <div className="flex h-10 w-10 items-center justify-center rounded-full bg-muted">
               <ShoppingBag className="h-5 w-5 text-muted-foreground/50" />
             </div>
-            <p className="text-sm text-muted-foreground">No sales recorded yet today.</p>
+            <p className="text-sm text-muted-foreground">No sales recorded yet.</p>
           </div>
         ) : (
           <div>

@@ -40,9 +40,9 @@ func (s *dashboardService) Get(ctx context.Context) (*dto.DashboardResponse, err
 	// Compute IST time boundaries.
 	now := time.Now().In(ist)
 	dayStart := time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, ist)
-	dayEnd := time.Date(now.Year(), now.Month(), now.Day(), 23, 59, 59, 0, ist)
+	dayEnd := time.Date(now.Year(), now.Month(), now.Day(), 23, 59, 59, 999999999, ist)
 	monthStart := time.Date(now.Year(), now.Month(), 1, 0, 0, 0, 0, ist)
-	monthEnd := time.Date(now.Year(), now.Month()+1, 0, 23, 59, 59, 0, ist) // last day of month
+	monthEnd := time.Date(now.Year(), now.Month()+1, 0, 23, 59, 59, 999999999, ist) // last day of month
 
 	// ── Concurrent sub-queries ──────────────────────────────────────
 	var (

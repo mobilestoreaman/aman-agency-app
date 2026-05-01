@@ -51,7 +51,7 @@ var ist = func() *time.Location {
 // both from and to are omitted.
 func defaultDateRange() (time.Time, time.Time) {
 	now := time.Now().In(ist)
-	to := time.Date(now.Year(), now.Month(), now.Day(), 23, 59, 59, 0, ist)
+	to := time.Date(now.Year(), now.Month(), now.Day(), 23, 59, 59, 999999999, ist)
 	from := time.Date(now.Year(), now.Month(), now.Day()-29, 0, 0, 0, 0, ist)
 	return from, to
 }
@@ -88,7 +88,7 @@ func parseDateRange(fromStr, toStr string) (time.Time, time.Time, error) {
 				fmt.Sprintf("invalid 'to' date: use DD-MM-YYYY, got %q", toStr))
 		}
 		// Include the whole day — end-of-day IST
-		to = time.Date(t.Year(), t.Month(), t.Day(), 23, 59, 59, 0, ist)
+		to = time.Date(t.Year(), t.Month(), t.Day(), 23, 59, 59, 999999999, ist)
 	}
 
 	if from.After(to) {

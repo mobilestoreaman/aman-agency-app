@@ -2,6 +2,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { toast } from 'sonner'
 import { borrowLendsApi } from '@/api/borrowLends'
 import { getApiError } from '@/utils/error'
+import { dashboardKeys } from './useDashboard'
 import type { BorrowLendType, BorrowLendStatus } from '@/types'
 
 export const borrowLendKeys = {
@@ -57,6 +58,7 @@ export function useCreateBorrowLend() {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: borrowLendKeys.all })
       qc.invalidateQueries({ queryKey: ['devices'] })   // device status changes
+      qc.invalidateQueries({ queryKey: dashboardKeys.all })
       toast.success('Entry recorded')
     },
     onError: (e) => toast.error(getApiError(e)),
@@ -70,6 +72,7 @@ export function useUpdateBorrowLend() {
       borrowLendsApi.update(id, data),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: borrowLendKeys.all })
+      qc.invalidateQueries({ queryKey: dashboardKeys.all })
       toast.success('Entry updated')
     },
     onError: (e) => toast.error(getApiError(e)),
@@ -91,6 +94,7 @@ export function useMarkReturned() {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: borrowLendKeys.all })
       qc.invalidateQueries({ queryKey: ['devices'] })
+      qc.invalidateQueries({ queryKey: dashboardKeys.all })
       toast.success('Marked as returned')
     },
     onError: (e) => toast.error(getApiError(e)),
@@ -103,6 +107,7 @@ export function useMarkOverdue() {
     mutationFn: (id: string) => borrowLendsApi.markOverdue(id),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: borrowLendKeys.all })
+      qc.invalidateQueries({ queryKey: dashboardKeys.all })
       toast.success('Marked as overdue')
     },
     onError: (e) => toast.error(getApiError(e)),
@@ -116,6 +121,7 @@ export function useDeleteBorrowLend() {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: borrowLendKeys.all })
       qc.invalidateQueries({ queryKey: ['devices'] })
+      qc.invalidateQueries({ queryKey: dashboardKeys.all })
       toast.success('Entry deleted')
     },
     onError: (e) => toast.error(getApiError(e)),

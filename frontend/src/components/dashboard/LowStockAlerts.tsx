@@ -48,7 +48,7 @@ export default function LowStockAlerts({ alerts, isLoading }: Props) {
   }
 
   return (
-    <Card className="shadow-card border-border/70">
+    <Card className="shadow-card border-border/70 overflow-hidden">
       <CardHeader className="pb-3">
         <CardTitle className="flex items-center gap-2 text-sm font-semibold">
           <AlertTriangle className="h-4 w-4 text-amber-500" />

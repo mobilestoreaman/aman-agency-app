@@ -49,7 +49,7 @@ export default function KpiCard({
   return (
     <Card
       className={cn(
-        'shadow-card border-border/70 transition-all duration-200',
+        'shadow-card border-border/70 overflow-hidden transition-all duration-200',
         onClick && 'cursor-pointer hover:shadow-elevated hover:-translate-y-0.5',
       )}
       onClick={onClick}

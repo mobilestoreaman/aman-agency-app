@@ -4,6 +4,7 @@ import { toast } from 'sonner'
 import { notificationsApi } from '@/api/notifications'
 import { useNotificationStore } from '@/store/notificationStore'
 import { getApiError } from '@/api/client'
+import { dashboardKeys } from './useDashboard'
 
 export const notifKeys = {
   all:         ['notifications'] as const,
@@ -44,6 +45,7 @@ export function useMarkRead() {
     onSuccess: () => {
       decrement()
       qc.invalidateQueries({ queryKey: notifKeys.all })
+      qc.invalidateQueries({ queryKey: dashboardKeys.all })
     },
   })
 }
@@ -56,6 +58,7 @@ export function useMarkAllRead() {
     onSuccess: () => {
       reset()
       qc.invalidateQueries({ queryKey: notifKeys.all })
+      qc.invalidateQueries({ queryKey: dashboardKeys.all })
       toast.success('All notifications marked as read.')
     },
   })
@@ -65,7 +68,10 @@ export function useDismissNotification() {
   const qc = useQueryClient()
   return useMutation({
     mutationFn: (id: string) => notificationsApi.dismiss(id),
-    onSuccess: () => qc.invalidateQueries({ queryKey: notifKeys.all }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: notifKeys.all })
+      qc.invalidateQueries({ queryKey: dashboardKeys.all })
+    },
   })
 }
 
@@ -75,6 +81,7 @@ export function useDeleteNotification() {
     mutationFn: (id: string) => notificationsApi.delete(id),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: notifKeys.all })
+      qc.invalidateQueries({ queryKey: dashboardKeys.all })
       toast.success('Notification deleted.')
     },
     onError: (e) => toast.error(getApiError(e)),

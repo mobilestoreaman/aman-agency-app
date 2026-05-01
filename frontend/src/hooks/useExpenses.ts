@@ -3,6 +3,7 @@ import { toast } from 'sonner'
 import { expensesApi } from '@/api/expenses'
 import { getApiError } from '@/utils/error'
 import { reportKeys } from './useReports'
+import { dashboardKeys } from './useDashboard'
 import type { ExpenseCategory } from '@/types'
 
 export const expenseKeys = {
@@ -57,6 +58,7 @@ export function useCreateExpense() {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: expenseKeys.all })
       qc.invalidateQueries({ queryKey: reportKeys.all })
+      qc.invalidateQueries({ queryKey: dashboardKeys.all })
       toast.success('Expense recorded')
     },
     onError: (e) => toast.error(getApiError(e)),
@@ -71,6 +73,7 @@ export function useUpdateExpense() {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: expenseKeys.all })
       qc.invalidateQueries({ queryKey: reportKeys.all })
+      qc.invalidateQueries({ queryKey: dashboardKeys.all })
       toast.success('Expense updated')
     },
     onError: (e) => toast.error(getApiError(e)),
@@ -84,6 +87,7 @@ export function useDeleteExpense() {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: expenseKeys.all })
       qc.invalidateQueries({ queryKey: reportKeys.all })
+      qc.invalidateQueries({ queryKey: dashboardKeys.all })
       toast.success('Expense deleted')
     },
     onError: (e) => toast.error(getApiError(e)),
