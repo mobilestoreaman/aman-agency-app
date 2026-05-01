@@ -1,8 +1,12 @@
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
-import { Plus, Pencil, Trash2, Search, Phone, MapPin, BookOpen, TrendingUp, HandCoins } from 'lucide-react'
+import {
+  Plus, Pencil, Trash2, Search, Phone, MapPin,
+  BookOpen, TrendingUp, HandCoins, CheckCircle2, Download,
+} from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
+import { Badge } from '@/components/ui/badge'
 import { ResponsiveTable, type Column } from '@/components/shared/ResponsiveTable'
 import PageHeader from '@/components/shared/PageHeader'
 import ConfirmDialog from '@/components/shared/ConfirmDialog'
@@ -13,6 +17,7 @@ import { useIsAdmin } from '@/store/authStore'
 import { useDebounce } from '@/hooks/useDebounce'
 import { formatDate } from '@/utils/date'
 import { formatCurrency } from '@/utils/currency'
+import { downloadExport } from '@/utils/export'
 import type { Vendor } from '@/types'
 
 interface ActiveVendor {
@@ -23,22 +28,24 @@ interface ActiveVendor {
 export default function VendorsPage() {
   const isAdmin = useIsAdmin()
 
-  const [page, setPage]     = useState(1)
-  const [search, setSearch] = useState('')
-  const [formOpen, setFormOpen]       = useState(false)
-  const [editing, setEditing]         = useState<Vendor | null>(null)
-  const [deleting, setDeleting]       = useState<Vendor | null>(null)
+  const [page, setPage]       = useState(1)
+  const [search, setSearch]   = useState('')
+  const [pendingOnly, setPendingOnly]   = useState(false)
+  const [formOpen, setFormOpen]         = useState(false)
+  const [editing, setEditing]           = useState<Vendor | null>(null)
+  const [deleting, setDeleting]         = useState<Vendor | null>(null)
   const [activeVendor, setActiveVendor] = useState<ActiveVendor | null>(null)
 
   const q = useDebounce(search)
 
   const { data, isLoading } = useVendors({ page, limit: 15, search: q || undefined })
 
-  // Fetch all vendors (unpaged) just for the total outstanding summary card
+  // All vendors (unpaged) — used for summary card, pending-only view, and export
   const { data: allVendorsData } = useVendors({ limit: 200 })
-  const allVendors = allVendorsData?.data ?? []
-  const totalOutstanding = allVendors.reduce((sum, v) => sum + (v.payable_balance > 0 ? v.payable_balance : 0), 0)
-  const vendorsWithBalance = allVendors.filter((v) => v.payable_balance > 0).length
+  const allVendors       = allVendorsData?.data ?? []
+  const totalOutstanding = allVendors.reduce((s, v) => s + (v.payable_balance > 0 ? v.payable_balance : 0), 0)
+  const vendorsWithDebt  = allVendors.filter((v) => v.payable_balance > 0).length
+  const allSettled       = allVendorsData !== undefined && totalOutstanding === 0 && allVendors.length > 0
 
   const deleteVendor = useDeleteVendor()
 
@@ -48,6 +55,28 @@ export default function VendorsPage() {
   const handleDelete = () => {
     if (!deleting) return
     deleteVendor.mutate(deleting.id, { onSuccess: () => setDeleting(null) })
+  }
+
+  // When pending-only toggle is on, serve filtered allVendors (no server pagination needed)
+  const tableData = pendingOnly
+    ? allVendors.filter((v) => v.payable_balance > 0)
+    : data?.data ?? []
+  const tableMeta = pendingOnly ? undefined : data?.meta
+
+  const handleExport = () => {
+    const rows = (pendingOnly ? tableData : allVendors).map((v) => ({
+      Name:               v.name,
+      Phone:              v.phone,
+      Address:            v.address ?? '',
+      'Outstanding (₹)':  v.payable_balance > 0 ? v.payable_balance : 0,
+      'Added on':         formatDate(v.created_at),
+    }))
+    downloadExport(
+      'csv',
+      pendingOnly ? 'vendors_with_balance' : 'vendors',
+      ['Name', 'Phone', 'Address', 'Outstanding (₹)', 'Added on'],
+      rows,
+    )
   }
 
   const columns: Column<Vendor>[] = [
@@ -70,13 +99,14 @@ export default function VendorsPage() {
       sortValue: (v) => v.phone,
       cell:      (v) => (
         <div className="space-y-0.5 text-sm text-muted-foreground">
-          {v.phone && (
+          {v.phone ? (
             <div className="flex items-center gap-1.5">
               <Phone className="h-3 w-3 shrink-0" />
               <a href={`tel:${v.phone}`} className="hover:text-foreground hover:underline">{v.phone}</a>
             </div>
+          ) : (
+            <span className="text-xs italic">No contact info</span>
           )}
-          {!v.phone && <span className="text-xs italic">No contact info</span>}
         </div>
       ),
       className: 'hidden sm:table-cell',
@@ -117,7 +147,6 @@ export default function VendorsPage() {
       header: '',
       cell:   (v) => (
         <div className="flex items-center justify-end gap-1">
-          {/* Pay button — admin only, only when there is an outstanding balance */}
           {isAdmin && v.payable_balance > 0 && (
             <Button
               variant="outline"
@@ -170,40 +199,77 @@ export default function VendorsPage() {
         }
       />
 
-      {/* Total outstanding summary */}
+      {/* Outstanding summary / All-settled confirmation */}
       {totalOutstanding > 0 && (
         <div className="flex items-center gap-3 rounded-lg border border-destructive/30 bg-destructive/5 px-4 py-3">
           <TrendingUp className="h-5 w-5 shrink-0 text-destructive" />
-          <div className="min-w-0">
+          <div className="min-w-0 flex-1">
             <p className="text-xs text-muted-foreground">Total outstanding payable</p>
             <p className="font-semibold text-destructive">
               {formatCurrency(totalOutstanding)}
               <span className="ml-2 text-xs font-normal text-muted-foreground">
-                across {vendorsWithBalance} vendor{vendorsWithBalance !== 1 ? 's' : ''}
+                across {vendorsWithDebt} vendor{vendorsWithDebt !== 1 ? 's' : ''}
               </span>
             </p>
           </div>
         </div>
       )}
+      {allSettled && (
+        <div className="flex items-center gap-3 rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 dark:border-emerald-800 dark:bg-emerald-950/20">
+          <CheckCircle2 className="h-5 w-5 shrink-0 text-emerald-600" />
+          <div>
+            <p className="text-sm font-medium text-emerald-700 dark:text-emerald-400">All accounts settled</p>
+            <p className="text-xs text-muted-foreground">No outstanding balance with any vendor.</p>
+          </div>
+        </div>
+      )}
 
-      {/* Search */}
-      <div className="relative max-w-sm">
-        <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-        <Input
-          placeholder="Search vendors…"
-          value={search}
-          onChange={(e) => { setSearch(e.target.value); setPage(1) }}
-          className="pl-9"
-        />
+      {/* Toolbar: search + filters + export */}
+      <div className="flex flex-wrap items-center gap-2">
+        <div className="relative min-w-0 flex-1 basis-48">
+          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+          <Input
+            placeholder="Search vendors…"
+            value={search}
+            onChange={(e) => { setSearch(e.target.value); setPage(1) }}
+            className="pl-9"
+            disabled={pendingOnly}
+          />
+        </div>
+
+        {/* Has-balance quick filter */}
+        <Button
+          variant={pendingOnly ? 'default' : 'outline'}
+          size="sm"
+          className="gap-1.5 whitespace-nowrap"
+          onClick={() => setPendingOnly((p) => !p)}
+        >
+          <HandCoins className="h-3.5 w-3.5" />
+          {pendingOnly ? 'Show all' : 'Pending only'}
+          {!pendingOnly && vendorsWithDebt > 0 && (
+            <Badge variant="destructive" className="ml-0.5 h-4 px-1 text-[10px]">
+              {vendorsWithDebt}
+            </Badge>
+          )}
+        </Button>
+
+        <Button variant="outline" size="sm" className="gap-1.5 whitespace-nowrap" onClick={handleExport}>
+          <Download className="h-3.5 w-3.5" /> Export CSV
+        </Button>
       </div>
 
       <ResponsiveTable
         columns={columns}
-        data={data?.data ?? []}
-        isLoading={isLoading}
-        meta={data?.meta}
+        data={tableData}
+        isLoading={isLoading && !pendingOnly}
+        meta={tableMeta}
         onPageChange={setPage}
-        emptyMessage="No vendors yet. Add your first supplier to get started."
+        defaultSort={{ key: 'balance', dir: 'desc' }}
+        emptyMessage={
+          pendingOnly
+            ? 'No vendors with an outstanding balance — all settled!'
+            : 'No vendors yet. Add your first supplier to get started.'
+        }
         minWidth="360px"
         mobileCard={{
           top:     ['name'],
@@ -213,20 +279,14 @@ export default function VendorsPage() {
         }}
       />
 
-      <VendorFormModal
-        open={formOpen}
-        onClose={() => setFormOpen(false)}
-        vendor={editing}
-      />
+      <VendorFormModal open={formOpen} onClose={() => setFormOpen(false)} vendor={editing} />
 
       <VendorLedgerEntryModal
         open={!!activeVendor}
         onClose={() => setActiveVendor(null)}
         vendorId={activeVendor?.id ?? ''}
         vendorName={activeVendor?.name}
-        payableBalance={
-          allVendors.find((v) => v.id === activeVendor?.id)?.payable_balance ?? 0
-        }
+        payableBalance={allVendors.find((v) => v.id === activeVendor?.id)?.payable_balance ?? 0}
       />
 
       <ConfirmDialog

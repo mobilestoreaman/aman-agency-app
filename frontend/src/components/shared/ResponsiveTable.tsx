@@ -108,6 +108,11 @@ export interface ResponsiveTableProps<T> {
    * identical to <DataTable>, at every breakpoint.
    */
   mobileCard?:   MobileCardConfig
+  /**
+   * Pre-select an initial sort column and direction on first render.
+   * The user can still click column headers to change or clear the sort.
+   */
+  defaultSort?:  { key: string; dir: 'asc' | 'desc' }
 }
 
 // ── Sub-components ────────────────────────────────────────────────────────────
@@ -205,9 +210,14 @@ export function ResponsiveTable<T,>({
   skeletonRows = 6,
   minWidth = '560px',
   mobileCard,
+  defaultSort,
 }: ResponsiveTableProps<T>) {
   // ── Sorting ────────────────────────────────────────────────────────────────
-  const [sort, setSort] = useState<SortState | null>(null)
+  const [sort, setSort] = useState<SortState | null>(
+    defaultSort
+      ? { key: defaultSort.key, dir: defaultSort.dir, ticks: defaultSort.dir === 'desc' ? 1 : 2 }
+      : null,
+  )
 
   // Auto-reset to page 1 when current page exceeds total_pages (e.g. after deletion)
   useEffect(() => {
