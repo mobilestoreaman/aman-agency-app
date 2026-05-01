@@ -17,7 +17,7 @@ import {
 } from '@/components/ui/dialog'
 import { Label } from '@/components/ui/label'
 import PageHeader from '@/components/shared/PageHeader'
-import { DataTable, type Column } from '@/components/shared/DataTable'
+import { ResponsiveTable, type Column } from '@/components/shared/ResponsiveTable'
 import {
   usePaymentPromises,
   useReschedulePromise,
@@ -476,13 +476,19 @@ export default function PaymentPromisesPage() {
 
       {/* Table */}
       {(promises.length > 0 || isLoading || hasFilters) && (
-        <DataTable
+        <ResponsiveTable
           columns={columns}
           data={promises}
           isLoading={isLoading}
           meta={data?.meta}
           onPageChange={setPage}
           emptyMessage="No payment promises match the current filters."
+          mobileCard={{
+            top:     ['customer', 'status'],
+            middle:  ['amount', 'date'],
+            bottom:  ['invoice'],
+            actions: 'actions',
+          }}
         />
       )}
 

@@ -20,7 +20,7 @@ import {
 import {
   Form, FormControl, FormField, FormItem, FormLabel, FormMessage,
 } from '@/components/ui/form'
-import { DataTable, type Column } from '@/components/shared/DataTable'
+import { ResponsiveTable, type Column } from '@/components/shared/ResponsiveTable'
 import PageHeader from '@/components/shared/PageHeader'
 import ConfirmDialog from '@/components/shared/ConfirmDialog'
 import {
@@ -391,13 +391,19 @@ export default function ExpensesPage() {
         )}
       </div>
 
-      <DataTable
+      <ResponsiveTable
         columns={columns}
         data={filtered}
         isLoading={isLoading}
         meta={data?.meta}
         onPageChange={setPage}
         emptyMessage="No expenses recorded. Start by adding your first entry."
+        mobileCard={{
+          top:    ['description', 'category'],
+          middle: ['amount'],
+          bottom: ['date'],
+          actions: 'actions',
+        }}
       />
 
       <ExpenseFormModal

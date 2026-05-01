@@ -9,7 +9,7 @@ import { Badge } from '@/components/ui/badge'
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from '@/components/ui/select'
-import { DataTable, type Column } from '@/components/shared/DataTable'
+import { ResponsiveTable, type Column } from '@/components/shared/ResponsiveTable'
 import PageHeader from '@/components/shared/PageHeader'
 import ConfirmDialog from '@/components/shared/ConfirmDialog'
 import BorrowLendFormModal from '@/components/borrowLends/BorrowLendFormModal'
@@ -316,13 +316,19 @@ export default function BorrowLendsPage() {
         )}
       </div>
 
-      <DataTable
+      <ResponsiveTable
         columns={columns}
         data={entries}
         isLoading={isLoading}
         meta={data?.meta}
         onPageChange={setPage}
         emptyMessage="No entries yet. Record when a device is lent out or borrowed."
+        mobileCard={{
+          top:     ['type_device', 'status'],
+          middle:  ['dates'],
+          bottom:  ['party'],
+          actions: 'actions',
+        }}
       />
 
       <BorrowLendFormModal

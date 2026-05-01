@@ -16,7 +16,7 @@ import {
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { Separator } from '@/components/ui/separator'
 import { Skeleton } from '@/components/ui/skeleton'
-import { DataTable, type Column } from '@/components/shared/DataTable'
+import { ResponsiveTable, type Column } from '@/components/shared/ResponsiveTable'
 import PageHeader from '@/components/shared/PageHeader'
 import ConfirmDialog from '@/components/shared/ConfirmDialog'
 import {
@@ -427,13 +427,19 @@ export default function BillsPage() {
         )}
       </div>
 
-      <DataTable
+      <ResponsiveTable
         columns={columns}
         data={bills}
         isLoading={isLoading}
         meta={data?.meta}
         onPageChange={setPage}
         emptyMessage="No bills found. Bills are generated from completed sales."
+        mobileCard={{
+          top:     ['bill_number', 'status'],
+          middle:  ['amount'],
+          bottom:  ['customer', 'date'],
+          actions: 'actions',
+        }}
       />
 
       <BillDetailDrawer

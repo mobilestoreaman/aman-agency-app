@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { Plus, Pencil, Trash2, Search, Phone, MapPin } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { DataTable, type Column } from '@/components/shared/DataTable'
+import { ResponsiveTable, type Column } from '@/components/shared/ResponsiveTable'
 import PageHeader from '@/components/shared/PageHeader'
 import ConfirmDialog from '@/components/shared/ConfirmDialog'
 import VendorFormModal from '@/components/vendors/VendorFormModal'
@@ -136,7 +136,7 @@ export default function VendorsPage() {
         />
       </div>
 
-      <DataTable
+      <ResponsiveTable
         columns={columns}
         data={data?.data ?? []}
         isLoading={isLoading}
@@ -144,6 +144,12 @@ export default function VendorsPage() {
         onPageChange={setPage}
         emptyMessage="No vendors yet. Add your first supplier to get started."
         minWidth="360px"
+        mobileCard={{
+          top:     ['name'],
+          middle:  [],
+          bottom:  ['contact', 'since'],
+          actions: 'actions',
+        }}
       />
 
       <VendorFormModal

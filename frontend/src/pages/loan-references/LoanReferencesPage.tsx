@@ -11,7 +11,7 @@ import {
 import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
-import { DataTable, type Column } from '@/components/shared/DataTable'
+import { ResponsiveTable, type Column } from '@/components/shared/ResponsiveTable'
 import PageHeader from '@/components/shared/PageHeader'
 import ConfirmDialog from '@/components/shared/ConfirmDialog'
 import LoanReferenceFormModal from '@/components/loanReferences/LoanReferenceFormModal'
@@ -295,13 +295,19 @@ export default function LoanReferencesPage() {
         )}
       </div>
 
-      <DataTable
+      <ResponsiveTable
         columns={columns}
         data={entries}
         isLoading={isLoading}
         meta={data?.meta}
         onPageChange={setPage}
         emptyMessage="No loan references found. Add one when a customer takes a device on EMI."
+        mobileCard={{
+          top:     ['customer', 'status'],
+          middle:  ['loan_amount', 'emi'],
+          bottom:  ['provider', 'disbursed'],
+          actions: 'actions',
+        }}
       />
 
       <LoanReferenceFormModal

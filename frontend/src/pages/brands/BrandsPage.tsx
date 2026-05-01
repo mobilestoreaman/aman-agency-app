@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { Plus, Pencil, Trash2, Search, Tag, LayoutGrid, List, ImageOff } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { DataTable, type Column } from '@/components/shared/DataTable'
+import { ResponsiveTable, type Column } from '@/components/shared/ResponsiveTable'
 import PageHeader from '@/components/shared/PageHeader'
 import ConfirmDialog from '@/components/shared/ConfirmDialog'
 import BrandFormModal from '@/components/brands/BrandFormModal'
@@ -323,7 +323,7 @@ export default function BrandsPage() {
 
       {/* ── Table view ── */}
       {view === 'table' && (
-        <DataTable
+        <ResponsiveTable
           columns={columns}
           data={brands}
           isLoading={isLoading}
@@ -331,6 +331,12 @@ export default function BrandsPage() {
           onPageChange={setPage}
           emptyMessage="No brands found. Add your first brand to get started."
           minWidth="320px"
+          mobileCard={{
+            top:     ['name'],
+            middle:  [],
+            bottom:  ['created_at'],
+            actions: 'actions',
+          }}
         />
       )}
 

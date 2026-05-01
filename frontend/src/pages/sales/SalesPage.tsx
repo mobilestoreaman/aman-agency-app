@@ -11,7 +11,7 @@ import {
 import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
-import { DataTable, type Column } from '@/components/shared/DataTable'
+import { ResponsiveTable, type Column } from '@/components/shared/ResponsiveTable'
 import PageHeader from '@/components/shared/PageHeader'
 import SaleFormModal from '@/components/sales/SaleFormModal'
 import SaleDetailModal from '@/components/sales/SaleDetailModal'
@@ -331,13 +331,19 @@ export default function SalesPage() {
         )}
       </div>
 
-      <DataTable
+      <ResponsiveTable
         columns={columns}
         data={data?.data ?? []}
         isLoading={isLoading}
         meta={data?.meta}
         onPageChange={setPage}
         emptyMessage="No sales found. Adjust filters or record a new sale."
+        mobileCard={{
+          top:     ['invoice', 'status'],
+          middle:  ['total'],
+          bottom:  ['customer', 'date'],
+          actions: 'actions',
+        }}
       />
 
       <SaleFormModal   open={formOpen}       onClose={() => setFormOpen(false)} />

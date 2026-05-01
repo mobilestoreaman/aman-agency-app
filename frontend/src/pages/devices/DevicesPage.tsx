@@ -9,7 +9,7 @@ import { Badge } from '@/components/ui/badge'
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from '@/components/ui/select'
-import { DataTable, type Column } from '@/components/shared/DataTable'
+import { ResponsiveTable, type Column } from '@/components/shared/ResponsiveTable'
 import PageHeader from '@/components/shared/PageHeader'
 import ConfirmDialog from '@/components/shared/ConfirmDialog'
 import StockSummaryCard from '@/components/devices/StockSummaryCard'
@@ -685,13 +685,19 @@ export default function DevicesPage() {
 
       {/* ── Table view ───────────────────────────────────────────────────── */}
       {view === 'table' && (
-        <DataTable
+        <ResponsiveTable
           columns={columns}
           data={devices}
           isLoading={isLoading}
           meta={data?.meta}
           onPageChange={setPage}
           emptyMessage="No devices found. Adjust filters or add the first device."
+          mobileCard={{
+            top:     ['imei', 'status'],
+            middle:  ['pricing'],
+            bottom:  ['brand'],
+            actions: 'actions',
+          }}
         />
       )}
 

@@ -6,7 +6,7 @@ import { Badge } from '@/components/ui/badge'
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from '@/components/ui/select'
-import { DataTable, type Column } from '@/components/shared/DataTable'
+import { ResponsiveTable, type Column } from '@/components/shared/ResponsiveTable'
 import PageHeader from '@/components/shared/PageHeader'
 import ConfirmDialog from '@/components/shared/ConfirmDialog'
 import ProductFormModal from '@/components/products/ProductFormModal'
@@ -373,13 +373,19 @@ export default function ProductsPage() {
 
       {/* ── Table view ─────────────────────────────────────────────── */}
       {view === 'table' && (
-        <DataTable
+        <ResponsiveTable
           columns={columns}
           data={products}
           isLoading={isLoading}
           meta={data?.meta}
           onPageChange={setPage}
           emptyMessage="No products found. Adjust your filters or add the first product."
+          mobileCard={{
+            top:     ['model_name', 'brand'],
+            middle:  [],
+            bottom:  ['barcode', 'screen_size'],
+            actions: 'actions',
+          }}
         />
       )}
 

@@ -7,7 +7,7 @@ import { Badge } from '@/components/ui/badge'
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from '@/components/ui/select'
-import { DataTable, type Column } from '@/components/shared/DataTable'
+import { ResponsiveTable, type Column } from '@/components/shared/ResponsiveTable'
 import PageHeader from '@/components/shared/PageHeader'
 import CreditEntryModal from '@/components/creditLedger/CreditEntryModal'
 import { useCreditLedger } from '@/hooks/useCreditLedger'
@@ -287,13 +287,21 @@ export default function CreditLedgerPage() {
         )}
       </div>
 
-      <DataTable
+      <ResponsiveTable
         columns={columns}
         data={pageEntries}
         isLoading={isLoading}
         meta={data?.meta}
         onPageChange={setPage}
         emptyMessage="No credit entries found. Entries are created automatically when credit sales are made, or added manually."
+        mobileCard={{
+          // Top: who + what type of transaction
+          top:    ['customer', 'type'],
+          // Middle: the numbers that matter most
+          middle: ['amount', 'balance_after'],
+          // Bottom: when + reference + annotation
+          bottom: ['date', 'ref', 'notes'],
+        }}
       />
 
       <CreditEntryModal

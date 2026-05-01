@@ -8,7 +8,7 @@ import { Badge } from '@/components/ui/badge'
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from '@/components/ui/select'
-import { DataTable, type Column } from '@/components/shared/DataTable'
+import { ResponsiveTable, type Column } from '@/components/shared/ResponsiveTable'
 import PageHeader from '@/components/shared/PageHeader'
 import ConfirmDialog from '@/components/shared/ConfirmDialog'
 import {
@@ -220,13 +220,19 @@ export default function NotificationsPage() {
         </Select>
       </div>
 
-      <DataTable
+      <ResponsiveTable
         columns={columns}
         data={notifications}
         isLoading={isLoading}
         meta={data?.meta}
         onPageChange={setPage}
         emptyMessage="No notifications yet. You're all caught up!"
+        mobileCard={{
+          top:     ['type_title', 'status'],
+          middle:  [],
+          bottom:  ['type', 'date'],
+          actions: 'actions',
+        }}
       />
 
       <ConfirmDialog

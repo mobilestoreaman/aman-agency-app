@@ -10,7 +10,7 @@ import { Badge } from '@/components/ui/badge'
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from '@/components/ui/select'
-import { DataTable, type Column } from '@/components/shared/DataTable'
+import { ResponsiveTable, type Column } from '@/components/shared/ResponsiveTable'
 import PageHeader from '@/components/shared/PageHeader'
 import ConfirmDialog from '@/components/shared/ConfirmDialog'
 import CustomerFormModal from '@/components/customers/CustomerFormModal'
@@ -243,13 +243,19 @@ export default function CustomersPage() {
         )}
       </div>
 
-      <DataTable
+      <ResponsiveTable
         columns={columns}
         data={data?.data ?? []}
         isLoading={isLoading}
         meta={data?.meta}
         onPageChange={setPage}
         emptyMessage="No customers yet. Add your first customer to get started."
+        mobileCard={{
+          top:     ['name', 'credit'],
+          middle:  [],
+          bottom:  ['contact', 'since'],
+          actions: 'actions',
+        }}
       />
 
       <CustomerFormModal

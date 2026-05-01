@@ -10,7 +10,7 @@ import { Badge } from '@/components/ui/badge'
 import { Separator } from '@/components/ui/separator'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { DataTable, type Column } from '@/components/shared/DataTable'
+import { ResponsiveTable, type Column } from '@/components/shared/ResponsiveTable'
 import PageHeader from '@/components/shared/PageHeader'
 import CustomerFormModal from '@/components/customers/CustomerFormModal'
 import CreditEntryModal from '@/components/creditLedger/CreditEntryModal'
@@ -319,7 +319,7 @@ export default function CustomerDetailPage() {
             </Link>
           </Button>
         </div>
-        <DataTable
+        <ResponsiveTable
           columns={salesColumns}
           data={salesData?.data ?? []}
           isLoading={loadingSales || fetchingSales}
@@ -327,6 +327,12 @@ export default function CustomerDetailPage() {
           onPageChange={setSalesPage}
           emptyMessage="No sales recorded for this customer."
           skeletonRows={4}
+          mobileCard={{
+            top:     ['invoice', 'status'],
+            middle:  ['amount'],
+            bottom:  ['date'],
+            actions: 'actions',
+          }}
         />
       </div>
 
@@ -344,7 +350,7 @@ export default function CustomerDetailPage() {
             </Button>
           )}
         </div>
-        <DataTable
+        <ResponsiveTable
           columns={ledgerColumns}
           data={ledgerData?.data ?? []}
           isLoading={loadingLedger || fetchingLedger}
@@ -352,6 +358,11 @@ export default function CustomerDetailPage() {
           onPageChange={setLedgerPage}
           emptyMessage="No credit entries for this customer."
           skeletonRows={4}
+          mobileCard={{
+            top:     ['type', 'amount'],
+            middle:  ['balance'],
+            bottom:  ['date', 'notes'],
+          }}
         />
       </div>
 

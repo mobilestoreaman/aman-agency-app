@@ -9,7 +9,7 @@ import {
 import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
-import { DataTable, type Column } from '@/components/shared/DataTable'
+import { ResponsiveTable, type Column } from '@/components/shared/ResponsiveTable'
 import PageHeader from '@/components/shared/PageHeader'
 import ConfirmDialog from '@/components/shared/ConfirmDialog'
 import PurchaseFormModal from '@/components/purchases/PurchaseFormModal'
@@ -325,13 +325,19 @@ export default function PurchasesPage() {
         )}
       </div>
 
-      <DataTable
+      <ResponsiveTable
         columns={columns}
         data={data?.data ?? []}
         isLoading={isLoading}
         meta={data?.meta}
         onPageChange={setPage}
         emptyMessage="No purchases found. Adjust filters or record the first purchase."
+        mobileCard={{
+          top:     ['items', 'status'],
+          middle:  ['total'],
+          bottom:  ['vendor', 'date'],
+          actions: 'actions',
+        }}
       />
 
       <PurchaseFormModal
