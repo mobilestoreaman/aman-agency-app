@@ -1,12 +1,13 @@
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
-import { Plus, Pencil, Trash2, Search, Phone, MapPin, BookOpen } from 'lucide-react'
+import { Plus, Pencil, Trash2, Search, Phone, MapPin, BookOpen, TrendingUp, HandCoins } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { ResponsiveTable, type Column } from '@/components/shared/ResponsiveTable'
 import PageHeader from '@/components/shared/PageHeader'
 import ConfirmDialog from '@/components/shared/ConfirmDialog'
 import VendorFormModal from '@/components/vendors/VendorFormModal'
+import VendorLedgerEntryModal from '@/components/vendorLedger/VendorLedgerEntryModal'
 import { useVendors, useDeleteVendor } from '@/hooks/useVendors'
 import { useIsAdmin } from '@/store/authStore'
 import { useDebounce } from '@/hooks/useDebounce'
@@ -14,18 +15,31 @@ import { formatDate } from '@/utils/date'
 import { formatCurrency } from '@/utils/currency'
 import type { Vendor } from '@/types'
 
+interface ActiveVendor {
+  id:   string
+  name: string
+}
+
 export default function VendorsPage() {
   const isAdmin = useIsAdmin()
 
   const [page, setPage]     = useState(1)
   const [search, setSearch] = useState('')
-  const [formOpen, setFormOpen]   = useState(false)
-  const [editing, setEditing]     = useState<Vendor | null>(null)
-  const [deleting, setDeleting]   = useState<Vendor | null>(null)
+  const [formOpen, setFormOpen]       = useState(false)
+  const [editing, setEditing]         = useState<Vendor | null>(null)
+  const [deleting, setDeleting]       = useState<Vendor | null>(null)
+  const [activeVendor, setActiveVendor] = useState<ActiveVendor | null>(null)
 
   const q = useDebounce(search)
 
   const { data, isLoading } = useVendors({ page, limit: 15, search: q || undefined })
+
+  // Fetch all vendors (unpaged) just for the total outstanding summary card
+  const { data: allVendorsData } = useVendors({ limit: 200 })
+  const allVendors = allVendorsData?.data ?? []
+  const totalOutstanding = allVendors.reduce((sum, v) => sum + (v.payable_balance > 0 ? v.payable_balance : 0), 0)
+  const vendorsWithBalance = allVendors.filter((v) => v.payable_balance > 0).length
+
   const deleteVendor = useDeleteVendor()
 
   const openCreate = () => { setEditing(null); setFormOpen(true) }
@@ -38,10 +52,10 @@ export default function VendorsPage() {
 
   const columns: Column<Vendor>[] = [
     {
-      key:    'name',
-      header: 'Vendor',
+      key:       'name',
+      header:    'Vendor',
       sortValue: (v) => v.name,
-      cell:   (v) => (
+      cell:      (v) => (
         <div>
           <p className="font-medium">{v.name}</p>
           {v.notes && (
@@ -51,10 +65,10 @@ export default function VendorsPage() {
       ),
     },
     {
-      key:    'contact',
-      header: 'Contact',
+      key:       'contact',
+      header:    'Contact',
       sortValue: (v) => v.phone,
-      cell:   (v) => (
+      cell:      (v) => (
         <div className="space-y-0.5 text-sm text-muted-foreground">
           {v.phone && (
             <div className="flex items-center gap-1.5">
@@ -82,15 +96,14 @@ export default function VendorsPage() {
       className: 'hidden lg:table-cell',
     },
     {
-      key:    'balance',
-      header: 'Balance',
+      key:       'balance',
+      header:    'Outstanding',
       sortValue: (v) => v.payable_balance,
-      cell:   (v) => (
+      cell:      (v) => (
         v.payable_balance > 0
           ? <span className="font-mono text-sm font-semibold text-destructive">{formatCurrency(v.payable_balance)}</span>
           : <span className="text-sm text-muted-foreground">Nil</span>
       ),
-      className: 'hidden sm:table-cell',
     },
     {
       key:    'since',
@@ -104,6 +117,17 @@ export default function VendorsPage() {
       header: '',
       cell:   (v) => (
         <div className="flex items-center justify-end gap-1">
+          {/* Pay button — admin only, only when there is an outstanding balance */}
+          {isAdmin && v.payable_balance > 0 && (
+            <Button
+              variant="outline"
+              size="sm"
+              className="h-7 gap-1 px-2 text-xs whitespace-nowrap"
+              onClick={() => setActiveVendor({ id: v.id, name: v.name })}
+            >
+              <HandCoins className="h-3 w-3" /> Pay
+            </Button>
+          )}
           <Link to={`/vendor-ledger?vendor=${v.id}`} tabIndex={-1}>
             <Button variant="ghost" size="icon" className="h-8 w-8" title="View ledger" aria-label="View ledger">
               <BookOpen className="h-3.5 w-3.5" />
@@ -128,7 +152,7 @@ export default function VendorsPage() {
           )}
         </div>
       ),
-      className: 'w-28 whitespace-nowrap',
+      className: 'whitespace-nowrap',
     },
   ]
 
@@ -145,6 +169,22 @@ export default function VendorsPage() {
           )
         }
       />
+
+      {/* Total outstanding summary */}
+      {totalOutstanding > 0 && (
+        <div className="flex items-center gap-3 rounded-lg border border-destructive/30 bg-destructive/5 px-4 py-3">
+          <TrendingUp className="h-5 w-5 shrink-0 text-destructive" />
+          <div className="min-w-0">
+            <p className="text-xs text-muted-foreground">Total outstanding payable</p>
+            <p className="font-semibold text-destructive">
+              {formatCurrency(totalOutstanding)}
+              <span className="ml-2 text-xs font-normal text-muted-foreground">
+                across {vendorsWithBalance} vendor{vendorsWithBalance !== 1 ? 's' : ''}
+              </span>
+            </p>
+          </div>
+        </div>
+      )}
 
       {/* Search */}
       <div className="relative max-w-sm">
@@ -178,6 +218,17 @@ export default function VendorsPage() {
         onClose={() => setFormOpen(false)}
         vendor={editing}
       />
+
+      <VendorLedgerEntryModal
+        open={!!activeVendor}
+        onClose={() => setActiveVendor(null)}
+        vendorId={activeVendor?.id ?? ''}
+        vendorName={activeVendor?.name}
+        payableBalance={
+          allVendors.find((v) => v.id === activeVendor?.id)?.payable_balance ?? 0
+        }
+      />
+
       <ConfirmDialog
         open={!!deleting}
         onClose={() => setDeleting(null)}
