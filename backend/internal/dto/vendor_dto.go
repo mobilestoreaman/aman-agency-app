@@ -18,13 +18,16 @@ type UpdateVendorRequest struct {
 
 // VendorResponse is the JSON shape returned on every vendor endpoint.
 type VendorResponse struct {
-	ID        string `json:"id"`
-	Name      string `json:"name"`
-	Phone     string `json:"phone"`
-	Address   string `json:"address,omitempty"`
-	Notes     string `json:"notes,omitempty"`
-	CreatedAt string `json:"created_at"`
-	UpdatedAt string `json:"updated_at"`
+	ID             string  `json:"id"`
+	Name           string  `json:"name"`
+	Phone          string  `json:"phone"`
+	Address        string  `json:"address,omitempty"`
+	Notes          string  `json:"notes,omitempty"`
+	// PayableBalance is the running total the business owes this vendor.
+	// Positive = business owes vendor; zero or negative = overpaid.
+	PayableBalance float64 `json:"payable_balance"`
+	CreatedAt      string  `json:"created_at"`
+	UpdatedAt      string  `json:"updated_at"`
 }
 
 // VendorFilter holds query parameters for listing vendors.

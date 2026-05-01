@@ -48,13 +48,14 @@ func parseVendorOID(id string) (primitive.ObjectID, error) {
 
 func toVendorResponse(v *models.Vendor) *dto.VendorResponse {
 	return &dto.VendorResponse{
-		ID:        v.ID.Hex(),
-		Name:      v.Name,
-		Phone:     v.Phone,
-		Address:   v.Address,
-		Notes:     v.Notes,
-		CreatedAt: v.CreatedAt.Format("2006-01-02T15:04:05Z"),
-		UpdatedAt: v.UpdatedAt.Format("2006-01-02T15:04:05Z"),
+		ID:             v.ID.Hex(),
+		Name:           v.Name,
+		Phone:          v.Phone,
+		Address:        v.Address,
+		Notes:          v.Notes,
+		PayableBalance: v.PayableBalance,
+		CreatedAt:      v.CreatedAt.Format("2006-01-02T15:04:05Z"),
+		UpdatedAt:      v.UpdatedAt.Format("2006-01-02T15:04:05Z"),
 	}
 }
 
