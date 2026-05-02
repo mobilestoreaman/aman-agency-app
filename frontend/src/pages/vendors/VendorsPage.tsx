@@ -18,6 +18,7 @@ import { useDebounce } from '@/hooks/useDebounce'
 import { formatDate } from '@/utils/date'
 import { formatCurrency } from '@/utils/currency'
 import { downloadExport } from '@/utils/export'
+import { toast } from 'sonner'
 import type { Vendor } from '@/types'
 
 interface ActiveVendor {
@@ -72,12 +73,14 @@ export default function VendorsPage() {
       'Outstanding (₹)':  v.payable_balance > 0 ? v.payable_balance : 0,
       'Added on':         formatDate(v.created_at),
     }))
-    downloadExport(
+    if (!downloadExport(
       'csv',
       pendingOnly ? 'vendors_with_balance' : 'vendors',
       ['Name', 'Phone', 'Address', 'Outstanding (₹)', 'Added on'],
       rows,
-    )
+    )) {
+      toast.info('No vendors to export.')
+    }
   }
 
   const columns: Column<Vendor>[] = [

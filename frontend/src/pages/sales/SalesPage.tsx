@@ -120,7 +120,9 @@ export default function SalesPage() {
         }))
       )
 
-      downloadExport(format, 'Sales', headers, rows)
+      if (!downloadExport(format, 'Sales', headers, rows)) {
+        toast.info('No sales match the current filters — nothing to export.')
+      }
     } catch {
       toast.error('Export failed. Please try again.')
     } finally {

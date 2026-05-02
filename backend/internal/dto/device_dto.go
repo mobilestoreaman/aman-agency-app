@@ -3,13 +3,13 @@ package dto
 // CreateDeviceRequest is the body for POST /api/v1/devices.
 type CreateDeviceRequest struct {
 	ProductID     string  `json:"product_id"     validate:"required,objectid"`
-	IMEI1         string  `json:"imei1"          validate:"required,min=14,max=16"`
-	IMEI2         string  `json:"imei2"          validate:"omitempty,min=14,max=16"`
+	IMEI1         string  `json:"imei1"          validate:"required,len=15"`
+	IMEI2         string  `json:"imei2"          validate:"omitempty,len=15"`
 	Condition     string  `json:"condition"      validate:"omitempty,oneof=new used refurbished"`
 	Color         string  `json:"color"          validate:"omitempty,max=50"`
 	Storage       string  `json:"storage"        validate:"omitempty,max=20"`
-	PurchasePrice float64 `json:"purchase_price" validate:"required,min=0,max=10000000"`
-	SellingPrice  float64 `json:"selling_price"  validate:"required,min=0,max=10000000"`
+	PurchasePrice float64 `json:"purchase_price" validate:"required,gt=0,max=10000000"`
+	SellingPrice  float64 `json:"selling_price"  validate:"required,gt=0,max=10000000"`
 	Notes         string  `json:"notes"          validate:"omitempty,max=500"`
 }
 
@@ -17,13 +17,13 @@ type CreateDeviceRequest struct {
 // All fields are optional — only non-zero values are applied.
 type UpdateDeviceRequest struct {
 	ProductID     string  `json:"product_id"     validate:"omitempty,objectid"`
-	IMEI1         string  `json:"imei1"          validate:"omitempty,min=14,max=16"`
-	IMEI2         string  `json:"imei2"          validate:"omitempty,min=14,max=16"`
+	IMEI1         string  `json:"imei1"          validate:"omitempty,len=15"`
+	IMEI2         string  `json:"imei2"          validate:"omitempty,len=15"`
 	Condition     string  `json:"condition"      validate:"omitempty,oneof=new used refurbished"`
 	Color         string  `json:"color"          validate:"omitempty,max=50"`
 	Storage       string  `json:"storage"        validate:"omitempty,max=20"`
-	PurchasePrice float64 `json:"purchase_price" validate:"omitempty,min=0,max=10000000"`
-	SellingPrice  float64 `json:"selling_price"  validate:"omitempty,min=0,max=10000000"`
+	PurchasePrice float64 `json:"purchase_price" validate:"omitempty,gt=0,max=10000000"`
+	SellingPrice  float64 `json:"selling_price"  validate:"omitempty,gt=0,max=10000000"`
 	Notes         string  `json:"notes"          validate:"omitempty,max=500"`
 }
 

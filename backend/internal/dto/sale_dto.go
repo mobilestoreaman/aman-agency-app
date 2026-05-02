@@ -3,7 +3,7 @@ package dto
 // SaleItemRequest is one line in a sale — one device being sold.
 type SaleItemRequest struct {
 	DeviceID  string  `json:"device_id"  validate:"required,objectid"`
-	SalePrice float64 `json:"sale_price" validate:"required,min=0,max=10000000"`
+	SalePrice float64 `json:"sale_price" validate:"required,gt=0,max=10000000"`
 }
 
 // CreateSaleRequest is the body for POST /api/v1/sales.

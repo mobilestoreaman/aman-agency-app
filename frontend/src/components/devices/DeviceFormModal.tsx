@@ -37,8 +37,8 @@ const STATUS_LABELS: Record<DeviceStatus, string> = {
 
 const schema = z.object({
   product_id:     z.string().min(1, 'Product is required'),
-  imei1:          z.string().min(14, 'IMEI must be at least 14 characters').max(16, 'IMEI must be at most 16 characters'),
-  imei2:          z.string().min(14).max(16).regex(/^\d+$/, 'IMEI must contain only digits').optional().or(z.literal('')),
+  imei1:          z.string().length(15, 'IMEI must be exactly 15 digits').regex(/^\d+$/, 'IMEI must contain only digits'),
+  imei2:          z.string().length(15, 'IMEI must be exactly 15 digits').regex(/^\d+$/, 'IMEI must contain only digits').optional().or(z.literal('')),
   condition:      z.enum(['new', 'used', 'refurbished']),
   color:          z.string().max(40).optional().or(z.literal('')),
   storage:        z.string().optional().or(z.literal('')),

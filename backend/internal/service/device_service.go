@@ -218,7 +218,7 @@ func (s *deviceService) Update(ctx context.Context, id string, req dto.UpdateDev
 			return nil, apperror.NotFound("product not found")
 		}
 		fields["product_id"] = pOID
-		fields["product_name"] = product.DisplayName
+		fields["product_name"] = product.DisplayName()
 		fields["brand_name"] = product.BrandName
 	}
 

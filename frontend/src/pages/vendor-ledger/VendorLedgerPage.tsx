@@ -16,6 +16,7 @@ import { useDebounce } from '@/hooks/useDebounce'
 import { formatCurrency } from '@/utils/currency'
 import { formatDate, toApiDate } from '@/utils/date'
 import { downloadExport } from '@/utils/export'
+import { toast } from 'sonner'
 import type { VendorLedgerEntry, VendorLedgerEntryType } from '@/types'
 
 // ── Helpers ────────────────────────────────────────────────────────────────────
@@ -134,12 +135,14 @@ export default function VendorLedgerPage() {
       Notes:           e.notes ?? '',
       'Recorded by':   e.created_by,
     }))
-    downloadExport(
+    if (!downloadExport(
       'csv',
       vendorId && selectedVendor ? `ledger_${selectedVendor.name}` : 'vendor_ledger',
       ['Date', 'Vendor', 'Type', 'Amount (₹)', 'Balance after', 'Reference', 'Notes', 'Recorded by'],
       rows,
-    )
+    )) {
+      toast.info('No ledger entries to export.')
+    }
   }
 
   // Balance-after column: meaningful only when a single vendor is selected

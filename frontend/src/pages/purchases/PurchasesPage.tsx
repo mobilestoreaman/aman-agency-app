@@ -114,7 +114,9 @@ export default function PurchasesPage() {
         }))
       )
 
-      downloadExport(format, 'Purchases', headers, rows)
+      if (!downloadExport(format, 'Purchases', headers, rows)) {
+        toast.info('No purchases match the current filters — nothing to export.')
+      }
     } catch {
       toast.error('Export failed. Please try again.')
     } finally {

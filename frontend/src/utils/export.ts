@@ -100,7 +100,9 @@ export function downloadExport(
   sheetName: string,
   headers: string[],
   rows: ExportRow[],
-): void {
+): boolean {
+  if (rows.length === 0) return false   // caller should show "nothing to export" toast
+
   const ts = new Date().toISOString().slice(0, 10)          // YYYY-MM-DD
   const safeName = sheetName.replace(/[^a-z0-9]/gi, '_')
 
@@ -117,4 +119,5 @@ export function downloadExport(
       'application/vnd.ms-excel;charset=utf-8;',
     )
   }
+  return true
 }
