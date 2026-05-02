@@ -207,19 +207,22 @@ func Setup(app *fiber.App, db *database.Client, cfg *config.Config) {
 	vendorLedgerCtrl := controller.NewVendorLedgerController(vendorLedgerSvc, auditSvc)
 
 	// Vendors — staff read, admin write
-	// IMPORTANT: /ledger and /payments must be registered before /:id to avoid shadowing.
+	// IMPORTANT: ALL sub-path routes (/:id/something) must be registered in this
+	// group BEFORE /:id. Fiber's trie resolves the /:id node first, so any sub-path
+	// route in a separate group never gets matched. Admin-only sub-paths carry an
+	// extra inline AdminOnly() middleware instead of relying on a separate group.
 	vendorsPublic := v1.Group("/vendors", middleware.Authenticate(jwtManager), middleware.AnyStaff())
 	vendorsPublic.Get("", vendorCtrl.List)
 	vendorsPublic.Get("/:id/ledger", vendorLedgerCtrl.ListByVendor)
 	vendorsPublic.Post("/:id/payments", vendorLedgerCtrl.RecordPayment)
+	vendorsPublic.Post("/:id/adjustments", middleware.AdminOnly(), vendorLedgerCtrl.RecordAdjustment)
+	vendorsPublic.Post("/:id/opening_balance", middleware.AdminOnly(), vendorLedgerCtrl.RecordOpeningBalance)
 	vendorsPublic.Get("/:id", vendorCtrl.GetByID)
 
 	vendorsAdmin := v1.Group("/vendors", middleware.Authenticate(jwtManager), middleware.AdminOnly())
 	vendorsAdmin.Post("", vendorCtrl.Create)
 	vendorsAdmin.Put("/:id", vendorCtrl.Update)
 	vendorsAdmin.Delete("/:id", vendorCtrl.Delete)
-	vendorsAdmin.Post("/:id/adjustments", vendorLedgerCtrl.RecordAdjustment)
-	vendorsAdmin.Post("/:id/opening_balance", vendorLedgerCtrl.RecordOpeningBalance)
 
 	// Global vendor ledger listing (any staff can read across all vendors)
 	v1.Get("/vendor-ledger",
