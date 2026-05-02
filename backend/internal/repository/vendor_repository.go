@@ -26,6 +26,9 @@ type VendorRepository interface {
 	// IncrementPayable atomically adds delta to the vendor's payable_balance.
 	// delta > 0 increases the payable (business owes more); delta < 0 reduces it.
 	IncrementPayable(ctx context.Context, id primitive.ObjectID, delta float64) error
+	// MarkHasLedger idempotently sets has_ledger=true on the vendor document.
+	// Called the first time any ledger entry is written for this vendor.
+	MarkHasLedger(ctx context.Context, id primitive.ObjectID) error
 }
 
 type vendorRepository struct {
@@ -167,4 +170,18 @@ func (r *vendorRepository) IncrementPayable(ctx context.Context, id primitive.Ob
 		return ErrNotFound
 	}
 	return nil
+}
+
+// MarkHasLedger idempotently sets has_ledger=true on the vendor document.
+// Using $set means repeated calls are safe and cheap (no-op if already true).
+func (r *vendorRepository) MarkHasLedger(ctx context.Context, id primitive.ObjectID) error {
+	_, err := r.col.UpdateOne(
+		ctx,
+		bson.M{"_id": id},
+		bson.M{"$set": bson.M{
+			"has_ledger": true,
+			"updated_at": time.Now().UTC(),
+		}},
+	)
+	return err
 }

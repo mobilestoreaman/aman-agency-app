@@ -161,13 +161,13 @@ export default function VendorsPage() {
               <HandCoins className="h-3 w-3" /> Pay
             </Button>
           )}
-          {isAdmin && v.payable_balance <= 0 && (
+          {isAdmin && !v.has_ledger && (
             <Button
               variant="outline"
               size="sm"
               className="h-7 gap-1 px-2 text-xs whitespace-nowrap text-blue-600 border-blue-200 hover:bg-blue-50 hover:text-blue-700 dark:border-blue-800 dark:text-blue-400 dark:hover:bg-blue-950/30"
               onClick={() => setActiveVendor({ id: v.id, name: v.name, defaultType: 'opening_balance' })}
-              title="Record a pre-existing balance owed to this vendor"
+              title="Record the pre-existing balance owed to this vendor before this system was set up"
             >
               <PlusCircle className="h-3 w-3" /> Set balance
             </Button>

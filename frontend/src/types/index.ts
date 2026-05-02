@@ -144,6 +144,10 @@ export interface Vendor {
   notes?: string
   /** Running total of what the business owes this vendor. Positive = owes vendor. */
   payable_balance: number
+  /** True once any ledger entry has been recorded for this vendor. Used to gate
+   *  the "Set opening balance" button — that action is only valid before any
+   *  financial history exists. */
+  has_ledger: boolean
   created_at: string
   updated_at: string
 }

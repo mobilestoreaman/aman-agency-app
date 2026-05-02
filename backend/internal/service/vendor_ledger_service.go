@@ -230,6 +230,9 @@ func (s *vendorLedgerService) RecordPayment(
 		return nil, fmt.Errorf("failed to update payable balance; ledger entry rolled back: %w", err)
 	}
 
+	// Mark vendor as having ledger history (idempotent, non-fatal).
+	_ = s.vendorRepo.MarkHasLedger(ctx, oid)
+
 	return toVendorLedgerResponse(entry), nil
 }
 
@@ -278,6 +281,9 @@ func (s *vendorLedgerService) RecordAdjustment(
 		return nil, fmt.Errorf("failed to update payable balance; ledger entry rolled back: %w", err)
 	}
 
+	// Mark vendor as having ledger history (idempotent, non-fatal).
+	_ = s.vendorRepo.MarkHasLedger(ctx, oid)
+
 	return toVendorLedgerResponse(entry), nil
 }
 
@@ -304,6 +310,11 @@ func (s *vendorLedgerService) RecordOpeningBalance(
 		return nil, apperror.NotFound("vendor not found")
 	}
 
+	// Opening balance can only be set once — before any financial history exists.
+	if vendor.HasLedger {
+		return nil, apperror.Conflict("an opening balance can only be set before any ledger entries exist for this vendor; use an adjustment to correct the balance")
+	}
+
 	newBalance := vendor.PayableBalance + req.Amount
 
 	entry := &models.VendorLedger{
@@ -324,6 +335,9 @@ func (s *vendorLedgerService) RecordOpeningBalance(
 		_ = s.ledgerRepo.Delete(ctx, entry.ID)
 		return nil, fmt.Errorf("failed to update payable balance; opening balance entry rolled back: %w", err)
 	}
+
+	// Mark vendor as having ledger history (idempotent, non-fatal).
+	_ = s.vendorRepo.MarkHasLedger(ctx, oid)
 
 	return toVendorLedgerResponse(entry), nil
 }
@@ -377,6 +391,9 @@ func (s *vendorLedgerService) RecordPurchase(
 		_ = s.ledgerRepo.Delete(ctx, entry.ID)
 		return fmt.Errorf("failed to update payable balance; ledger entry rolled back: %w", err)
 	}
+
+	// Mark vendor as having ledger history (idempotent, non-fatal).
+	_ = s.vendorRepo.MarkHasLedger(ctx, oid)
 
 	return nil
 }

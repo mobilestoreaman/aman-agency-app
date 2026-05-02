@@ -26,6 +26,10 @@ type VendorResponse struct {
 	// PayableBalance is the running total the business owes this vendor.
 	// Positive = business owes vendor; zero or negative = overpaid.
 	PayableBalance float64 `json:"payable_balance"`
+	// HasLedger is true once any ledger entry has ever been recorded for this
+	// vendor. The frontend uses this to gate the "Set opening balance" button —
+	// that action is only available before any financial history exists.
+	HasLedger      bool    `json:"has_ledger"`
 	CreatedAt      string  `json:"created_at"`
 	UpdatedAt      string  `json:"updated_at"`
 }

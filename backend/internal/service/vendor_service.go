@@ -59,6 +59,7 @@ func toVendorResponse(v *models.Vendor) *dto.VendorResponse {
 		Address:        v.Address,
 		Notes:          v.Notes,
 		PayableBalance: v.PayableBalance,
+		HasLedger:      v.HasLedger,
 		CreatedAt:      v.CreatedAt.Format("2006-01-02T15:04:05Z"),
 		UpdatedAt:      v.UpdatedAt.Format("2006-01-02T15:04:05Z"),
 	}
