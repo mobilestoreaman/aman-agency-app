@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import {
   Plus, Pencil, Trash2, Search, Phone, MapPin,
-  BookOpen, TrendingUp, HandCoins, CheckCircle2, Download,
+  BookOpen, TrendingUp, HandCoins, CheckCircle2, Download, PlusCircle,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -21,8 +21,9 @@ import { downloadExport } from '@/utils/export'
 import type { Vendor } from '@/types'
 
 interface ActiveVendor {
-  id:   string
-  name: string
+  id:          string
+  name:        string
+  defaultType: 'payment' | 'opening_balance'
 }
 
 export default function VendorsPage() {
@@ -152,9 +153,20 @@ export default function VendorsPage() {
               variant="outline"
               size="sm"
               className="h-7 gap-1 px-2 text-xs whitespace-nowrap"
-              onClick={() => setActiveVendor({ id: v.id, name: v.name })}
+              onClick={() => setActiveVendor({ id: v.id, name: v.name, defaultType: 'payment' })}
             >
               <HandCoins className="h-3 w-3" /> Pay
+            </Button>
+          )}
+          {isAdmin && v.payable_balance <= 0 && (
+            <Button
+              variant="outline"
+              size="sm"
+              className="h-7 gap-1 px-2 text-xs whitespace-nowrap text-blue-600 border-blue-200 hover:bg-blue-50 hover:text-blue-700 dark:border-blue-800 dark:text-blue-400 dark:hover:bg-blue-950/30"
+              onClick={() => setActiveVendor({ id: v.id, name: v.name, defaultType: 'opening_balance' })}
+              title="Record a pre-existing balance owed to this vendor"
+            >
+              <PlusCircle className="h-3 w-3" /> Set balance
             </Button>
           )}
           <Link to={`/vendor-ledger?vendor=${v.id}`} tabIndex={-1}>
@@ -287,6 +299,7 @@ export default function VendorsPage() {
         vendorId={activeVendor?.id ?? ''}
         vendorName={activeVendor?.name}
         payableBalance={allVendors.find((v) => v.id === activeVendor?.id)?.payable_balance ?? 0}
+        defaultType={activeVendor?.defaultType ?? 'payment'}
       />
 
       <ConfirmDialog
