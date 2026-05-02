@@ -8,7 +8,7 @@ export const vendorsApi = {
   getById: (id: string) =>
     apiClient.get<ApiResponse<Vendor>>(`/vendors/${id}`),
 
-  create: (body: Omit<Vendor, 'id' | 'created_at' | 'updated_at' | 'payable_balance'>) =>
+  create: (body: Omit<Vendor, 'id' | 'created_at' | 'updated_at' | 'payable_balance' | 'has_ledger'>) =>
     apiClient.post<ApiResponse<Vendor>>('/vendors', body),
 
   update: (id: string, body: Partial<Vendor>) =>

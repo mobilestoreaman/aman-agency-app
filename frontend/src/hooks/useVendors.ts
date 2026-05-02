@@ -35,7 +35,7 @@ export function useVendor(id: string) {
 export function useCreateVendor() {
   const qc = useQueryClient()
   return useMutation({
-    mutationFn: (data: Omit<Vendor, 'id' | 'created_at' | 'updated_at' | 'payable_balance'>) =>
+    mutationFn: (data: Omit<Vendor, 'id' | 'created_at' | 'updated_at' | 'payable_balance' | 'has_ledger'>) =>
       vendorsApi.create(data),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: vendorKeys.all })
