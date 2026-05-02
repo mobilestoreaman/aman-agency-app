@@ -10,6 +10,7 @@ import (
 	"aman-agency/backend/internal/models"
 	"aman-agency/backend/pkg/apperror"
 	"aman-agency/backend/pkg/pagination"
+	"aman-agency/backend/pkg/regexutil"
 	"aman-agency/backend/pkg/response"
 
 	"go.mongodb.org/mongo-driver/bson"
@@ -61,7 +62,7 @@ func (r *expenseRepository) FindByID(ctx context.Context, id primitive.ObjectID)
 // List returns a paginated slice of expenses, sorted newest first.
 // from/to are pre-parsed UTC bounds on the `date` field; zero values omit the date filter.
 func (r *expenseRepository) List(ctx context.Context, f dto.ExpenseFilter, from, to time.Time) ([]models.Expense, *response.Meta, error) {
-	filter := buildExpenseFilter(f.Category, from, to)
+	filter := buildExpenseFilter(f.Category, f.Search, from, to)
 
 	p := pagination.Params{Page: f.Page, Limit: f.Limit}
 	p.Normalise()
@@ -207,10 +208,13 @@ func (r *expenseRepository) Aggregate(ctx context.Context, from, to time.Time) (
 
 // ─── helper ───────────────────────────────────────────────────────────────────
 
-func buildExpenseFilter(category string, from, to time.Time) bson.M {
+func buildExpenseFilter(category, search string, from, to time.Time) bson.M {
 	filter := bson.M{}
 	if category != "" {
 		filter["category"] = category
+	}
+	if search != "" {
+		filter["description"] = bson.M{"$regex": primitive.Regex{Pattern: regexutil.Escape(search), Options: "i"}}
 	}
 	if !from.IsZero() && !to.IsZero() {
 		filter["date"] = bson.M{"$gte": from, "$lte": to}

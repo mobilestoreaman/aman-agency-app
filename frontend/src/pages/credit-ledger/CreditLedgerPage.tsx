@@ -178,7 +178,7 @@ export default function CreditLedgerPage() {
       key:    'notes',
       header: 'Notes',
       cell:   (e) => (
-        <span className="max-w-[180px] truncate text-xs text-muted-foreground italic">
+        <span className="block max-w-[180px] truncate text-xs text-muted-foreground italic">
           {e.notes ?? '—'}
         </span>
       ),
@@ -204,21 +204,21 @@ export default function CreditLedgerPage() {
       {!isLoading && pageEntries.length > 0 && (
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
           <div className="flex items-center gap-3 rounded-lg border bg-destructive/5 px-4 py-3">
-            <TrendingUp className="h-5 w-5 text-destructive" />
-            <div>
+            <TrendingUp className="h-5 w-5 shrink-0 text-destructive" />
+            <div className="min-w-0">
               <p className="text-xs text-muted-foreground">Credit given (page)</p>
               <p className="font-semibold text-destructive">{formatCurrency(totalDebit)}</p>
             </div>
           </div>
           <div className="flex items-center gap-3 rounded-lg border bg-emerald-50 px-4 py-3 dark:bg-emerald-950/20">
-            <TrendingDown className="h-5 w-5 text-emerald-600" />
-            <div>
+            <TrendingDown className="h-5 w-5 shrink-0 text-emerald-600" />
+            <div className="min-w-0">
               <p className="text-xs text-muted-foreground">Payments received (page)</p>
               <p className="font-semibold text-emerald-600">{formatCurrency(totalCredit)}</p>
             </div>
           </div>
           <div className="col-span-2 flex items-center gap-3 rounded-lg border bg-muted/40 px-4 py-3 sm:col-span-1">
-            <div>
+            <div className="min-w-0">
               <p className="text-xs text-muted-foreground">Net outstanding (page)</p>
               {(() => {
                 const net = totalDebit - totalCredit
@@ -238,8 +238,8 @@ export default function CreditLedgerPage() {
 
       {/* Filters */}
       <div className="flex flex-wrap items-end gap-3">
-        {/* Search */}
-        <div className="relative min-w-0 flex-1 basis-40">
+        {/* Search — grows to fill available row space */}
+        <div className="relative min-w-0 flex-1">
           <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
           <Input
             placeholder="Search by customer or reference…"
@@ -266,17 +266,19 @@ export default function CreditLedgerPage() {
           </SelectContent>
         </Select>
 
-        <div className="flex w-full items-center gap-2 sm:w-auto">
+        {/* Date range — full-width row until lg (when the sidebar appears and
+            there is enough horizontal room to share the row with search + select) */}
+        <div className="flex w-full items-center gap-2 lg:w-auto">
           <Input
             type="date" value={fromDate}
             onChange={(e) => { setFromDate(e.target.value); setPage(1) }}
-            className="flex-1 sm:w-[140px] sm:flex-none" title="From date"
+            className="min-w-0 flex-1 lg:w-[140px] lg:flex-none" title="From date"
           />
           <span className="shrink-0 text-muted-foreground">–</span>
           <Input
             type="date" value={toDate}
             onChange={(e) => { setToDate(e.target.value); setPage(1) }}
-            className="flex-1 sm:w-[140px] sm:flex-none" title="To date"
+            className="min-w-0 flex-1 lg:w-[140px] lg:flex-none" title="To date"
           />
         </div>
 

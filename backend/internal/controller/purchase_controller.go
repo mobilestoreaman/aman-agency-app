@@ -38,6 +38,8 @@ func (ctrl *PurchaseController) List(c *fiber.Ctx) error {
 		VendorID: c.Query("vendor_id"),
 		Status:   c.Query("status"),
 		Search:   c.Query("search"),
+		FromDate: c.Query("from_date"),
+		ToDate:   c.Query("to_date"),
 		Page:     parseIntQuery(c, "page", 1),
 		Limit:    parseIntQuery(c, "limit", 20),
 	}

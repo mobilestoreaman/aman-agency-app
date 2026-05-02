@@ -8,6 +8,7 @@ import (
 
 	"aman-agency/backend/internal/dto"
 	"aman-agency/backend/internal/models"
+	"aman-agency/backend/pkg/dateutil"
 	"aman-agency/backend/pkg/regexutil"
 
 	"go.mongodb.org/mongo-driver/bson"
@@ -103,26 +104,17 @@ func (r *paymentPromiseRepository) List(
 			bson.M{"invoice_number": bson.M{"$regex": regex}},
 		}
 	}
-	if f.FromDate != "" {
-		t, err := time.Parse("2006-01-02", f.FromDate)
-		if err == nil {
-			if f.ToDate != "" {
-				t2, err2 := time.Parse("2006-01-02", f.ToDate)
-				if err2 == nil {
-					query["promised_date"] = bson.M{
-						"$gte": t.UTC(),
-						"$lte": t2.Add(24*time.Hour - time.Second).UTC(),
-					}
-				}
-			} else {
-				query["promised_date"] = bson.M{"$gte": t.UTC()}
-			}
+	from, _ := dateutil.ParseDDMMYYYY(f.FromDate)
+	to, _ := dateutil.ParseDDMMYYYY(f.ToDate)
+	if !from.IsZero() || !to.IsZero() {
+		dateFilter := bson.M{}
+		if !from.IsZero() {
+			dateFilter["$gte"] = from
 		}
-	} else if f.ToDate != "" {
-		t2, err := time.Parse("2006-01-02", f.ToDate)
-		if err == nil {
-			query["promised_date"] = bson.M{"$lte": t2.Add(24*time.Hour - time.Second).UTC()}
+		if !to.IsZero() {
+			dateFilter["$lte"] = dateutil.EndOfDay(to)
 		}
+		query["promised_date"] = dateFilter
 	}
 
 	page := f.Page

@@ -9,14 +9,12 @@ import (
 	"aman-agency/backend/internal/models"
 	"aman-agency/backend/internal/repository"
 	"aman-agency/backend/pkg/apperror"
+	"aman-agency/backend/pkg/dateutil"
 	"aman-agency/backend/pkg/pagination"
 	"aman-agency/backend/pkg/response"
 
 	"go.mongodb.org/mongo-driver/bson/primitive"
 )
-
-// dateLayout used by the DD-MM-YYYY query-string convention.
-const dateLayout = "02-01-2006"
 
 // CreditLedgerService manages customer credit balance adjustments and history.
 type CreditLedgerService interface {
@@ -83,19 +81,19 @@ func (s *creditLedgerService) List(ctx context.Context, f dto.GlobalCreditLedger
 
 	var from, to *time.Time
 	if f.FromDate != "" {
-		t, err := time.ParseInLocation(dateLayout, f.FromDate, time.UTC)
+		t, err := dateutil.ParseDDMMYYYY(f.FromDate)
 		if err != nil {
 			return nil, nil, apperror.BadRequest("from_date must be DD-MM-YYYY")
 		}
 		from = &t
 	}
 	if f.ToDate != "" {
-		t, err := time.ParseInLocation(dateLayout, f.ToDate, time.UTC)
+		t, err := dateutil.ParseDDMMYYYY(f.ToDate)
 		if err != nil {
 			return nil, nil, apperror.BadRequest("to_date must be DD-MM-YYYY")
 		}
-		// Include the full end day.
-		end := t.Add(24*time.Hour - time.Second)
+		// Include the full end day (end of IST calendar day).
+		end := dateutil.EndOfDay(t)
 		to = &end
 	}
 

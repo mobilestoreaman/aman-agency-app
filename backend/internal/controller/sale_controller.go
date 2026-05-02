@@ -42,6 +42,8 @@ func (ctrl *SaleController) List(c *fiber.Ctx) error {
 		StaffID:    c.Query("staff_id"),
 		Status:     c.Query("status"),
 		Search:     c.Query("search"),
+		FromDate:   c.Query("from_date"),
+		ToDate:     c.Query("to_date"),
 		Page:       parseIntQuery(c, "page", 1),
 		Limit:      parseIntQuery(c, "limit", 20),
 	}

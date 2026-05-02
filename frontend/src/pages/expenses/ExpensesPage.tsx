@@ -209,10 +209,11 @@ export default function ExpensesPage() {
 
   const { data, isLoading } = useExpenses({
     page,
-    limit: 15,
-    category:  (categoryFilter as ExpenseCategory) || undefined,
-    from:      fromDate ? toApiDate(fromDate) : undefined,
-    to:        toDate   ? toApiDate(toDate)   : undefined,
+    limit:    15,
+    category: (categoryFilter as ExpenseCategory) || undefined,
+    search:   q || undefined,
+    from:     fromDate ? toApiDate(fromDate) : undefined,
+    to:       toDate   ? toApiDate(toDate)   : undefined,
   })
 
   const { data: summary } = useExpenseSummary({
@@ -234,11 +235,6 @@ export default function ExpensesPage() {
     setSearch(''); setCategory(''); setFromDate(''); setToDate(''); setPage(1)
   }
   const hasFilters = !!search || !!categoryFilter || !!fromDate || !!toDate
-
-  // client-side search filter (description)
-  const filtered = (data?.data ?? []).filter((e) =>
-    !q || e.description.toLowerCase().includes(q.toLowerCase()),
-  )
 
   const columns: Column<Expense>[] = [
     {
@@ -393,7 +389,7 @@ export default function ExpensesPage() {
 
       <ResponsiveTable
         columns={columns}
-        data={filtered}
+        data={data?.data ?? []}
         isLoading={isLoading}
         meta={data?.meta}
         onPageChange={setPage}

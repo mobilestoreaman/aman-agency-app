@@ -28,8 +28,9 @@ export const EXPENSE_CATEGORIES: ExpenseCategory[] = [
 
 interface ExpenseParams {
   page?:      number
-  limit?: number
+  limit?:     number
   category?:  ExpenseCategory | ''
+  search?:    string
   from?:      string
   to?:        string
 }

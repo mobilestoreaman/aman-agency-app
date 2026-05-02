@@ -29,8 +29,9 @@ type UpdateExpenseRequest struct {
 // ExpenseFilter controls list queries.
 type ExpenseFilter struct {
 	Category string `query:"category"`
-	From     string `query:"from"`  // DD-MM-YYYY IST
-	To       string `query:"to"`    // DD-MM-YYYY IST
+	Search   string `query:"search"` // regex on description
+	From     string `query:"from"`   // DD-MM-YYYY IST
+	To       string `query:"to"`     // DD-MM-YYYY IST
 	Page     int    `query:"page"`
 	Limit    int    `query:"limit"`
 }

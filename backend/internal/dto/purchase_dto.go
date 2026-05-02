@@ -69,6 +69,8 @@ type PurchaseFilter struct {
 	VendorID string
 	Status   string
 	Search   string // regex on vendor_name
+	FromDate string // DD-MM-YYYY IST — inclusive lower bound on purchased_at
+	ToDate   string // DD-MM-YYYY IST — inclusive upper bound on purchased_at
 	Page     int
 	Limit    int
 }

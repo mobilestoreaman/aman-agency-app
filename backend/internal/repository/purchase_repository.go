@@ -7,8 +7,9 @@ import (
 	"time"
 
 	"aman-agency/backend/internal/dto"
-	"aman-agency/backend/pkg/regexutil"
 	"aman-agency/backend/internal/models"
+	"aman-agency/backend/pkg/dateutil"
+	"aman-agency/backend/pkg/regexutil"
 
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
@@ -131,6 +132,19 @@ func buildPurchaseFilter(f dto.PurchaseFilter) bson.M {
 	if f.Search != "" {
 		regex := primitive.Regex{Pattern: regexutil.Escape(f.Search), Options: "i"}
 		query["vendor_name"] = bson.M{"$regex": regex}
+	}
+	// Date range filter on purchased_at — both bounds are optional and independent.
+	from, _ := dateutil.ParseDDMMYYYY(f.FromDate)
+	to, _ := dateutil.ParseDDMMYYYY(f.ToDate)
+	if !from.IsZero() || !to.IsZero() {
+		dateFilter := bson.M{}
+		if !from.IsZero() {
+			dateFilter["$gte"] = from
+		}
+		if !to.IsZero() {
+			dateFilter["$lte"] = dateutil.EndOfDay(to)
+		}
+		query["purchased_at"] = dateFilter
 	}
 	return query
 }

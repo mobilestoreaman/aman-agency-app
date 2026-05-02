@@ -60,6 +60,8 @@ type SaleFilter struct {
 	StaffID    string
 	Status     string
 	Search     string // regex on invoice_number or customer_name
+	FromDate   string // DD-MM-YYYY IST — inclusive lower bound on sold_at
+	ToDate     string // DD-MM-YYYY IST — inclusive upper bound on sold_at
 	Page       int
 	Limit      int
 }

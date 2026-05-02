@@ -9,6 +9,7 @@ import (
 	"aman-agency/backend/internal/models"
 	"aman-agency/backend/internal/repository"
 	"aman-agency/backend/pkg/apperror"
+	"aman-agency/backend/pkg/dateutil"
 	"aman-agency/backend/pkg/pagination"
 	"aman-agency/backend/pkg/response"
 
@@ -138,15 +139,15 @@ func (s *paymentPromiseService) List(
 		}
 	}
 
-	// Validate date format (must be YYYY-MM-DD).
+	// Validate date format (must be DD-MM-YYYY, matching the app-wide standard).
 	if f.FromDate != "" {
-		if _, err := time.Parse("2006-01-02", f.FromDate); err != nil {
-			return nil, nil, apperror.BadRequest("from_date must be YYYY-MM-DD format")
+		if _, err := dateutil.ParseDDMMYYYY(f.FromDate); err != nil {
+			return nil, nil, apperror.BadRequest("from_date must be DD-MM-YYYY format")
 		}
 	}
 	if f.ToDate != "" {
-		if _, err := time.Parse("2006-01-02", f.ToDate); err != nil {
-			return nil, nil, apperror.BadRequest("to_date must be YYYY-MM-DD format")
+		if _, err := dateutil.ParseDDMMYYYY(f.ToDate); err != nil {
+			return nil, nil, apperror.BadRequest("to_date must be DD-MM-YYYY format")
 		}
 	}
 

@@ -7,8 +7,9 @@ import (
 	"time"
 
 	"aman-agency/backend/internal/dto"
-	"aman-agency/backend/pkg/regexutil"
 	"aman-agency/backend/internal/models"
+	"aman-agency/backend/pkg/dateutil"
+	"aman-agency/backend/pkg/regexutil"
 
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
@@ -76,21 +77,17 @@ func (r *borrowLendRepository) List(ctx context.Context, f dto.BorrowLendFilter)
 			bson.M{"device_desc": bson.M{"$regex": regex}},
 		}
 	}
-	if f.FromDate != "" {
-		t, err := time.Parse("2006-01-02", f.FromDate)
-		if err == nil {
-			dateFilter := bson.M{"$gte": t.UTC()}
-			if f.ToDate != "" {
-				if t2, err2 := time.Parse("2006-01-02", f.ToDate); err2 == nil {
-					dateFilter["$lte"] = t2.Add(24*time.Hour - time.Second).UTC()
-				}
-			}
-			filter["borrowed_at"] = dateFilter
+	from, _ := dateutil.ParseDDMMYYYY(f.FromDate)
+	to, _ := dateutil.ParseDDMMYYYY(f.ToDate)
+	if !from.IsZero() || !to.IsZero() {
+		dateFilter := bson.M{}
+		if !from.IsZero() {
+			dateFilter["$gte"] = from
 		}
-	} else if f.ToDate != "" {
-		if t2, err := time.Parse("2006-01-02", f.ToDate); err == nil {
-			filter["borrowed_at"] = bson.M{"$lte": t2.Add(24*time.Hour - time.Second).UTC()}
+		if !to.IsZero() {
+			dateFilter["$lte"] = dateutil.EndOfDay(to)
 		}
+		filter["borrowed_at"] = dateFilter
 	}
 
 	page := f.Page
