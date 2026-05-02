@@ -13,10 +13,11 @@ export default function MobileNav({ onMenuOpen }: Props) {
 
   return (
     <nav
-      className="fixed bottom-0 left-0 right-0 z-40 border-t border-border/60 bg-background/95 backdrop-blur-sm safe-bottom"
+      className="fixed bottom-0 left-0 right-0 z-40 border-t border-border/60 bg-background/95 backdrop-blur-sm"
+      style={{ paddingBottom: 'env(safe-area-inset-bottom, 0px)' }}
       aria-label="Mobile navigation"
     >
-      <div className="flex h-16 items-stretch">
+      <div className="flex h-14 items-stretch">
         {mobileTabItems.map((item) => {
           const Icon = item.icon
           return (

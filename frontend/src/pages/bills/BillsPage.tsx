@@ -92,22 +92,28 @@ function BillDetailDrawer({ billId, open, onClose }: {
               <div className="space-y-4 p-1">
                 {/* Header info */}
                 <div className="space-y-1.5 text-sm">
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground">Customer</span>
-                    <span className="font-medium">{bill.customer_name}</span>
+                  <div className="flex items-baseline justify-between gap-3">
+                    <span className="shrink-0 text-muted-foreground">Customer</span>
+                    <span className="min-w-0 truncate text-right font-medium" title={bill.customer_name}>
+                      {bill.customer_name}
+                    </span>
                   </div>
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground">Phone</span>
-                    <span>{bill.customer_phone}</span>
+                  <div className="flex items-baseline justify-between gap-3">
+                    <span className="shrink-0 text-muted-foreground">Phone</span>
+                    <span className="min-w-0 truncate text-right" title={bill.customer_phone ?? ''}>
+                      {bill.customer_phone || '—'}
+                    </span>
                   </div>
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground">Sale ID</span>
-                    <code className="rounded bg-muted px-1.5 py-0.5 text-xs">{bill.sale_id}</code>
+                  <div className="flex items-baseline justify-between gap-3">
+                    <span className="shrink-0 text-muted-foreground">Sale ID</span>
+                    <code className="min-w-0 truncate rounded bg-muted px-1.5 py-0.5 text-xs" title={bill.sale_id}>
+                      {bill.sale_id}
+                    </code>
                   </div>
                   {bill.issued_at && (
-                    <div className="flex justify-between">
-                      <span className="text-muted-foreground">Issued at</span>
-                      <span>{formatDate(bill.issued_at)}</span>
+                    <div className="flex items-baseline justify-between gap-3">
+                      <span className="shrink-0 text-muted-foreground">Issued at</span>
+                      <span className="shrink-0 text-right">{formatDate(bill.issued_at)}</span>
                     </div>
                   )}
                 </div>
@@ -122,10 +128,12 @@ function BillDetailDrawer({ billId, open, onClose }: {
                   <div className="divide-y rounded-md border">
                     {(bill.items ?? []).map((item, i) => (
                       <div key={i} className="flex items-center justify-between gap-3 px-3 py-2.5 text-sm">
-                        <div className="min-w-0">
-                          <p className="font-medium truncate">{item.product_name}</p>
+                        <div className="min-w-0 flex-1">
+                          <p className="font-medium leading-snug" style={{ wordBreak: 'break-word' }}>
+                            {item.product_name}
+                          </p>
                           {item.imei1 && (
-                            <p className="font-mono text-xs text-muted-foreground">{item.imei1}</p>
+                            <p className="font-mono text-xs text-muted-foreground truncate">{item.imei1}</p>
                           )}
                         </div>
                         <span className="shrink-0 font-mono font-semibold">{formatCurrency(item.unit_price)}</span>
@@ -138,25 +146,25 @@ function BillDetailDrawer({ billId, open, onClose }: {
 
                 {/* Totals */}
                 <div className="space-y-1.5 text-sm">
-                  <div className="flex justify-between text-muted-foreground">
-                    <span>Subtotal</span>
-                    <span className="font-mono">{formatCurrency(bill.subtotal)}</span>
+                  <div className="flex items-baseline justify-between gap-3 text-muted-foreground">
+                    <span className="shrink-0">Subtotal</span>
+                    <span className="shrink-0 font-mono">{formatCurrency(bill.subtotal)}</span>
                   </div>
                   {bill.discount > 0 && (
-                    <div className="flex justify-between text-emerald-600">
-                      <span>Discount</span>
-                      <span className="font-mono">− {formatCurrency(bill.discount)}</span>
+                    <div className="flex items-baseline justify-between gap-3 text-emerald-600">
+                      <span className="shrink-0">Discount</span>
+                      <span className="shrink-0 font-mono">− {formatCurrency(bill.discount)}</span>
                     </div>
                   )}
                   <Separator />
-                  <div className="flex justify-between font-bold text-base">
-                    <span>Total</span>
-                    <span className="font-mono">{formatCurrency(bill.total_amount)}</span>
+                  <div className="flex items-baseline justify-between gap-3 font-bold text-base">
+                    <span className="shrink-0">Total</span>
+                    <span className="shrink-0 font-mono">{formatCurrency(bill.total_amount)}</span>
                   </div>
                   {bill.balance > 0 && (
-                    <div className="flex justify-between text-amber-600">
-                      <span>Balance due</span>
-                      <span className="font-mono">{formatCurrency(bill.balance)}</span>
+                    <div className="flex items-baseline justify-between gap-3 text-amber-600">
+                      <span className="shrink-0">Balance due</span>
+                      <span className="shrink-0 font-mono">{formatCurrency(bill.balance)}</span>
                     </div>
                   )}
                 </div>
@@ -371,7 +379,7 @@ export default function BillsPage() {
       {/* Filters */}
       <div className="flex flex-wrap items-end gap-3">
         {/* Search */}
-        <div className="relative min-w-0 flex-1 basis-40">
+        <div className="relative min-w-0 flex-1">
           <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
           <Input
             placeholder="Search by bill #, customer, phone…"

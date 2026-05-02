@@ -310,7 +310,7 @@ export function ResponsiveTable<T,>({
 
         {/* ── MIDDLE: key data as labelled columns ─────────────────────── */}
         {(middle ?? []).length > 0 && (
-          <div className="mt-2.5 flex flex-wrap gap-x-6 gap-y-2 border-t border-border/50 pt-2.5">
+          <div className="mt-2.5 flex flex-wrap gap-x-4 gap-y-2 border-t border-border/50 pt-2.5 sm:gap-x-6">
             {(middle ?? []).map((key) => {
               const content = cell(key)
               if (content == null) return null

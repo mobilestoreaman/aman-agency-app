@@ -359,7 +359,7 @@ export default function DevicesPage() {
       header: 'IMEI / Device',
       cell:   (d) => (
         <div className="min-w-0">
-          <p className="font-mono text-sm font-medium truncate max-w-[160px] sm:max-w-none">{d.imei1}</p>
+          <p className="font-mono text-sm font-medium truncate">{d.imei1}</p>
           <p className="truncate text-xs text-muted-foreground">
             {d.product_name}
             {d.color   ? ` · ${d.color}`   : ''}

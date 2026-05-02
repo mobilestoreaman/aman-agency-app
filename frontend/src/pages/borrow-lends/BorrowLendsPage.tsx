@@ -102,7 +102,7 @@ export default function BorrowLendsPage() {
             }
           </div>
           <div className="min-w-0">
-            <p className="font-medium text-sm truncate max-w-[180px]">{e.device_desc}</p>
+            <p className="font-medium text-sm truncate">{e.device_desc}</p>
           </div>
         </div>
       ),

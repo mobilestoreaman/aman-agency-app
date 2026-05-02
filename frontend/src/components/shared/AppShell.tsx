@@ -18,7 +18,7 @@ export default function AppShell() {
   const closeMobile = () => setMobileOpen(false)
 
   return (
-    <div className="flex h-screen overflow-hidden bg-background">
+    <div className="flex h-[100dvh] overflow-hidden bg-background">
       {/* ── Desktop sidebar (lg+) ──────────────────────────── */}
       <div className="hidden shrink-0 border-r border-border/60 shadow-[1px_0_0_0_hsl(var(--border)/0.4)] lg:flex">
         <Sidebar />
@@ -48,7 +48,7 @@ export default function AppShell() {
 
         {/* Page content */}
         <ScrollArea className="flex-1">
-          <main className="min-h-full w-full p-4 pb-24 sm:p-5 lg:p-7 lg:pb-7 overflow-x-hidden">
+          <main className="min-h-full w-full p-4 sm:p-5 lg:p-7 overflow-x-hidden [padding-bottom:calc(4.5rem+env(safe-area-inset-bottom,0px))] lg:[padding-bottom:1.75rem]">
             <PageTransition key={location.pathname}>
               <Outlet />
             </PageTransition>

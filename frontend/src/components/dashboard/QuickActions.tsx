@@ -29,31 +29,31 @@ const actions: Action[] = [
 
 export default function QuickActions() {
   return (
-    <Card className="shadow-card border-border/70 overflow-hidden">
-      <CardHeader className="pb-3">
-        <CardTitle className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">
+    <Card className="shadow-card border-border/70">
+      <CardHeader className="px-4 pb-2 pt-4 sm:px-5">
+        <CardTitle className="text-xs font-semibold text-muted-foreground uppercase tracking-widest">
           Quick Actions
         </CardTitle>
       </CardHeader>
-      <CardContent className="px-2 pb-4 sm:px-5">
-        <div className="grid grid-cols-3 gap-0.5 sm:gap-1 sm:grid-cols-6">
+      <CardContent className="px-3 pb-4 sm:px-4">
+        <div className="grid grid-cols-3 gap-2 sm:grid-cols-6 sm:gap-2">
           {actions.map((action) => {
             const Icon = action.icon
             return (
               <Link
                 key={action.path}
                 to={action.path}
-                className="group flex flex-col items-center gap-1.5 rounded-xl p-2 text-center transition-all duration-150 hover:bg-muted/60 active:scale-[0.97] min-w-0"
+                className="group flex flex-col items-center gap-2 rounded-2xl p-2.5 text-center transition-all duration-150 hover:bg-muted/50 active:scale-[0.96] active:bg-muted/70"
               >
                 <div
                   className={cn(
-                    'flex h-10 w-10 sm:h-11 sm:w-11 shrink-0 items-center justify-center rounded-xl transition-shadow group-hover:shadow-sm',
+                    'flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl transition-all duration-150 group-hover:scale-105 group-active:scale-95',
                     action.bg,
                   )}
                 >
-                  <Icon className={cn('h-5 w-5', action.color)} />
+                  <Icon className={cn('h-[22px] w-[22px]', action.color)} />
                 </div>
-                <span className="w-full text-center text-[10px] font-medium leading-tight text-foreground/80 group-hover:text-foreground truncate px-0.5">
+                <span className="w-full text-center text-[11px] font-medium leading-tight text-foreground/75 group-hover:text-foreground">
                   {action.label}
                 </span>
               </Link>

@@ -277,12 +277,12 @@ function ProductPickerRow({ onAdd }: { onAdd: (d: DeviceItem) => void }) {
   return (
     <div className="flex flex-wrap items-center gap-2">
       {/* ── Searchable product combobox ── */}
-      <div ref={pickerRef} className="relative">
+      <div ref={pickerRef} className="relative w-full sm:w-auto">
         <button
           type="button"
           onClick={pickerOpen ? () => setPickerOpen(false) : openPicker}
           className={cn(
-            'flex h-9 w-[240px] items-center justify-between gap-2 rounded-md border bg-background px-3 text-sm',
+            'flex h-9 w-full items-center justify-between gap-2 rounded-md border bg-background px-3 text-sm sm:w-[240px]',
             'hover:bg-accent/50 focus:outline-none',
             selectedProduct ? 'text-foreground' : 'text-muted-foreground',
           )}
@@ -308,7 +308,7 @@ function ProductPickerRow({ onAdd }: { onAdd: (d: DeviceItem) => void }) {
         </button>
 
         {pickerOpen && (
-          <div className="absolute left-0 top-full z-50 mt-1 w-[320px] overflow-hidden rounded-md border bg-popover shadow-lg">
+          <div className="absolute left-0 top-full z-50 mt-1 w-full min-w-[240px] overflow-hidden rounded-md border bg-popover shadow-lg sm:w-[320px]">
             {/* Search input */}
             <div className="border-b p-2">
               <input
@@ -529,7 +529,7 @@ export default function SaleFormModal({ open, onClose }: Props) {
             <form id="sale-form" onSubmit={form.handleSubmit(onSubmit)} className="px-5 py-4 space-y-4">
 
               {/* Row 1 — Customer + Date */}
-              <div className="grid grid-cols-[1fr_160px] gap-3">
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-[1fr_160px]">
                 <FormField
                   control={form.control}
                   name="customer_id"
@@ -586,9 +586,11 @@ export default function SaleFormModal({ open, onClose }: Props) {
                 <ImeiScanBar onAdd={handleAddDevice} addedDeviceIds={addedDeviceIds} />
 
                 {/* Product picker */}
-                <div className="flex items-center gap-2">
+                <div className="flex min-w-0 flex-wrap items-center gap-2">
                   <span className="text-xs text-muted-foreground whitespace-nowrap">Or add by product:</span>
-                  <ProductPickerRow onAdd={handleAddDevice} />
+                  <div className="min-w-0 flex-1">
+                    <ProductPickerRow onAdd={handleAddDevice} />
+                  </div>
                 </div>
 
                 {/* Added items */}
@@ -642,7 +644,7 @@ export default function SaleFormModal({ open, onClose }: Props) {
               <Separator />
 
               {/* Payment + Notes + Summary — all below devices so total is visible */}
-              <div className="grid grid-cols-[1fr_200px] gap-4 items-start">
+              <div className="grid grid-cols-1 gap-4 items-start sm:grid-cols-[1fr_200px]">
 
                 {/* Left: Amount paid → Payment mode → Notes */}
                 <div className="space-y-3">
@@ -724,7 +726,7 @@ export default function SaleFormModal({ open, onClose }: Props) {
                 </div>
 
                 {/* Right: Summary box — promise date lives here when balance > 0 */}
-                <div className="rounded-lg border bg-muted/40 px-3 py-2.5 text-sm space-y-1.5 mt-6">
+                <div className="rounded-lg border bg-muted/40 px-3 py-2.5 text-sm space-y-1.5 sm:mt-6">
                   <div className="flex justify-between text-muted-foreground">
                     <span>{fields.length} item{fields.length !== 1 ? 's' : ''}</span>
                     <span className="font-mono">{formatCurrency(total)}</span>

@@ -36,7 +36,7 @@ export default function UserMenu() {
             <Avatar className="h-7 w-7">
               <AvatarFallback className="text-xs">{initials}</AvatarFallback>
             </Avatar>
-            <span className="hidden max-w-[120px] truncate font-medium sm:block">
+            <span className="hidden max-w-[160px] truncate font-medium sm:block">
               {user?.name}
             </span>
           </button>

@@ -105,9 +105,9 @@ export default function CustomersPage() {
       header: 'Address',
       cell:   (c) =>
         c.address ? (
-          <div className="flex max-w-[200px] items-start gap-1.5 text-sm text-muted-foreground">
+          <div className="flex min-w-0 items-start gap-1.5 text-sm text-muted-foreground">
             <MapPin className="mt-0.5 h-3 w-3 shrink-0" />
-            <span className="line-clamp-2">{c.address}</span>
+            <span className="min-w-0 line-clamp-2">{c.address}</span>
           </div>
         ) : (
           <span className="text-xs text-muted-foreground italic">—</span>
