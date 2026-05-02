@@ -104,7 +104,7 @@ export default function VendorLedgerEntryModal({
     addEntry.mutate(
       {
         vendor_id: values.vendor_id,
-        type:      values.type as 'payment' | 'adjustment' | 'opening_balance',
+        type:      values.type,
         amount:    values.amount,
         notes:     values.notes || undefined,
       },

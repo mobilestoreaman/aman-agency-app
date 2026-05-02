@@ -10,13 +10,15 @@ export const vendorLedgerKeys = {
 }
 
 // Form-level entry type (maps to different API endpoints):
-//   'payment'    → POST /vendors/:id/payments    (reduces payable balance)
-//   'adjustment' → POST /vendors/:id/adjustments (admin: manual balance change)
-export type VendorEntryType = 'payment' | 'adjustment'
+//   'payment'         → POST /vendors/:id/payments         (reduces payable balance)
+//   'adjustment'      → POST /vendors/:id/adjustments      (admin: manual balance change)
+//   'opening_balance' → POST /vendors/:id/opening-balance  (admin: set historical debt)
+export type VendorEntryType = 'payment' | 'adjustment' | 'opening_balance'
 
 export const VENDOR_ENTRY_TYPE_LABELS: Record<VendorEntryType, string> = {
-  payment:    'Payment made',
-  adjustment: 'Manual adjustment',
+  payment:         'Payment made',
+  adjustment:      'Manual adjustment',
+  opening_balance: 'Opening balance',
 }
 
 interface LedgerParams {
