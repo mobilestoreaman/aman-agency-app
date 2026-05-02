@@ -3,6 +3,7 @@ import {
   Plus, Pencil, Trash2, Search, RefreshCw, Cpu,
   Camera, X, LayoutGrid, List,
 } from 'lucide-react'
+import EmptyState from '@/components/shared/EmptyState'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
@@ -160,7 +161,7 @@ function IMEIScanner({
       <Button
         variant="ghost"
         size="icon"
-        className="absolute right-2 top-2 h-7 w-7 bg-background/80 backdrop-blur-sm"
+        className="absolute right-2 top-2 h-9 w-9 bg-background/80 backdrop-blur-sm"
         onClick={() => { stopCamera(); onClose() }}
       >
         <X className="h-3.5 w-3.5" />
@@ -265,7 +266,7 @@ function DeviceCard({
               <Button
                 variant="ghost"
                 size="icon"
-                className="h-7 w-7"
+                className="h-9 w-9"
                 onClick={() => onEdit(device)}
                 aria-label="Edit device"
               >
@@ -274,7 +275,7 @@ function DeviceCard({
               <Button
                 variant="ghost"
                 size="icon"
-                className="h-7 w-7 text-destructive hover:text-destructive"
+                className="h-9 w-9 text-destructive hover:text-destructive"
                 onClick={() => onDelete(device)}
                 aria-label="Delete device"
               >
@@ -616,29 +617,30 @@ export default function DevicesPage() {
               ))}
             </div>
           ) : devices.length === 0 ? (
-            <div className="flex flex-col items-center justify-center gap-3 rounded-xl border border-dashed py-16 text-center">
-              <Cpu className="h-10 w-10 text-muted-foreground/40" />
-              <div>
-                <p className="font-medium text-muted-foreground">No available devices</p>
-                <p className="text-sm text-muted-foreground/70">
-                  {statusFilter === 'available'
-                    ? 'All devices are currently sold or in another status.'
-                    : hasFilters
-                      ? 'Try adjusting your filters.'
-                      : 'Add your first device to get started.'}
-                </p>
-              </div>
-              {statusFilter === 'available' && (
-                <Button variant="outline" size="sm" onClick={() => { setStatus(''); setPage(1) }} className="gap-1.5 mt-1">
-                  Show all devices
-                </Button>
-              )}
-              {!hasFilters && !statusFilter && isAdmin && (
-                <Button onClick={openCreate} variant="outline" className="gap-1.5 mt-1">
-                  <Plus className="h-4 w-4" /> Add Device
-                </Button>
-              )}
-            </div>
+            <EmptyState
+              icon={Cpu}
+              title={
+                statusFilter === 'available'
+                  ? 'No available devices'
+                  : hasFilters
+                    ? 'No devices match your filters'
+                    : 'No devices yet'
+              }
+              description={
+                statusFilter === 'available'
+                  ? 'All devices are currently sold or in another status.'
+                  : hasFilters
+                    ? 'Try adjusting or clearing your filters.'
+                    : 'Add your first device to get started.'
+              }
+              action={
+                statusFilter === 'available'
+                  ? { label: 'Show all devices', onClick: () => { setStatus(''); setPage(1) } }
+                  : !hasFilters && !statusFilter && isAdmin
+                    ? { label: 'Add Device', onClick: openCreate }
+                    : undefined
+              }
+            />
           ) : (
             <>
               <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">

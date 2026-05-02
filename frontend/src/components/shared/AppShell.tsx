@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Outlet } from 'react-router-dom'
+import { Outlet, useLocation } from 'react-router-dom'
 import { Sheet, SheetContent } from '@/components/ui/sheet'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import Sidebar from './Sidebar'
@@ -8,9 +8,12 @@ import MobileNav from './MobileNav'
 import NotificationBell from './NotificationBell'
 import UserMenu from './UserMenu'
 import Breadcrumbs from './Breadcrumbs'
+import ThemeToggle from './ThemeToggle'
+import PageTransition from './PageTransition'
 
 export default function AppShell() {
   const [mobileOpen, setMobileOpen] = useState(false)
+  const location = useLocation()
 
   const closeMobile = () => setMobileOpen(false)
 
@@ -37,6 +40,7 @@ export default function AppShell() {
         <header className="hidden h-14 shrink-0 items-center border-b bg-background/95 px-6 backdrop-blur-sm lg:flex">
           <Breadcrumbs />
           <div className="ml-auto flex items-center gap-1.5">
+            <ThemeToggle />
             <NotificationBell />
             <UserMenu />
           </div>
@@ -44,8 +48,10 @@ export default function AppShell() {
 
         {/* Page content */}
         <ScrollArea className="flex-1">
-          <main className="min-h-full w-full p-4 pb-24 sm:p-5 lg:p-7 lg:pb-7 animate-fade-in overflow-x-hidden">
-            <Outlet />
+          <main className="min-h-full w-full p-4 pb-24 sm:p-5 lg:p-7 lg:pb-7 overflow-x-hidden">
+            <PageTransition key={location.pathname}>
+              <Outlet />
+            </PageTransition>
           </main>
         </ScrollArea>
       </div>

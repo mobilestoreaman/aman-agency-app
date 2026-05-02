@@ -1,6 +1,7 @@
 import { type LucideIcon, TrendingUp, TrendingDown, Minus } from 'lucide-react'
 import { Card, CardContent } from '@/components/ui/card'
 import { Skeleton } from '@/components/ui/skeleton'
+import AnimatedCard from '@/components/shared/AnimatedCard'
 import { cn } from '@/lib/utils'
 
 interface KpiCardProps {
@@ -47,14 +48,9 @@ export default function KpiCard({
     trend === 'up' ? TrendingUp : trend === 'down' ? TrendingDown : Minus
 
   return (
-    <Card
-      className={cn(
-        'shadow-card border-border/70 overflow-hidden transition-all duration-200',
-        onClick && 'cursor-pointer hover:shadow-elevated hover:-translate-y-0.5',
-      )}
-      onClick={onClick}
-    >
-      <CardContent className="p-3 sm:p-5">
+    <AnimatedCard onClick={onClick} className={cn(onClick && 'cursor-pointer')}>
+      <Card className="shadow-card border-border/70 overflow-hidden">
+        <CardContent className="p-3 sm:p-5">
         <div className="flex items-start justify-between gap-2">
           <div className="min-w-0 flex-1">
             <p className="text-[10px] sm:text-xs font-medium text-muted-foreground uppercase tracking-wide leading-tight">
@@ -67,7 +63,7 @@ export default function KpiCard({
               <div
                 className={cn(
                   'mt-1 flex items-center gap-1 text-[10px] sm:text-xs font-medium',
-                  trend === 'up'      && 'text-emerald-600 dark:text-emerald-400',
+                  trend === 'up'      && 'text-success',
                   trend === 'down'    && 'text-destructive',
                   trend === 'neutral' && 'text-muted-foreground',
                 )}
@@ -87,6 +83,7 @@ export default function KpiCard({
           </div>
         </div>
       </CardContent>
-    </Card>
+      </Card>
+    </AnimatedCard>
   )
 }

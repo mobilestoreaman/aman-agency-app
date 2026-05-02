@@ -47,7 +47,7 @@ func (r *settingsRepository) Get(ctx context.Context) (*models.Settings, error) 
 	// First boot: insert a default document and return it.
 	defaults := bson.M{
 		"$setOnInsert": bson.M{
-			"store_name":          "Aman Agency",
+			"store_name":          "New Aman Agency",
 			"currency":            "PKR",
 			"default_tax_pct":     0.0,
 			"low_stock_threshold": 3,

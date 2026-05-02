@@ -42,7 +42,7 @@ func (t *TwilioProvider) SendInvoiceLink(
 		"Hello %s,\n\nThank you for your purchase! 🎉\n\n"+
 			"Your invoice %s for %s is ready:\n%s\n\n"+
 			"You can open the link to view or print your invoice.\n\n"+
-			"– Aman Agency",
+			"– New Aman Agency",
 		customerName, billNumber, totalAmount, invoiceURL,
 	)
 

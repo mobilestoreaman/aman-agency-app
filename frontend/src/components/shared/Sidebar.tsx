@@ -18,7 +18,7 @@ export default function Sidebar({ onNavigate }: Props) {
   // when SettingsPage is also mounted (same query key, shared cache).
   const { data: settings } = useSettings()
   const storeLogo = settings?.logo_base64
-  const storeName = settings?.store_name ?? 'Aman Agency'
+  const storeName = settings?.store_name ?? 'New Aman Agency'
 
   const initials = user?.name
     ? user.name.split(' ').map((n) => n[0]).slice(0, 2).join('').toUpperCase()

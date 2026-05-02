@@ -282,7 +282,7 @@ export default function SettingsPage() {
                   <FormField control={form.control} name="store_name" render={({ field }) => (
                     <FormItem>
                       <FormLabel>Store Name</FormLabel>
-                      <FormControl><Input placeholder="Aman Agency" {...field} /></FormControl>
+                      <FormControl><Input placeholder="New Aman Agency" {...field} /></FormControl>
                       <FormMessage />
                     </FormItem>
                   )} />
@@ -499,7 +499,7 @@ export default function SettingsPage() {
             <div className="flex flex-col gap-3 text-sm">
               <div className="flex items-center justify-between">
                 <span className="text-muted-foreground">Application</span>
-                <span className="font-medium">Aman Agency</span>
+                <span className="font-medium">New Aman Agency</span>
               </div>
               <div className="flex items-center justify-between">
                 <span className="text-muted-foreground">Description</span>

@@ -165,7 +165,7 @@ export default function VendorsPage() {
             <Button
               variant="outline"
               size="sm"
-              className="h-7 gap-1 px-2 text-xs whitespace-nowrap text-blue-600 border-blue-200 hover:bg-blue-50 hover:text-blue-700 dark:border-blue-800 dark:text-blue-400 dark:hover:bg-blue-950/30"
+              className="h-7 gap-1 px-2 text-xs whitespace-nowrap text-info border-info/30 hover:bg-info/10 hover:text-info"
               onClick={() => setActiveVendor({ id: v.id, name: v.name, defaultType: 'opening_balance' })}
               title="Record the pre-existing balance owed to this vendor before this system was set up"
             >
@@ -173,14 +173,14 @@ export default function VendorsPage() {
             </Button>
           )}
           <Link to={`/vendor-ledger?vendor=${v.id}`} tabIndex={-1}>
-            <Button variant="ghost" size="icon" className="h-8 w-8" title="View ledger" aria-label="View ledger">
+            <Button variant="ghost" size="icon" className="h-9 w-9" title="View ledger" aria-label="View ledger">
               <BookOpen className="h-3.5 w-3.5" />
             </Button>
           </Link>
           {isAdmin && (
             <>
               <Button
-                variant="ghost" size="icon" className="h-8 w-8"
+                variant="ghost" size="icon" className="h-9 w-9"
                 onClick={() => openEdit(v)} aria-label="Edit vendor"
               >
                 <Pencil className="h-3.5 w-3.5" />
@@ -230,10 +230,10 @@ export default function VendorsPage() {
         </div>
       )}
       {allSettled && (
-        <div className="flex items-center gap-3 rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 dark:border-emerald-800 dark:bg-emerald-950/20">
-          <CheckCircle2 className="h-5 w-5 shrink-0 text-emerald-600" />
+        <div className="flex items-center gap-3 rounded-lg border border-success/30 bg-success/10 px-4 py-3">
+          <CheckCircle2 className="h-5 w-5 shrink-0 text-success" />
           <div>
-            <p className="text-sm font-medium text-emerald-700 dark:text-emerald-400">All accounts settled</p>
+            <p className="text-sm font-medium text-success">All accounts settled</p>
             <p className="text-xs text-muted-foreground">No outstanding balance with any vendor.</p>
           </div>
         </div>

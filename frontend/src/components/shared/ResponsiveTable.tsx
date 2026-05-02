@@ -48,6 +48,7 @@ import {
   ChevronLeft, ChevronRight, Inbox,
   ChevronsUpDown, ChevronUp, ChevronDown,
 } from 'lucide-react'
+import EmptyState from '@/components/shared/EmptyState'
 import type { PaginationMeta } from '@/types'
 
 // ── Re-export Column so consumers can import from one place ───────────────────
@@ -261,12 +262,7 @@ export function ResponsiveTable<T,>({
 
   // ── Shared empty state ─────────────────────────────────────────────────────
   const emptyState = (
-    <div className="flex flex-col items-center gap-3 text-muted-foreground">
-      <div className="flex h-12 w-12 items-center justify-center rounded-full bg-muted">
-        <Inbox className="h-6 w-6 opacity-50" />
-      </div>
-      <span className="text-sm font-medium">{emptyMessage}</span>
-    </div>
+    <EmptyState icon={Inbox} title={emptyMessage} />
   )
 
   // ── Mobile card renderer ───────────────────────────────────────────────────
@@ -464,9 +460,7 @@ export function ResponsiveTable<T,>({
           <MobileSkeletonCard key={i} />
         ))
       ) : sortedData.length === 0 ? (
-        <div className="flex flex-col items-center justify-center gap-3 rounded-xl border border-dashed py-12 text-center">
-          {emptyState}
-        </div>
+        emptyState
       ) : (
         sortedData.map((row, i) => renderMobileCard(row, i))
       )}

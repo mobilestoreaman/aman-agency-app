@@ -88,8 +88,8 @@ export default function DashboardPage() {
           label="Outstanding Credit"
           value={isLoading ? '…' : formatCurrency(data?.total_credit_outstanding)}
           icon={CreditCard}
-          iconColor="text-amber-600"
-          iconBg="bg-amber-50 dark:bg-amber-950/40"
+          iconColor="text-warning"
+          iconBg="bg-warning/10"
           trend={data?.total_credit_outstanding && data.total_credit_outstanding > 0 ? 'down' : 'neutral'}
           trendLabel={data?.total_credit_outstanding && data.total_credit_outstanding > 0 ? 'Needs collection' : undefined}
           isLoading={isLoading}

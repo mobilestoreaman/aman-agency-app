@@ -3,6 +3,7 @@ import { Button } from '@/components/ui/button'
 import NotificationBell from './NotificationBell'
 import UserMenu from './UserMenu'
 import Breadcrumbs from './Breadcrumbs'
+import ThemeToggle from './ThemeToggle'
 
 interface Props {
   onMenuOpen: () => void
@@ -28,6 +29,7 @@ export default function TopBar({ onMenuOpen }: Props) {
       </div>
 
       <div className="flex shrink-0 items-center gap-0.5">
+        <ThemeToggle />
         <NotificationBell />
         <UserMenu />
       </div>

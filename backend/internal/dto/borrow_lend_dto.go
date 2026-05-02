@@ -23,11 +23,11 @@ type CreateBorrowLendRequest struct {
 // UpdateBorrowLendRequest patches mutable fields on an active transaction.
 // All fields are optional; only non-empty values are applied.
 type UpdateBorrowLendRequest struct {
-	DeviceDesc         string `json:"device_desc"`
-	PartyName          string `json:"party_name"`
-	PartyPhone         string `json:"party_phone"`
-	ExpectedReturnDate string `json:"expected_return_date"` // DD-MM-YYYY IST or empty to clear
-	Notes              string `json:"notes"`
+	DeviceDesc         string `json:"device_desc"          validate:"omitempty,min=1,max=200"`
+	PartyName          string `json:"party_name"           validate:"omitempty,min=1,max=100"`
+	PartyPhone         string `json:"party_phone"          validate:"omitempty,min=10,max=15"`
+	ExpectedReturnDate string `json:"expected_return_date" validate:"omitempty,ddmmyyyy"` // DD-MM-YYYY IST or empty to clear
+	Notes              string `json:"notes"                validate:"omitempty,max=500"`
 }
 
 // ReturnBorrowLendRequest marks the device as returned.

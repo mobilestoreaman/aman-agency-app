@@ -56,7 +56,7 @@ export default function LoginPage() {
           </div>
           <div className="text-center">
             <h1 className="text-2xl font-bold tracking-tight text-white">
-              Aman Agency
+              New Aman Agency
             </h1>
             <p className="mt-1 text-sm text-slate-400">
               Mobile Store Management
@@ -158,7 +158,7 @@ export default function LoginPage() {
         {/* ── Footer ──────────────────────────────────────── */}
         <div className="mt-8 flex flex-col items-center gap-1">
           <p className="text-center text-xs text-slate-600">
-            Aman Agency &copy; {new Date().getFullYear()}
+            New Aman Agency &copy; {new Date().getFullYear()}
           </p>
           <p className="text-center text-[11px] text-slate-700">
             Developed by CM Singh

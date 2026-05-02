@@ -138,14 +138,14 @@ export default function VendorLedgerEntryModal({
             {/* Outstanding payable callout */}
             <div className={`flex items-center justify-between rounded-md border px-3 py-2 text-sm ${
               payableBalance > 0
-                ? 'border-amber-200 bg-amber-50 dark:border-amber-800 dark:bg-amber-950/20'
+                ? 'border-warning/30 bg-warning/10'
                 : 'border-border bg-muted/40'
             }`}>
-              <span className={payableBalance > 0 ? 'text-amber-700 dark:text-amber-300' : 'text-muted-foreground'}>
+              <span className={payableBalance > 0 ? 'text-warning' : 'text-muted-foreground'}>
                 Outstanding payable
               </span>
               <span className={`font-mono font-semibold ${
-                payableBalance > 0 ? 'text-amber-700 dark:text-amber-300' : 'text-emerald-600'
+                payableBalance > 0 ? 'text-warning' : 'text-success'
               }`}>
                 {payableBalance > 0 ? formatCurrency(payableBalance) : 'Nil'}
               </span>
@@ -176,9 +176,9 @@ export default function VendorLedgerEntryModal({
                         className={`flex-1 rounded-md border px-2 py-2 text-xs font-medium transition-colors ${
                           field.value === t.value
                             ? t.value === 'payment'
-                              ? 'border-emerald-600 bg-emerald-600 text-white'
+                              ? 'border-success bg-success text-white'
                               : t.value === 'opening_balance'
-                              ? 'border-blue-600 bg-blue-600 text-white'
+                              ? 'border-info bg-info text-white'
                               : 'border-destructive bg-destructive text-destructive-foreground'
                             : 'border-input bg-background hover:bg-accent'
                         }`}
@@ -201,7 +201,7 @@ export default function VendorLedgerEntryModal({
 
             {/* No-balance warning — shown when trying to pay a fully settled vendor */}
             {noBalanceToPay && (
-              <div className="flex items-center gap-2 rounded-md border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm text-emerald-700 dark:border-emerald-800 dark:bg-emerald-950/20 dark:text-emerald-400">
+              <div className="flex items-center gap-2 rounded-md border border-success/30 bg-success/10 px-3 py-2 text-sm text-success">
                 <AlertCircle className="h-4 w-4 shrink-0" />
                 This vendor has no outstanding balance — nothing to pay.
               </div>
@@ -221,7 +221,7 @@ export default function VendorLedgerEntryModal({
                     {isPaymentMode && payableBalance > 0 && (
                       <button
                         type="button"
-                        className="flex items-center gap-1 rounded-md bg-emerald-50 px-2 py-0.5 text-xs font-medium text-emerald-700 hover:bg-emerald-100 dark:bg-emerald-950/30 dark:text-emerald-400 dark:hover:bg-emerald-950/50"
+                        className="flex items-center gap-1 rounded-md bg-success/10 px-2 py-0.5 text-xs font-medium text-success hover:bg-success/20"
                         onClick={() => form.setValue('amount', payableBalance, { shouldValidate: true })}
                       >
                         <TrendingDown className="h-3 w-3" />

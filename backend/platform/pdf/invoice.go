@@ -71,7 +71,7 @@ func RenderInvoiceHTML(bill *models.Bill, settings *models.Settings, storagePath
 		currency = settings.Currency
 	}
 
-	storeName := "Aman Agency"
+	storeName := "New Aman Agency"
 	if settings != nil && settings.StoreName != "" {
 		storeName = settings.StoreName
 	}

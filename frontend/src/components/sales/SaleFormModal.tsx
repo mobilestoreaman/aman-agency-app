@@ -55,7 +55,7 @@ const schema = z.object({
   customer_id:  z.string().min(1, 'Customer is required'),
   sale_date:    z.string().min(1, 'Sale date is required'),
   amount_paid:  z.coerce.number().min(0).default(0),
-  payment_mode: z.string().optional(),
+  payment_mode: z.enum(['cash', 'upi', 'card', 'bank_transfer', 'credit']).optional(),
   notes:        z.string().max(500).optional().or(z.literal('')),
   items:        z.array(itemSchema).min(1, 'Add at least one device'),
 })
@@ -392,7 +392,7 @@ export default function SaleFormModal({ open, onClose }: Props) {
     resolver: zodResolver(schema),
     defaultValues: {
       customer_id: '', sale_date: todayValue(),
-      amount_paid: 0, payment_mode: '', notes: '', items: [],
+      amount_paid: 0, payment_mode: undefined, notes: '', items: [],
     },
   })
 
@@ -420,7 +420,7 @@ export default function SaleFormModal({ open, onClose }: Props) {
     if (open) {
       form.reset({
         customer_id: '', sale_date: todayValue(),
-        amount_paid: 0, payment_mode: '', notes: '', items: [],
+        amount_paid: 0, payment_mode: undefined, notes: '', items: [],
       })
       setPromiseDate('')
       selectedCustomerIdRef.current = ''

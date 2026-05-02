@@ -426,6 +426,7 @@ export interface Notification {
 // ── Settings ─────────────────────────────────────────────────
 export interface Settings {
   id: string
+  store_id: string
   store_name: string
   store_tagline?: string
   store_address?: string
