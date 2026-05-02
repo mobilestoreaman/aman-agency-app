@@ -21,6 +21,9 @@ const (
 	// VendorLedgerEntryReversal is auto-created when a received purchase is
 	// cancelled, reversing the original purchase liability entry.
 	VendorLedgerEntryReversal VendorLedgerEntryType = "reversal"
+	// VendorLedgerEntryOpeningBalance is an admin-set entry to record a
+	// pre-existing debt when onboarding a vendor into the system.
+	VendorLedgerEntryOpeningBalance VendorLedgerEntryType = "opening_balance"
 )
 
 // VendorLedger records a single debit or credit against a vendor's running

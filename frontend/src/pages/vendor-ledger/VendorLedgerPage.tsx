@@ -25,18 +25,20 @@ const isDebit = (e: VendorLedgerEntry) => e.amount > 0
 
 /** Human-readable label for each backend entry type. */
 const TYPE_LABELS: Record<VendorLedgerEntryType, string> = {
-  purchase:   'Purchase',
-  payment:    'Payment',
-  adjustment: 'Adjustment',
-  reversal:   'Reversal',
+  purchase:        'Purchase',
+  payment:         'Payment',
+  adjustment:      'Adjustment',
+  reversal:        'Reversal',
+  opening_balance: 'Opening Balance',
 }
 
 const TYPE_OPTIONS: { value: VendorLedgerEntryType | 'all'; label: string }[] = [
-  { value: 'all',        label: 'All types' },
-  { value: 'purchase',   label: 'Purchases' },
-  { value: 'payment',    label: 'Payments' },
-  { value: 'adjustment', label: 'Adjustments' },
-  { value: 'reversal',   label: 'Reversals' },
+  { value: 'all',             label: 'All types' },
+  { value: 'purchase',        label: 'Purchases' },
+  { value: 'payment',         label: 'Payments' },
+  { value: 'adjustment',      label: 'Adjustments' },
+  { value: 'reversal',        label: 'Reversals' },
+  { value: 'opening_balance', label: 'Opening Balances' },
 ]
 
 /** Badge colour: debit entries are destructive; credit/payment entries are success. */

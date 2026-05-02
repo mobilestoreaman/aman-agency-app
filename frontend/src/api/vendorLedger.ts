@@ -27,16 +27,22 @@ export const vendorLedgerApi = {
   //   type='payment'    → POST /vendors/:id/payments    (reduces payable)
   //   type='adjustment' → POST /vendors/:id/adjustments (admin only, manual correction)
   addEntry: (body: {
-    vendor_id:   string
-    type:        'payment' | 'adjustment'
-    amount:      number
-    notes?:      string
+    vendor_id:    string
+    type:         'payment' | 'adjustment' | 'opening_balance'
+    amount:       number
+    notes?:       string
     purchase_id?: string
   }) => {
     if (body.type === 'payment') {
       return apiClient.post<ApiResponse<VendorLedgerEntry>>(
         `/vendors/${body.vendor_id}/payments`,
         { amount: body.amount, notes: body.notes, purchase_id: body.purchase_id || undefined },
+      )
+    }
+    if (body.type === 'opening_balance') {
+      return apiClient.post<ApiResponse<VendorLedgerEntry>>(
+        `/vendors/${body.vendor_id}/opening-balance`,
+        { amount: body.amount, notes: body.notes },
       )
     }
     // 'adjustment' → POST /vendors/:id/adjustments (admin only)

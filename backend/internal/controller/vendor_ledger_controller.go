@@ -115,6 +115,49 @@ func (ctrl *VendorLedgerController) RecordPayment(c *fiber.Ctx) error {
 	return response.Created(c, entry)
 }
 
+// RecordOpeningBalance handles POST /api/v1/vendors/:id/opening-balance  [admin only]
+// @Summary      Set vendor opening balance
+// @Description  Admin only. Records a pre-existing payable debt for a vendor that was
+// @Description  owed before the system was set up. Amount must be positive.
+// @Tags         vendors
+// @Accept       json
+// @Produce      json
+// @Security     BearerAuth
+// @Param        id    path  string                                    true  "Vendor ObjectID"
+// @Param        body  body  dto.RecordVendorOpeningBalanceRequest     true  "Opening balance details"
+// @Success      201  {object}  dto.VendorLedgerResponse
+// @Failure      400  {object}  map[string]interface{}
+// @Failure      404  {object}  map[string]interface{}
+// @Router       /vendors/{id}/opening-balance [post]
+func (ctrl *VendorLedgerController) RecordOpeningBalance(c *fiber.Ctx) error {
+	id := c.Params("id")
+	if id == "" {
+		return apperror.BadRequest("vendor id is required")
+	}
+	var req dto.RecordVendorOpeningBalanceRequest
+	if err := c.BodyParser(&req); err != nil {
+		return apperror.BadRequest("invalid request body")
+	}
+	if err := appvalidator.Struct(req); err != nil {
+		return err
+	}
+
+	staffName := middleware.GetUserEmail(c)
+	entry, err := ctrl.svc.RecordOpeningBalance(c.Context(), id, staffName, req)
+	if err != nil {
+		return err
+	}
+
+	ctrl.auditSvc.Log(c.Context(), c, models.AuditActionCreditAdjust, "vendor_ledger", entry.ID, map[string]interface{}{
+		"vendor_id": id,
+		"type":      entry.Type,
+		"amount":    entry.Amount,
+		"notes":     entry.Notes,
+	})
+
+	return response.Created(c, entry)
+}
+
 // RecordAdjustment handles POST /api/v1/vendors/:id/adjustments  [admin only]
 // @Summary      Manual vendor balance adjustment
 // @Description  Admin only. Applies a manual debit (positive) or credit (negative)

@@ -20,9 +20,9 @@ import { formatCurrency } from '@/utils/currency'
 function buildSchema(payableBalance: number) {
   return z.object({
     vendor_id:  z.string().min(1, 'Vendor is required'),
-    type:       z.enum(['payment', 'adjustment']),
+    type:       z.enum(['payment', 'adjustment', 'opening_balance']),
     amount:     z.coerce.number().min(0.01, 'Amount must be greater than 0'),
-    notes:      z.string().max(300).optional().or(z.literal('')),
+    notes:      z.string().max(500).optional().or(z.literal('')),
   }).superRefine((data, ctx) => {
     if (data.type === 'payment') {
       if (payableBalance <= 0) {
@@ -39,11 +39,13 @@ function buildSchema(payableBalance: number) {
         })
       }
     }
-    // Backend requires notes for manual adjustments (audit trail).
-    if (data.type === 'adjustment' && !data.notes?.trim()) {
+    // Notes are required for adjustments and opening balances (audit trail).
+    if ((data.type === 'adjustment' || data.type === 'opening_balance') && !data.notes?.trim()) {
       ctx.addIssue({
         code: z.ZodIssueCode.custom,
-        message: 'Notes are required for adjustments',
+        message: data.type === 'opening_balance'
+          ? 'Describe the source of this opening balance (e.g. "Purchases from Jan–Mar 2024")'
+          : 'Notes are required for adjustments',
         path: ['notes'],
       })
     }
@@ -59,8 +61,8 @@ interface Props {
   vendorName?:  string
   /** Current outstanding payable balance of the vendor. */
   payableBalance?: number
-  /** Open in payment or adjustment mode. Defaults to 'payment'. */
-  defaultType?: 'payment' | 'adjustment'
+  /** Open in payment, adjustment, or opening_balance mode. Defaults to 'payment'. */
+  defaultType?: 'payment' | 'adjustment' | 'opening_balance'
 }
 
 export default function VendorLedgerEntryModal({
@@ -93,15 +95,16 @@ export default function VendorLedgerEntryModal({
     }
   }, [open, vendorId, defaultType, form])
 
-  const watchType = form.watch('type')
-  const isPaymentMode   = watchType === 'payment'
-  const noBalanceToPay  = isPaymentMode && payableBalance <= 0
+  const watchType         = form.watch('type')
+  const isPaymentMode     = watchType === 'payment'
+  const isOpeningBalance  = watchType === 'opening_balance'
+  const noBalanceToPay    = isPaymentMode && payableBalance <= 0
 
   const onSubmit = (values: FormValues) => {
     addEntry.mutate(
       {
         vendor_id: values.vendor_id,
-        type:      values.type,
+        type:      values.type as 'payment' | 'adjustment' | 'opening_balance',
         amount:    values.amount,
         notes:     values.notes || undefined,
       },
@@ -114,7 +117,11 @@ export default function VendorLedgerEntryModal({
       <DialogContent className="flex max-h-[90vh] flex-col sm:max-w-md">
         <DialogHeader className="shrink-0">
           <DialogTitle>
-            {watchType === 'payment' ? 'Record Payment to Vendor' : 'Manual Balance Adjustment'}
+            {isPaymentMode
+              ? 'Record Payment to Vendor'
+              : isOpeningBalance
+              ? 'Set Opening Balance'
+              : 'Manual Balance Adjustment'}
           </DialogTitle>
         </DialogHeader>
 
@@ -152,26 +159,34 @@ export default function VendorLedgerEntryModal({
                 <FormItem>
                   <FormLabel>Entry type <span className="text-destructive">*</span></FormLabel>
                   <div className="flex gap-2">
-                    {(['payment', 'adjustment'] as const).map((t) => (
+                    {([
+                      { value: 'payment',         label: '↓ Payment made' },
+                      { value: 'opening_balance',  label: '⊕ Opening balance' },
+                      { value: 'adjustment',       label: '± Adjustment' },
+                    ] as const).map((t) => (
                       <button
-                        key={t}
+                        key={t.value}
                         type="button"
-                        onClick={() => field.onChange(t)}
-                        className={`flex-1 rounded-md border px-3 py-2 text-sm font-medium transition-colors ${
-                          field.value === t
-                            ? t === 'payment'
+                        onClick={() => field.onChange(t.value)}
+                        className={`flex-1 rounded-md border px-2 py-2 text-xs font-medium transition-colors ${
+                          field.value === t.value
+                            ? t.value === 'payment'
                               ? 'border-emerald-600 bg-emerald-600 text-white'
+                              : t.value === 'opening_balance'
+                              ? 'border-blue-600 bg-blue-600 text-white'
                               : 'border-destructive bg-destructive text-destructive-foreground'
                             : 'border-input bg-background hover:bg-accent'
                         }`}
                       >
-                        {t === 'payment' ? '↓ Payment made' : '± Adjustment'}
+                        {t.label}
                       </button>
                     ))}
                   </div>
                   <FormDescription className="text-xs">
-                    {watchType === 'payment'
+                    {isPaymentMode
                       ? 'We paid the vendor — reduces the outstanding payable balance.'
+                      : isOpeningBalance
+                      ? 'Record a pre-existing debt owed before this system was set up.'
                       : 'Manually correct the balance (positive = we owe more, negative = credit/discount).'}
                   </FormDescription>
                   <FormMessage />
@@ -225,6 +240,11 @@ export default function VendorLedgerEntryModal({
                       Maximum payable: {formatCurrency(payableBalance)}
                     </FormDescription>
                   )}
+                  {isOpeningBalance && (
+                    <FormDescription className="text-xs">
+                      Enter the total amount owed to this vendor before today.
+                    </FormDescription>
+                  )}
                   <FormMessage />
                 </FormItem>
               )}
@@ -238,7 +258,7 @@ export default function VendorLedgerEntryModal({
                 <FormItem>
                   <FormLabel>
                     Notes
-                    {watchType === 'adjustment'
+                    {(watchType === 'adjustment' || watchType === 'opening_balance')
                       ? <span className="text-destructive"> *</span>
                       : <span className="text-muted-foreground text-xs"> (optional)</span>
                     }
@@ -247,7 +267,13 @@ export default function VendorLedgerEntryModal({
                     <Textarea
                       {...field}
                       rows={2}
-                      placeholder={watchType === 'adjustment' ? 'Reason for adjustment…' : 'Payment reference…'}
+                      placeholder={
+                        isOpeningBalance
+                          ? 'e.g. "Purchases on credit from Jan–Mar 2024"'
+                          : watchType === 'adjustment'
+                          ? 'Reason for adjustment…'
+                          : 'Payment reference…'
+                      }
                       disabled={isPending}
                     />
                   </FormControl>
@@ -266,7 +292,7 @@ export default function VendorLedgerEntryModal({
           </Button>
           <Button type="submit" form="vendor-entry-form" disabled={isPending || noBalanceToPay}>
             {isPending && <Loader2 className="animate-spin" />}
-            {isPaymentMode ? 'Record payment' : 'Record adjustment'}
+            {isPaymentMode ? 'Record payment' : isOpeningBalance ? 'Set opening balance' : 'Record adjustment'}
           </Button>
         </DialogFooter>
       </DialogContent>

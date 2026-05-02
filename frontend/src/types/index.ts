@@ -630,7 +630,7 @@ export interface CashFlowEntry {
 // ── Vendor Ledger ─────────────────────────────────────────────
 // Backend types: purchase | payment | adjustment | reversal
 // Amount sign: > 0 = debit (business owes vendor more), < 0 = credit (balance reduced)
-export type VendorLedgerEntryType = 'purchase' | 'payment' | 'adjustment' | 'reversal'
+export type VendorLedgerEntryType = 'purchase' | 'payment' | 'adjustment' | 'reversal' | 'opening_balance'
 
 export interface VendorLedgerEntry {
   id: string

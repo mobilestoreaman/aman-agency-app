@@ -22,6 +22,9 @@ type VendorLedgerService interface {
 	ListByVendor(ctx context.Context, vendorID string, f dto.VendorLedgerFilter) ([]dto.VendorLedgerResponse, *response.Meta, error)
 	RecordPayment(ctx context.Context, vendorID, staffName string, req dto.RecordVendorPaymentRequest) (*dto.VendorLedgerResponse, error)
 	RecordAdjustment(ctx context.Context, vendorID, staffName string, req dto.RecordVendorAdjustmentRequest) (*dto.VendorLedgerResponse, error)
+	// RecordOpeningBalance sets an initial payable balance for a vendor that was
+	// owed money before the system was set up. Admin only.
+	RecordOpeningBalance(ctx context.Context, vendorID, staffName string, req dto.RecordVendorOpeningBalanceRequest) (*dto.VendorLedgerResponse, error)
 	// RecordPurchase is called internally by the purchase service when a purchase
 	// is marked as received. Creates a debit entry for the total cost.
 	RecordPurchase(ctx context.Context, vendorID, vendorName, purchaseID, reference, staffName string, amount float64) error
@@ -273,6 +276,53 @@ func (s *vendorLedgerService) RecordAdjustment(
 	if err := s.vendorRepo.IncrementPayable(ctx, oid, req.Amount); err != nil {
 		_ = s.ledgerRepo.Delete(ctx, entry.ID)
 		return nil, fmt.Errorf("failed to update payable balance; ledger entry rolled back: %w", err)
+	}
+
+	return toVendorLedgerResponse(entry), nil
+}
+
+// ── RecordOpeningBalance ──────────────────────────────────────────────────────
+
+// RecordOpeningBalance creates a single debit entry representing a pre-existing
+// debt that was owed to the vendor before the business started using this system.
+// It is intentionally unrestricted — it can be applied even when a balance already
+// exists — so that staff can correct historical figures during onboarding.
+//
+// Same safe ordering: ledger entry first, then balance increment.
+func (s *vendorLedgerService) RecordOpeningBalance(
+	ctx context.Context,
+	vendorID, staffName string,
+	req dto.RecordVendorOpeningBalanceRequest,
+) (*dto.VendorLedgerResponse, error) {
+	oid, err := primitive.ObjectIDFromHex(vendorID)
+	if err != nil {
+		return nil, apperror.BadRequest("invalid vendor_id")
+	}
+
+	vendor, err := s.vendorRepo.FindByID(ctx, oid)
+	if err != nil {
+		return nil, apperror.NotFound("vendor not found")
+	}
+
+	newBalance := vendor.PayableBalance + req.Amount
+
+	entry := &models.VendorLedger{
+		VendorID:     oid,
+		VendorName:   vendor.Name,
+		Type:         models.VendorLedgerEntryOpeningBalance,
+		Amount:       req.Amount,
+		BalanceAfter: newBalance,
+		Notes:        req.Notes,
+		CreatedBy:    staffName,
+		CreatedAt:    time.Now().UTC(),
+	}
+	if err := s.ledgerRepo.Create(ctx, entry); err != nil {
+		return nil, fmt.Errorf("failed to record opening balance entry: %w", err)
+	}
+
+	if err := s.vendorRepo.IncrementPayable(ctx, oid, req.Amount); err != nil {
+		_ = s.ledgerRepo.Delete(ctx, entry.ID)
+		return nil, fmt.Errorf("failed to update payable balance; opening balance entry rolled back: %w", err)
 	}
 
 	return toVendorLedgerResponse(entry), nil

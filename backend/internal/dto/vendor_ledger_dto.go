@@ -21,6 +21,15 @@ type RecordVendorAdjustmentRequest struct {
 	Notes  string  `json:"notes"  validate:"required,max=500"`
 }
 
+// RecordVendorOpeningBalanceRequest sets an initial payable balance for a vendor
+// that was owed money before the system was set up (migration / onboarding).
+// Amount must be positive — it represents existing debt owed to the vendor.
+// Notes are required to document the source of the opening figure.
+type RecordVendorOpeningBalanceRequest struct {
+	Amount float64 `json:"amount" validate:"required,gt=0,max=10000000"`
+	Notes  string  `json:"notes"  validate:"required,max=500"`
+}
+
 // VendorLedgerFilter controls the GET /vendors/:id/ledger query.
 type VendorLedgerFilter struct {
 	Type  string `query:"type"`  // optional: purchase|payment|adjustment|reversal
