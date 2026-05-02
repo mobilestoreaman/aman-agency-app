@@ -1,8 +1,6 @@
 [build]
 builder = "nixpacks"
-
-[build.nixpacksPlan.phases.build]
-cmds = ["go build -o backend-server ./cmd/server"]
+buildCommand = "go build -o backend-server ./cmd/server"
 
 [deploy]
 startCommand = "./backend-server"
