@@ -219,7 +219,7 @@ func Setup(app *fiber.App, db *database.Client, cfg *config.Config) {
 	vendorsAdmin.Put("/:id", vendorCtrl.Update)
 	vendorsAdmin.Delete("/:id", vendorCtrl.Delete)
 	vendorsAdmin.Post("/:id/adjustments", vendorLedgerCtrl.RecordAdjustment)
-	vendorsAdmin.Post("/:id/opening-balance", vendorLedgerCtrl.RecordOpeningBalance)
+	vendorsAdmin.Post("/:id/opening_balance", vendorLedgerCtrl.RecordOpeningBalance)
 
 	// Global vendor ledger listing (any staff can read across all vendors)
 	v1.Get("/vendor-ledger",

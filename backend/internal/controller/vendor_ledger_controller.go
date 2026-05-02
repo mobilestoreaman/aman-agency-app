@@ -115,7 +115,7 @@ func (ctrl *VendorLedgerController) RecordPayment(c *fiber.Ctx) error {
 	return response.Created(c, entry)
 }
 
-// RecordOpeningBalance handles POST /api/v1/vendors/:id/opening-balance  [admin only]
+// RecordOpeningBalance handles POST /api/v1/vendors/:id/opening_balance  [admin only]
 // @Summary      Set vendor opening balance
 // @Description  Admin only. Records a pre-existing payable debt for a vendor that was
 // @Description  owed before the system was set up. Amount must be positive.

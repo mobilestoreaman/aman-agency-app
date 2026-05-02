@@ -41,7 +41,7 @@ export const vendorLedgerApi = {
     }
     if (body.type === 'opening_balance') {
       return apiClient.post<ApiResponse<VendorLedgerEntry>>(
-        `/vendors/${body.vendor_id}/opening-balance`,
+        `/vendors/${body.vendor_id}/opening_balance`,
         { amount: body.amount, notes: body.notes },
       )
     }
