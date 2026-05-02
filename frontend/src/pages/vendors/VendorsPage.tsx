@@ -161,7 +161,7 @@ export default function VendorsPage() {
               <HandCoins className="h-3 w-3" /> Pay
             </Button>
           )}
-          {isAdmin && !v.has_ledger && (
+          {isAdmin && !v.has_ledger && v.payable_balance === 0 && (
             <Button
               variant="outline"
               size="sm"

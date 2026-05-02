@@ -67,6 +67,39 @@ func (c *Client) Ping(ctx context.Context) error {
 	return c.client.Ping(ctx, readpref.Primary())
 }
 
+// RunDataMigrations performs one-time idempotent data migrations on startup.
+// Each migration is guarded so it only touches documents that need updating.
+func (c *Client) RunDataMigrations(ctx context.Context) error {
+	log.Info().Msg("Running data migrations...")
+
+	// ── Backfill has_ledger on vendors ────────────────────────────────────────
+	// vendors created before the has_ledger field was added will have has_ledger
+	// missing/false even if they have ledger entries. Find every vendor_id that
+	// appears in the vendor_ledgers collection and set has_ledger=true on those
+	// vendor documents. The filter $ne:true ensures we only write documents that
+	// actually need updating, making repeated runs a cheap no-op.
+	vendorIDs, err := c.DB.Collection("vendor_ledgers").Distinct(ctx, "vendor_id", bson.M{})
+	if err != nil {
+		return fmt.Errorf("data migration - backfill has_ledger: %w", err)
+	}
+	if len(vendorIDs) > 0 {
+		res, err := c.DB.Collection("vendors").UpdateMany(
+			ctx,
+			bson.M{"_id": bson.M{"$in": vendorIDs}, "has_ledger": bson.M{"$ne": true}},
+			bson.M{"$set": bson.M{"has_ledger": true}},
+		)
+		if err != nil {
+			return fmt.Errorf("data migration - backfill has_ledger update: %w", err)
+		}
+		if res.ModifiedCount > 0 {
+			log.Info().Int64("count", res.ModifiedCount).Msg("backfilled has_ledger=true on vendors with ledger entries")
+		}
+	}
+
+	log.Info().Msg("Data migrations complete")
+	return nil
+}
+
 // EnsureIndexes creates all collection indexes idempotently.
 // Safe to call on every startup — existing identical indexes are skipped.
 func (c *Client) EnsureIndexes(ctx context.Context) error {

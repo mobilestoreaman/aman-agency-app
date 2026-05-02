@@ -69,6 +69,13 @@ func main() {
 		log.Fatal().Err(err).Msg("failed to run index migrations")
 	}
 
+	// ── 4b. Run data migrations ──────────────────────────────────────
+	dataMigCtx, dataMigCancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer dataMigCancel()
+	if err := dbClient.RunDataMigrations(dataMigCtx); err != nil {
+		log.Fatal().Err(err).Msg("failed to run data migrations")
+	}
+
 	// ── 5. Bootstrap Fiber ───────────────────────────────────────────
 	app := fiber.New(fiber.Config{
 		AppName:           "Aman Agency API",

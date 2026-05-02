@@ -161,7 +161,12 @@ export default function VendorLedgerEntryModal({
                   <div className="flex gap-2">
                     {([
                       { value: 'payment',         label: '↓ Payment made' },
-                      { value: 'opening_balance',  label: '⊕ Opening balance' },
+                      // Opening balance is only shown when the modal was launched
+                      // via the "Set balance" button (defaultType === 'opening_balance').
+                      // It must never appear when opened via the Pay button.
+                      ...(defaultType === 'opening_balance'
+                        ? [{ value: 'opening_balance' as const, label: '⊕ Opening balance' }]
+                        : []),
                       { value: 'adjustment',       label: '± Adjustment' },
                     ] as const).map((t) => (
                       <button
