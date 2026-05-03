@@ -39,13 +39,16 @@ const STATUS_ICON: Record<LoanStatus, React.ElementType> = {
 
 /** Provider colour pill */
 const PROVIDER_COLOURS: Record<LoanProvider, string> = {
-  bajaj:      'bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-300',
-  hdfc:       'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300',
-  icici:      'bg-rose-100 text-rose-800 dark:bg-rose-900/30 dark:text-rose-300',
-  axis:       'bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-300',
-  idfc:       'bg-teal-100 text-teal-800 dark:bg-teal-900/30 dark:text-teal-300',
-  tvs_credit: 'bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-300',
-  other:      'bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300',
+  bajaj:         'bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-300',
+  tata_capital:  'bg-sky-100 text-sky-800 dark:bg-sky-900/30 dark:text-sky-300',
+  hdb_financial: 'bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-300',
+  home_credit:   'bg-pink-100 text-pink-800 dark:bg-pink-900/30 dark:text-pink-300',
+  hdfc:          'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300',
+  icici:         'bg-rose-100 text-rose-800 dark:bg-rose-900/30 dark:text-rose-300',
+  axis:          'bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-300',
+  idfc:          'bg-teal-100 text-teal-800 dark:bg-teal-900/30 dark:text-teal-300',
+  tvs_credit:    'bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-300',
+  other:         'bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300',
 }
 
 export default function LoanReferencesPage() {

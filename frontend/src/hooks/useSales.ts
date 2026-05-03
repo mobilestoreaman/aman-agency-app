@@ -10,7 +10,7 @@ export const saleKeys = {
   detail: (id: string) => [...saleKeys.all, 'detail', id] as const,
 }
 
-export const PAYMENT_MODES: PaymentMode[] = ['cash', 'upi', 'card', 'bank_transfer', 'credit']
+export const PAYMENT_MODES: PaymentMode[] = ['cash', 'upi', 'card', 'bank_transfer', 'credit', 'emi']
 
 export const PAYMENT_MODE_LABELS: Record<PaymentMode, string> = {
   cash:          'Cash',
@@ -18,6 +18,7 @@ export const PAYMENT_MODE_LABELS: Record<PaymentMode, string> = {
   card:          'Card',
   bank_transfer: 'Bank Transfer',
   credit:        'Credit',
+  emi:           'Finance/EMI',
 }
 
 export const SALE_STATUS_LABELS: Record<SaleStatus, string> = {

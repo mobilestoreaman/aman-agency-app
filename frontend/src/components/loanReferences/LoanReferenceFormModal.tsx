@@ -29,7 +29,7 @@ import type { LoanReference } from '@/types'
 const schema = z.object({
   customer_id:         z.string().min(1, 'Customer is required'),
   sale_id:             z.string().optional().or(z.literal('')),
-  provider:            z.enum(['bajaj', 'hdfc', 'icici', 'axis', 'idfc', 'tvs_credit', 'other']),
+  provider:            z.enum(['bajaj', 'tata_capital', 'hdb_financial', 'home_credit', 'hdfc', 'icici', 'axis', 'idfc', 'tvs_credit', 'other']),
   loan_account_number: z.string().min(1, 'Loan account number is required').max(60),
   loan_amount:         z.coerce.number().min(1, 'Loan amount must be > 0'),
   emi_amount:          z.coerce.number().min(0.01, 'EMI amount must be greater than 0').optional(),
