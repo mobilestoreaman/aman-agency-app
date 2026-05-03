@@ -11,7 +11,7 @@ export const billsApi = {
   getBySaleId: (saleId: string) =>
     apiClient.get<ApiResponse<Bill>>(`/bills/sale/${saleId}`),
 
-  create: (body: { sale_id: string; discount?: number; discount_pct?: number; tax_pct?: number; notes?: string }) =>
+  create: (body: { sale_id: string; custom_bill_suffix?: string; discount?: number; discount_pct?: number; tax_pct?: number; notes?: string }) =>
     apiClient.post<ApiResponse<Bill>>('/bills', body),
 
   issue: (id: string) =>

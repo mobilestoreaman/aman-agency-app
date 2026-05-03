@@ -17,6 +17,7 @@ import {
 } from '@/components/ui/dialog'
 import { Label } from '@/components/ui/label'
 import PageHeader from '@/components/shared/PageHeader'
+import ConfirmDialog from '@/components/shared/ConfirmDialog'
 import { ResponsiveTable, type Column } from '@/components/shared/ResponsiveTable'
 import {
   usePaymentPromises,
@@ -242,8 +243,9 @@ export default function PaymentPromisesPage() {
   const [customerId, setCustomerId]   = useState('')
   const [fromDate, setFromDate]       = useState('')
   const [toDate, setToDate]           = useState('')
-  const [rescheduling, setRescheduling] = useState<PaymentPromise | null>(null)
-  const [markingPaid, setMarkingPaid]   = useState<PaymentPromise | null>(null)
+  const [rescheduling, setRescheduling]   = useState<PaymentPromise | null>(null)
+  const [markingPaid, setMarkingPaid]     = useState<PaymentPromise | null>(null)
+  const [breakingPromise, setBreakingPromise] = useState<PaymentPromise | null>(null)
 
   const q = useDebounce(search)
 
@@ -371,7 +373,8 @@ export default function PaymentPromisesPage() {
                 variant="ghost"
                 size="sm"
                 className="h-8 gap-1 text-xs text-destructive hover:text-destructive"
-                onClick={() => markBroken.mutate(p.id)}
+                onClick={() => setBreakingPromise(p)}
+                disabled={markBroken.isPending}
                 title="Mark as broken promise"
               >
                 <XCircle className="h-3.5 w-3.5" />
@@ -495,6 +498,20 @@ export default function PaymentPromisesPage() {
       {/* Modals */}
       <RescheduleModal promise={rescheduling} onClose={() => setRescheduling(null)} />
       <MarkPaidModal   promise={markingPaid}  onClose={() => setMarkingPaid(null)} />
+
+      {/* Mark broken confirmation */}
+      <ConfirmDialog
+        open={!!breakingPromise}
+        onClose={() => setBreakingPromise(null)}
+        onConfirm={() => {
+          if (!breakingPromise) return
+          markBroken.mutate(breakingPromise.id, { onSuccess: () => setBreakingPromise(null) })
+        }}
+        isPending={markBroken.isPending}
+        title="Mark promise as broken?"
+        description={`${breakingPromise?.customer_name} promised ${breakingPromise ? formatCurrency(breakingPromise.amount_promised) : ''}. Marking as broken flags this customer for follow-up.`}
+        confirmLabel="Mark broken"
+      />
     </div>
   )
 }

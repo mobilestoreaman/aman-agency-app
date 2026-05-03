@@ -24,6 +24,8 @@ import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from '@/components/ui/select'
 import PageHeader from '@/components/shared/PageHeader'
+import ConfirmDialog from '@/components/shared/ConfirmDialog'
+import { useConfirm } from '@/hooks/useConfirm'
 import { PhoneInput } from '@/components/shared/PhoneInput'
 import { useSettings, useUpdateSettings, useUploadLogo, useDeleteLogo } from '@/hooks/useSettings'
 import { useUsers, useCreateUser, useUpdateUser } from '@/hooks/useUsers'
@@ -42,6 +44,7 @@ function LogoUpload({ currentLogo }: LogoUploadProps) {
   const uploadLogo           = useUploadLogo()
   const deleteLogo           = useDeleteLogo()
   const isBusy               = uploadLogo.isPending || deleteLogo.isPending
+  const deleteConfirm        = useConfirm()
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
@@ -55,6 +58,7 @@ function LogoUpload({ currentLogo }: LogoUploadProps) {
   }
 
   return (
+    <>
     <div className="sm:col-span-2">
       <p className="mb-2 text-sm font-medium leading-none">
         Store Logo <span className="text-muted-foreground text-xs">(optional)</span>
@@ -103,7 +107,7 @@ function LogoUpload({ currentLogo }: LogoUploadProps) {
               variant="ghost"
               size="sm"
               disabled={isBusy}
-              onClick={() => deleteLogo.mutate()}
+              onClick={deleteConfirm.open}
               className="gap-1.5 text-destructive hover:text-destructive"
             >
               {deleteLogo.isPending
@@ -119,6 +123,20 @@ function LogoUpload({ currentLogo }: LogoUploadProps) {
         </div>
       </div>
     </div>
+
+    <ConfirmDialog
+      open={deleteConfirm.isOpen}
+      onClose={deleteConfirm.close}
+      onConfirm={() => {
+        deleteConfirm.close()
+        deleteLogo.mutate()
+      }}
+      isPending={deleteLogo.isPending}
+      title="Remove store logo?"
+      description="The logo will be removed from all future invoices. This cannot be undone."
+      confirmLabel="Remove logo"
+    />
+    </>
   )
 }
 

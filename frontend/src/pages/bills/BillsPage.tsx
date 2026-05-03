@@ -19,6 +19,7 @@ import { Skeleton } from '@/components/ui/skeleton'
 import { ResponsiveTable, type Column } from '@/components/shared/ResponsiveTable'
 import PageHeader from '@/components/shared/PageHeader'
 import ConfirmDialog from '@/components/shared/ConfirmDialog'
+import { useConfirm } from '@/hooks/useConfirm'
 import {
   useBills, useBill, useIssueBill, useVoidBill, useSendBillWhatsApp,
   useOpenBillInvoice, BILL_STATUS_LABELS,
@@ -53,14 +54,23 @@ function BillDetailDrawer({ billId, open, onClose }: {
   const sendWhatsApp = useSendBillWhatsApp()
   const openInvoice  = useOpenBillInvoice()
 
-  const [voidConfirmOpen, setVoidConfirmOpen] = useState(false)
-  const [voidReason, setVoidReason]           = useState('')
+  const issueConfirm    = useConfirm()
+  const voidConfirm     = useConfirm()
+  const whatsAppConfirm = useConfirm()
+  const [voidReason, setVoidReason] = useState('')
+
+  const handleIssue = () => {
+    if (!bill) return
+    issueBill.mutate(bill.id, {
+      onSuccess: () => { issueConfirm.close(); onClose() },
+    })
+  }
 
   const handleVoid = () => {
     if (!billId) return
     voidBill.mutate(
-      { id: billId, reason: voidReason || 'Voided by admin' },
-      { onSuccess: () => { setVoidConfirmOpen(false); onClose() } },
+      { id: billId, reason: voidReason.trim() || 'Voided by admin' },
+      { onSuccess: () => { voidConfirm.close(); setVoidReason(''); onClose() } },
     )
   }
 
@@ -206,7 +216,7 @@ function BillDetailDrawer({ billId, open, onClose }: {
                 variant="outline"
                 className="gap-1.5 text-emerald-600 border-emerald-200 hover:bg-emerald-50"
                 disabled={sendWhatsApp.isPending}
-                onClick={() => sendWhatsApp.mutate(bill.id)}
+                onClick={whatsAppConfirm.open}
               >
                 {sendWhatsApp.isPending
                   ? <Loader2 className="h-4 w-4 animate-spin" />
@@ -218,7 +228,7 @@ function BillDetailDrawer({ billId, open, onClose }: {
 
             {isAdmin && bill?.status === 'draft' && (
               <Button
-                onClick={() => issueBill.mutate(bill.id, { onSuccess: onClose })}
+                onClick={issueConfirm.open}
                 disabled={issueBill.isPending}
                 className="gap-1.5"
               >
@@ -228,7 +238,7 @@ function BillDetailDrawer({ billId, open, onClose }: {
             {isAdmin && bill?.status === 'issued' && (
               <Button
                 variant="destructive"
-                onClick={() => setVoidConfirmOpen(true)}
+                onClick={voidConfirm.open}
                 className="gap-1.5"
               >
                 <Ban className="h-4 w-4" /> Void
@@ -238,25 +248,68 @@ function BillDetailDrawer({ billId, open, onClose }: {
         </DialogContent>
       </Dialog>
 
-      {/* Void confirmation with reason input */}
-      <Dialog open={voidConfirmOpen} onOpenChange={setVoidConfirmOpen}>
+      {/* WhatsApp send confirmation */}
+      <ConfirmDialog
+        open={whatsAppConfirm.isOpen}
+        onClose={whatsAppConfirm.close}
+        onConfirm={() => {
+          whatsAppConfirm.close()
+          if (bill) sendWhatsApp.mutate(bill.id)
+        }}
+        variant="default"
+        title="Send invoice via WhatsApp?"
+        description={`This will send the invoice link to ${bill?.customer_name} at ${bill?.customer_phone}.`}
+        confirmLabel="Yes, send"
+        isPending={sendWhatsApp.isPending}
+      />
+
+      {/* Issue bill confirmation */}
+      <ConfirmDialog
+        open={issueConfirm.isOpen}
+        onClose={issueConfirm.close}
+        onConfirm={handleIssue}
+        variant="default"
+        title="Issue this bill?"
+        description={`Bill #${bill?.bill_number ?? ''} will be marked as issued and presented to the customer. You can void it later if needed.`}
+        confirmLabel="Yes, issue bill"
+        isPending={issueBill.isPending}
+      />
+
+      {/* Void bill confirmation — includes an optional reason input */}
+      <Dialog
+        open={voidConfirm.isOpen}
+        onOpenChange={(v) => { if (!v) { voidConfirm.close(); setVoidReason('') } }}
+      >
         <DialogContent className="sm:max-w-sm">
           <DialogHeader>
             <DialogTitle>Void this bill?</DialogTitle>
           </DialogHeader>
           <div className="space-y-3 py-2">
             <p className="text-sm text-muted-foreground">
-              This bill will be marked as void and cannot be reversed.
+              This bill will be permanently marked as void and cannot be reversed.
             </p>
             <Input
               placeholder="Reason (optional)"
               value={voidReason}
               onChange={(e) => setVoidReason(e.target.value)}
+              disabled={voidBill.isPending}
             />
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setVoidConfirmOpen(false)}>Cancel</Button>
-            <Button variant="destructive" onClick={handleVoid} disabled={voidBill.isPending}>
+            <Button
+              variant="outline"
+              onClick={() => { voidConfirm.close(); setVoidReason('') }}
+              disabled={voidBill.isPending}
+            >
+              Cancel
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={handleVoid}
+              disabled={voidBill.isPending}
+              className="gap-1.5"
+            >
+              {voidBill.isPending && <Loader2 className="h-4 w-4 animate-spin" />}
               Void bill
             </Button>
           </DialogFooter>

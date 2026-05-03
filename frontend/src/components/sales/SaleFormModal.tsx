@@ -29,8 +29,11 @@ import { useDevices, useDeviceByIMEI } from '@/hooks/useDevices'
 import { salesApi } from '@/api/sales'
 import { billsApi } from '@/api/bills'
 import { paymentPromisesApi } from '@/api/paymentPromises'
+import ConfirmDialog from '@/components/shared/ConfirmDialog'
+import { useConfirm } from '@/hooks/useConfirm'
 import { getApiError } from '@/utils/error'
 import { formatCurrency } from '@/utils/currency'
+import { sanitizeBillSuffix, validateBillSuffix, previewBillNumber } from '@/utils/billNumber'
 import { useDebounce } from '@/hooks/useDebounce'
 import { cn } from '@/lib/utils'
 
@@ -383,8 +386,13 @@ function ProductPickerRow({ onAdd }: { onAdd: (d: DeviceItem) => void }) {
 export default function SaleFormModal({ open, onClose }: Props) {
   const qc = useQueryClient()
   const [isSubmitting, setIsSubmitting] = useState(false)
+  // Confirmation dialog before the sale + bill are committed
+  const saleConfirm = useConfirm()
   // Promise date — shown when the customer leaves a balance outstanding
   const [promiseDate, setPromiseDate] = useState('')
+  // Optional custom bill number suffix (digits only, max 8)
+  const [billSuffix, setBillSuffix] = useState('')
+  const billSuffixError = validateBillSuffix(billSuffix)
   // Track selected customer ID so we can link the promise
   const selectedCustomerIdRef = useRef('')
 
@@ -423,11 +431,15 @@ export default function SaleFormModal({ open, onClose }: Props) {
         amount_paid: 0, payment_mode: undefined, notes: '', items: [],
       })
       setPromiseDate('')
+      setBillSuffix('')
       selectedCustomerIdRef.current = ''
     }
   }, [open, form])
 
   const onSubmit = async (values: FormValues) => {
+    // Block submission if the custom bill number field has a validation error.
+    if (billSuffixError) return
+
     setIsSubmitting(true)
     let billId: string | null = null
 
@@ -455,7 +467,10 @@ export default function SaleFormModal({ open, onClose }: Props) {
 
       // ── 2. Create + issue the bill automatically ────────────────────────────
       try {
-        const billRes = await billsApi.create({ sale_id: sale.id })
+        const billRes = await billsApi.create({
+          sale_id: sale.id,
+          ...(billSuffix ? { custom_bill_suffix: billSuffix } : {}),
+        })
         const bill    = billRes.data.data
         await billsApi.issue(bill.id)
         qc.invalidateQueries({ queryKey: ['bills'] })
@@ -512,6 +527,7 @@ export default function SaleFormModal({ open, onClose }: Props) {
   }
 
   return (
+    <>
     <Dialog open={open} onOpenChange={(v) => !v && onClose()}>
       <DialogContent className="flex max-h-[92vh] flex-col gap-0 p-0 sm:max-w-2xl">
 
@@ -701,6 +717,49 @@ export default function SaleFormModal({ open, onClose }: Props) {
                       </FormItem>
                     )}
                   />
+                  {/* Custom bill number suffix */}
+                  <div className="space-y-1.5">
+                    <label className="text-sm font-medium leading-none">
+                      Custom Bill No.
+                      <span className="ml-1 text-[11px] font-normal text-muted-foreground">(optional)</span>
+                    </label>
+                    <div className="flex items-center gap-2">
+                      <Input
+                        type="text"
+                        inputMode="numeric"
+                        value={billSuffix}
+                        onChange={(e) => setBillSuffix(sanitizeBillSuffix(e.target.value))}
+                        placeholder="e.g. 1001"
+                        disabled={isSubmitting}
+                        maxLength={8}
+                        className={cn('flex-1', billSuffixError && 'border-destructive focus-visible:ring-destructive')}
+                        aria-describedby="bill-suffix-hint"
+                      />
+                      {billSuffix && (
+                        <button
+                          type="button"
+                          onClick={() => setBillSuffix('')}
+                          className="text-muted-foreground hover:text-foreground shrink-0"
+                          aria-label="Clear custom bill number"
+                          disabled={isSubmitting}
+                        >
+                          <X className="h-3.5 w-3.5" />
+                        </button>
+                      )}
+                    </div>
+                    {billSuffixError ? (
+                      <p className="text-[11px] text-destructive leading-tight">{billSuffixError}</p>
+                    ) : billSuffix ? (
+                      <p id="bill-suffix-hint" className="text-[11px] text-muted-foreground leading-tight font-mono">
+                        → {previewBillNumber(billSuffix)}
+                      </p>
+                    ) : (
+                      <p id="bill-suffix-hint" className="text-[11px] text-muted-foreground leading-tight">
+                        Leave blank to auto-generate.
+                      </p>
+                    )}
+                  </div>
+
                   <FormField
                     control={form.control}
                     name="notes"
@@ -798,20 +857,34 @@ export default function SaleFormModal({ open, onClose }: Props) {
           <Button type="button" variant="ghost" onClick={onClose} disabled={isSubmitting}>
             Cancel
           </Button>
+          {/* Opens confirmation dialog — does NOT submit directly */}
           <Button
-            type="submit"
-            form="sale-form"
-            disabled={isSubmitting || fields.length === 0}
+            type="button"
+            onClick={saleConfirm.open}
+            disabled={isSubmitting || fields.length === 0 || !!billSuffixError}
             className="gap-1.5"
           >
-            {isSubmitting
-              ? <Loader2 className="h-4 w-4 animate-spin" />
-              : <Printer className="h-4 w-4" />
-            }
-            {isSubmitting ? 'Processing…' : `Record & Print Bill · ${formatCurrency(total)}`}
+            <Printer className="h-4 w-4" />
+            {`Record & Print Bill · ${formatCurrency(total)}`}
           </Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>
+
+    {/* ── Sale confirmation dialog ─────────────────────────────────────── */}
+    <ConfirmDialog
+      open={saleConfirm.isOpen}
+      onClose={saleConfirm.close}
+      onConfirm={() => {
+        saleConfirm.close()
+        // Programmatically submit the form — all RHF validation still runs.
+        form.handleSubmit(onSubmit)()
+      }}
+      variant="default"
+      title="Record this sale?"
+      description={`This will record a sale of ${formatCurrency(total)} and generate the invoice immediately. This action cannot be undone.`}
+      confirmLabel="Yes, record sale"
+    />
+    </>
   )
 }

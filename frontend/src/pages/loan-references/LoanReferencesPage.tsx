@@ -59,6 +59,8 @@ export default function LoanReferencesPage() {
   const [formOpen, setFormOpen]   = useState(false)
   const [editing, setEditing]     = useState<LoanReference | null>(null)
   const [deleting, setDeleting]   = useState<LoanReference | null>(null)
+  // { ref, targetStatus } when a status change is pending confirmation
+  const [pendingStatus, setPendingStatus] = useState<{ ref: LoanReference; status: LoanStatus } | null>(null)
 
   const q = useDebounce(search)
 
@@ -183,7 +185,7 @@ export default function LoanReferencesPage() {
                 {LOAN_STATUSES.filter((s) => s !== r.status).map((s) => (
                   <DropdownMenuItem
                     key={s}
-                    onClick={() => changeStatus.mutate({ id: r.id, status: s })}
+                    onClick={() => setPendingStatus({ ref: r, status: s })}
                   >
                     Mark as {LOAN_STATUS_LABELS[s]}
                   </DropdownMenuItem>
@@ -315,6 +317,24 @@ export default function LoanReferencesPage() {
         onClose={() => setFormOpen(false)}
         loanRef={editing}
       />
+      {/* Status change confirmation */}
+      <ConfirmDialog
+        open={!!pendingStatus}
+        onClose={() => setPendingStatus(null)}
+        onConfirm={() => {
+          if (!pendingStatus) return
+          changeStatus.mutate(
+            { id: pendingStatus.ref.id, status: pendingStatus.status },
+            { onSuccess: () => setPendingStatus(null) },
+          )
+        }}
+        isPending={changeStatus.isPending}
+        title={`Mark as ${pendingStatus ? LOAN_STATUS_LABELS[pendingStatus.status] : ''}?`}
+        description={`Loan account ${pendingStatus?.ref.loan_account_number} for ${pendingStatus?.ref.customer_name} will be updated to "${pendingStatus ? LOAN_STATUS_LABELS[pendingStatus.status] : ''}".`}
+        confirmLabel={`Mark ${pendingStatus ? LOAN_STATUS_LABELS[pendingStatus.status] : ''}`}
+        variant={pendingStatus?.status === 'overdue' ? 'destructive' : 'default'}
+      />
+
       <ConfirmDialog
         open={!!deleting}
         onClose={() => setDeleting(null)}

@@ -210,32 +210,15 @@ const invoiceHTMLTemplate = `<!DOCTYPE html>
     }
 
     /* ── Watermark ── */
-    /* Sits behind all content; visible on screen and in print */
+    /* SVG tile set as background-image via JS — covers the full card */
     .watermark {
       position: absolute;
-      top: 50%;
-      left: 50%;
-      transform: translate(-50%, -50%) rotate(-35deg);
-      opacity: 0.055;
+      inset: 0;
+      opacity: 0.09;
       pointer-events: none;
       z-index: 0;
-      text-align: center;
-      white-space: nowrap;
       user-select: none;
-    }
-    .watermark img {
-      display: block;
-      margin: 0 auto 10px;
-      width: 140px;
-      filter: grayscale(1);
-    }
-    .watermark-text {
-      font-size: 58px;
-      font-weight: 900;
-      color: #0f172a;
-      letter-spacing: -2px;
-      line-height: 1;
-      font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+      background-repeat: repeat;
     }
 
     /* ── Header ── */
@@ -384,7 +367,7 @@ const invoiceHTMLTemplate = `<!DOCTYPE html>
       body { background: #fff; padding: 0; }
       .invoice-wrapper { border: none; border-radius: 0; box-shadow: none; }
       .print-btn { display: none !important; }
-      .watermark { opacity: 0.06; }
+      .watermark { opacity: 0.10; }
       @page { size: A4; margin: 15mm; }
     }
 
@@ -404,11 +387,10 @@ const invoiceHTMLTemplate = `<!DOCTYPE html>
 <body>
   <div class="invoice-wrapper">
 
-    <!-- Watermark: logo + store name, behind all content -->
-    <div class="watermark" aria-hidden="true">
-      {{if .LogoBase64}}<img src="{{.LogoBase64}}" alt="" />{{end}}
-      <div class="watermark-text">{{.StoreName}}</div>
-    </div>
+    <!-- Watermark: staggered tiled grid, populated by JS -->
+    <div class="watermark" id="invoice-watermark" aria-hidden="true"
+         data-text="{{.StoreName}}"
+         {{if .LogoBase64}}data-logo="{{.LogoBase64}}"{{end}}></div>
 
     <!-- Header -->
     <div class="header">
@@ -533,6 +515,69 @@ const invoiceHTMLTemplate = `<!DOCTYPE html>
     </div>
 
   </div>
+
+  <script>
+    // Build the staggered-grid watermark as a repeating SVG background.
+    // Each tile is 400×220px with TWO instances placed at opposite quadrants
+    // (offset by W/2, H/2) so CSS repeat creates the classic brick stagger.
+    // When a logo is present it appears above the store name in every tile.
+    (function() {
+      var wm = document.getElementById('invoice-watermark');
+      if (!wm) return;
+
+      var raw  = wm.getAttribute('data-text') || 'New Aman Agency';
+      var name = raw.toUpperCase();
+      var year = '©' + new Date().getFullYear();
+      var logo = wm.getAttribute('data-logo') || '';
+
+      var esc = function(s) {
+        return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+      };
+      var n = esc(name), y = esc(year);
+
+      var W = 400, H = 220;
+      var iW = 28, iH = 28; // logo dimensions inside tile
+
+      // Build one tile instance.
+      // cx = horizontal centre; topY = top edge of the instance block.
+      var inst = function(cx, topY) {
+        var s = '';
+        var textY, yearY;
+        if (logo) {
+          // Logo centred horizontally above the text
+          s += '<image href="' + logo + '"' +
+               ' x="' + (cx - iW / 2) + '" y="' + topY + '"' +
+               ' width="' + iW + '" height="' + iH + '"' +
+               ' preserveAspectRatio="xMidYMid meet"/>';
+          textY = topY + iH + 14;
+          yearY = topY + iH + 30;
+        } else {
+          textY = topY + 16;
+          yearY = topY + 32;
+        }
+        var font = 'font-family="Georgia,\'Times New Roman\',serif"';
+        s += '<text x="' + cx + '" y="' + textY + '" ' + font +
+             ' font-size="14" font-weight="bold" fill="#0f172a"' +
+             ' text-anchor="middle" letter-spacing="3">' + n + '</text>';
+        s += '<text x="' + cx + '" y="' + yearY + '" ' + font +
+             ' font-size="10" fill="#0f172a" text-anchor="middle" letter-spacing="2">' + y + '</text>';
+        return s;
+      };
+
+      // Instance 1: upper-left quadrant  (cx=W/4=100,  topY=20)
+      // Instance 2: lower-right quadrant (cx=3W/4=300, topY=20+H/2=130)
+      var svg =
+        '<svg xmlns="http://www.w3.org/2000/svg"' +
+            ' xmlns:xlink="http://www.w3.org/1999/xlink"' +
+            ' width="' + W + '" height="' + H + '">' +
+          inst(100, 20) +
+          inst(300, 130) +
+        '</svg>';
+
+      wm.style.backgroundImage = 'url("data:image/svg+xml,' + encodeURIComponent(svg) + '")';
+      wm.style.backgroundSize  = W + 'px ' + H + 'px';
+    })();
+  </script>
 
   {{if .InvoiceURL}}
   <script>

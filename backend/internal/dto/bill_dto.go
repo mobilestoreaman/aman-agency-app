@@ -9,11 +9,15 @@ package dto
 // The bill's TotalAmount = (Subtotal − Discount) + (Subtotal − Discount) × TaxPct.
 // If both Discount and TaxPct are zero, TotalAmount equals the sale's TotalAmount.
 type CreateBillRequest struct {
-	SaleID      string  `json:"sale_id"      validate:"required"`
-	Discount    float64 `json:"discount"     validate:"min=0,max=10000000"` // flat INR off
-	DiscountPct float64 `json:"discount_pct" validate:"min=0,max=100"`       // stored as metadata, 0–100%
-	TaxPct      float64 `json:"tax_pct"      validate:"min=0,max=100"`       // e.g. 0.17 for 17%
-	Notes       string  `json:"notes"        validate:"omitempty,max=500"`
+	SaleID string `json:"sale_id" validate:"required"`
+	// CustomBillSuffix is an optional numeric suffix supplied by staff.
+	// When set, the bill number becomes BILL-DD-MM-YYYY-<CustomBillSuffix>.
+	// Allowed: digits only, 1–8 characters. Empty string → auto-generate.
+	CustomBillSuffix string  `json:"custom_bill_suffix" validate:"omitempty,max=8,numeric"`
+	Discount         float64 `json:"discount"           validate:"min=0,max=10000000"` // flat INR off
+	DiscountPct      float64 `json:"discount_pct"       validate:"min=0,max=100"`       // stored as metadata, 0–100%
+	TaxPct           float64 `json:"tax_pct"            validate:"min=0,max=100"`       // e.g. 0.17 for 17%
+	Notes            string  `json:"notes"              validate:"omitempty,max=500"`
 }
 
 // VoidBillRequest carries an optional reason for voiding a bill (audit trail).

@@ -48,10 +48,11 @@ export default function BorrowLendsPage() {
   const [fromDate, setFromDate]   = useState('')
   const [toDate, setToDate]       = useState('')
 
-  const [formOpen, setFormOpen]   = useState(false)
-  const [editing, setEditing]     = useState<BorrowLend | null>(null)
-  const [resolving, setResolving] = useState<BorrowLend | null>(null)
-  const [deleting, setDeleting]   = useState<BorrowLend | null>(null)
+  const [formOpen, setFormOpen]         = useState(false)
+  const [editing, setEditing]           = useState<BorrowLend | null>(null)
+  const [resolving, setResolving]       = useState<BorrowLend | null>(null)
+  const [deleting, setDeleting]         = useState<BorrowLend | null>(null)
+  const [markingOverdue, setMarkingOverdue] = useState<BorrowLend | null>(null)
 
   const q = useDebounce(search)
 
@@ -192,7 +193,7 @@ export default function BorrowLendsPage() {
             <Button
               variant="ghost" size="sm"
               className="h-8 gap-1 px-2 text-xs text-destructive hover:text-destructive"
-              onClick={() => markOverdue.mutate(e.id)}
+              onClick={() => setMarkingOverdue(e)}
               disabled={markOverdue.isPending}
             >
               <AlertTriangle className="h-3 w-3" /> Overdue
@@ -342,6 +343,19 @@ export default function BorrowLendsPage() {
         open={!!resolving}
         onClose={() => setResolving(null)}
         entry={resolving}
+      />
+
+      <ConfirmDialog
+        open={!!markingOverdue}
+        onClose={() => setMarkingOverdue(null)}
+        onConfirm={() => {
+          if (!markingOverdue) return
+          markOverdue.mutate(markingOverdue.id, { onSuccess: () => setMarkingOverdue(null) })
+        }}
+        isPending={markOverdue.isPending}
+        title="Mark as overdue?"
+        description={`${markingOverdue?.device_desc} (${markingOverdue?.type === 'lend' ? 'lent to' : 'borrowed from'} ${markingOverdue?.party_name}) will be flagged as overdue.`}
+        confirmLabel="Mark overdue"
       />
 
       <ConfirmDialog

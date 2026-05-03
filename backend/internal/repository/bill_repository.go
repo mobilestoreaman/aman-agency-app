@@ -26,6 +26,12 @@ type BillRepository interface {
 	FindBySaleID(ctx context.Context, saleID primitive.ObjectID) (*models.Bill, error)
 	List(ctx context.Context, f dto.BillFilter) ([]*models.Bill, int64, error)
 	Update(ctx context.Context, id primitive.ObjectID, fields bson.M) (*models.Bill, error)
+	// ExistsByBillNumber reports whether a bill with the given invoice_number already exists.
+	// Used to pre-validate custom bill suffixes before insertion.
+	ExistsByBillNumber(ctx context.Context, billNumber string) (bool, error)
+	// Delete permanently removes a bill by ID. Used for rollback when bill number
+	// assignment fails after creation.
+	Delete(ctx context.Context, id primitive.ObjectID) error
 }
 
 type billRepository struct {
@@ -158,6 +164,19 @@ func (r *billRepository) List(ctx context.Context, f dto.BillFilter) ([]*models.
 		bills = []*models.Bill{}
 	}
 	return bills, total, nil
+}
+
+func (r *billRepository) ExistsByBillNumber(ctx context.Context, billNumber string) (bool, error) {
+	count, err := r.col.CountDocuments(ctx, bson.M{"invoice_number": billNumber})
+	if err != nil {
+		return false, err
+	}
+	return count > 0, nil
+}
+
+func (r *billRepository) Delete(ctx context.Context, id primitive.ObjectID) error {
+	_, err := r.col.DeleteOne(ctx, bson.M{"_id": id})
+	return err
 }
 
 func (r *billRepository) Update(ctx context.Context, id primitive.ObjectID, fields bson.M) (*models.Bill, error) {

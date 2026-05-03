@@ -69,11 +69,17 @@ type Bill struct {
 	UpdatedAt     time.Time          `bson:"updated_at"      json:"updated_at"`
 }
 
-// GenerateBillNumber creates a human-readable bill number from the bill's
-// ObjectID and the current date in IST (Asia/Kolkata).
-// Format: BILL-DD-MM-YYYY-XXXXXX  (last 6 hex chars of the ObjectID)
-func GenerateBillNumber(id primitive.ObjectID) string {
-	hex := id.Hex()
-	suffix := hex[len(hex)-6:]
+// GenerateBillNumber creates a human-readable bill number.
+// Format: BILL-DD-MM-YYYY-<suffix>
+//
+// If customSuffix is non-empty it is used directly (caller must validate it
+// contains only digits and is ≤ 8 chars). Otherwise the last 6 hex characters
+// of the ObjectID are used, preserving the original auto-generate behaviour.
+func GenerateBillNumber(id primitive.ObjectID, customSuffix string) string {
+	suffix := customSuffix
+	if suffix == "" {
+		h := id.Hex()
+		suffix = h[len(h)-6:]
+	}
 	return fmt.Sprintf("BILL-%s-%s", time.Now().In(istLocation).Format("02-01-2006"), suffix)
 }

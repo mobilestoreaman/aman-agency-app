@@ -3,6 +3,7 @@ package service
 import (
 	"context"
 	"fmt"
+	"strings"
 	"time"
 
 	"aman-agency/backend/internal/dto"
@@ -137,6 +138,24 @@ func (s *billService) Create(ctx context.Context, staffName string, req dto.Crea
 		return nil, apperror.Conflict(fmt.Sprintf("bill %s already exists for this sale", existing.BillNumber))
 	}
 
+	// Validate and pre-check custom bill suffix uniqueness.
+	suffix := strings.TrimSpace(req.CustomBillSuffix)
+	if suffix != "" {
+		// Generate the prospective bill number using a nil ID (the suffix is the
+		// only variable part — the date prefix is fixed for the current day).
+		prospective := models.GenerateBillNumber(primitive.NilObjectID, suffix)
+		exists, err := s.billRepo.ExistsByBillNumber(ctx, prospective)
+		if err != nil {
+			return nil, err
+		}
+		if exists {
+			return nil, apperror.Conflict(fmt.Sprintf(
+				"bill number %s is already taken — choose a different number or leave blank to auto-generate",
+				prospective,
+			))
+		}
+	}
+
 	// Copy line items from sale — bills are self-contained documents.
 	items := make([]models.BillItem, 0, len(sale.Items))
 	for _, si := range sale.Items {
@@ -202,8 +221,24 @@ func (s *billService) Create(ctx context.Context, staffName string, req dto.Crea
 		return nil, err
 	}
 
-	// Generate the bill number after the ID is assigned.
-	bill.BillNumber = models.GenerateBillNumber(bill.ID)
+	// Generate the bill number after the ID is assigned (ID is the auto-suffix
+	// source when no custom suffix was provided).
+	bill.BillNumber = models.GenerateBillNumber(bill.ID, suffix)
+
+	// For custom suffixes: double-check uniqueness one more time to handle the
+	// rare race condition where two requests used the same suffix simultaneously.
+	if suffix != "" {
+		exists, checkErr := s.billRepo.ExistsByBillNumber(ctx, bill.BillNumber)
+		if checkErr == nil && exists {
+			// Roll back — delete the just-created bill (no number yet) and return 409.
+			_ = s.billRepo.Delete(ctx, bill.ID)
+			return nil, apperror.Conflict(fmt.Sprintf(
+				"bill number %s was just taken by another request — please try a different number",
+				bill.BillNumber,
+			))
+		}
+	}
+
 	fields := bson.M{"invoice_number": bill.BillNumber}
 	updated, err := s.billRepo.Update(ctx, bill.ID, fields)
 	if err != nil {
