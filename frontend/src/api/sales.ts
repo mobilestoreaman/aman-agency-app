@@ -17,12 +17,14 @@ export const salesApi = {
     apiClient.get<ApiResponse<Sale>>(`/sales/${id}`),
 
   create: (body: {
-    customer_id:   string
-    items:         { device_id: string; sale_price: number }[]
-    amount_paid:   number
-    payment_mode?: string
-    notes?:        string
-    sold_at?:      string  // ISO 8601 — defaults to now if omitted
+    customer_id:           string
+    items:                 { device_id: string; sale_price: number }[]
+    amount_paid:           number
+    payment_mode?:         string
+    finance_provider?:     string
+    finance_company_name?: string
+    notes?:                string
+    sold_at?:              string  // ISO 8601 — defaults to now if omitted
   }) => apiClient.post<ApiResponse<Sale>>('/sales', body),
 
   cancel: (id: string) =>

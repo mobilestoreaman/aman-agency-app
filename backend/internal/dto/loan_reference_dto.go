@@ -4,22 +4,27 @@ package dto
 // CustomerID is required. SaleID is optional — if provided the server resolves
 // and denormalises the invoice number.
 type CreateLoanReferenceRequest struct {
-	CustomerID        string  `json:"customer_id"         validate:"required"`
-	SaleID            string  `json:"sale_id"`             // optional ObjectID
-	Provider          string  `json:"provider"            validate:"required,oneof=bajaj hdfc icici axis idfc tvs_credit other"`
-	LoanAccountNumber string  `json:"loan_account_number" validate:"required"`
-	LoanAmount        float64 `json:"loan_amount"         validate:"required,gt=0,max=10000000"`
-	EMIAmount         float64 `json:"emi_amount"          validate:"omitempty,gt=0,max=1000000"`
-	TenureMonths      int     `json:"tenure_months"       validate:"omitempty,gt=0,max=360"`
-	DisbursedDate     string  `json:"disbursed_date"      validate:"omitempty,ddmmyyyy"` // DD-MM-YYYY IST, optional
-	Notes             string  `json:"notes"`
+	CustomerID         string  `json:"customer_id"          validate:"required"`
+	SaleID             string  `json:"sale_id"`              // optional ObjectID
+	Provider           string  `json:"provider"             validate:"required,oneof=bajaj tata_capital hdb_financial home_credit hdfc icici axis idfc tvs_credit other"`
+	// FinanceCompanyName is required when Provider == "other"; ignored otherwise.
+	FinanceCompanyName string  `json:"finance_company_name" validate:"omitempty,max=100"`
+	// LoanAccountNumber defaults to "PENDING" when auto-created from a sale;
+	// staff should update it once the finance company issues the account number.
+	LoanAccountNumber  string  `json:"loan_account_number"  validate:"omitempty,max=100"`
+	LoanAmount         float64 `json:"loan_amount"          validate:"required,gt=0,max=10000000"`
+	EMIAmount          float64 `json:"emi_amount"           validate:"omitempty,gt=0,max=1000000"`
+	TenureMonths       int     `json:"tenure_months"        validate:"omitempty,gt=0,max=360"`
+	DisbursedDate      string  `json:"disbursed_date"       validate:"omitempty,ddmmyyyy"` // DD-MM-YYYY IST, optional
+	Notes              string  `json:"notes"`
 }
 
 // UpdateLoanReferenceRequest allows updating mutable loan details.
 // All fields are optional; only non-zero values overwrite the existing document.
 type UpdateLoanReferenceRequest struct {
-	Provider          string  `json:"provider"            validate:"omitempty,oneof=bajaj hdfc icici axis idfc tvs_credit other"`
-	LoanAccountNumber string  `json:"loan_account_number"`
+	Provider           string  `json:"provider"             validate:"omitempty,oneof=bajaj tata_capital hdb_financial home_credit hdfc icici axis idfc tvs_credit other"`
+	FinanceCompanyName string  `json:"finance_company_name" validate:"omitempty,max=100"`
+	LoanAccountNumber  string  `json:"loan_account_number"`
 	LoanAmount        float64 `json:"loan_amount"         validate:"omitempty,gt=0,max=10000000"`
 	EMIAmount         float64 `json:"emi_amount"          validate:"omitempty,gt=0,max=1000000"`
 	TenureMonths      int     `json:"tenure_months"       validate:"omitempty,gt=0,max=360"`
@@ -37,7 +42,7 @@ type ChangeLoanReferenceStatusRequest struct {
 type LoanReferenceFilter struct {
 	CustomerID string `query:"customer_id"`
 	SaleID     string `query:"sale_id"`
-	Provider   string `query:"provider"`  // bajaj|hdfc|icici|axis|idfc|tvs_credit|other
+	Provider   string `query:"provider"`  // bajaj|tata_capital|hdb_financial|home_credit|hdfc|icici|axis|idfc|tvs_credit|other
 	Status     string `query:"status"`    // active|closed|overdue
 	Search     string `query:"search"`    // regex on customer_name or loan_account_number
 	Page       int    `query:"page"`
@@ -51,8 +56,9 @@ type LoanReferenceResponse struct {
 	CustomerName      string  `json:"customer_name"`
 	SaleID            string  `json:"sale_id,omitempty"`
 	InvoiceNumber     string  `json:"invoice_number,omitempty"`
-	Provider          string  `json:"provider"`
-	LoanAccountNumber string  `json:"loan_account_number"`
+	Provider           string  `json:"provider"`
+	FinanceCompanyName string  `json:"finance_company_name,omitempty"`
+	LoanAccountNumber  string  `json:"loan_account_number"`
 	LoanAmount        float64 `json:"loan_amount"`
 	EMIAmount         float64 `json:"emi_amount,omitempty"`
 	TenureMonths      int     `json:"tenure_months,omitempty"`

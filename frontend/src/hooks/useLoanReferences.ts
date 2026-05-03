@@ -11,17 +11,21 @@ export const loanKeys = {
 }
 
 export const LOAN_PROVIDERS: LoanProvider[] = [
-  'bajaj', 'hdfc', 'icici', 'axis', 'idfc', 'tvs_credit', 'other',
+  'bajaj', 'tata_capital', 'hdb_financial', 'home_credit',
+  'hdfc', 'icici', 'axis', 'idfc', 'tvs_credit', 'other',
 ]
 
 export const PROVIDER_LABELS: Record<LoanProvider, string> = {
-  bajaj:      'Bajaj Finserv',
-  hdfc:       'HDFC Bank',
-  icici:      'ICICI Bank',
-  axis:       'Axis Bank',
-  idfc:       'IDFC First',
-  tvs_credit: 'TVS Credit',
-  other:      'Other',
+  bajaj:         'Bajaj Finserv',
+  tata_capital:  'Tata Capital',
+  hdb_financial: 'HDB Financial',
+  home_credit:   'Home Credit',
+  hdfc:          'HDFC Bank',
+  icici:         'ICICI Bank',
+  axis:          'Axis Bank',
+  idfc:          'IDFC First',
+  tvs_credit:    'TVS Credit',
+  other:         'Other',
 }
 
 export const LOAN_STATUSES: LoanStatus[] = ['active', 'closed', 'overdue']

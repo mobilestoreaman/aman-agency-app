@@ -50,6 +50,7 @@ const (
 	PaymentModeCard         PaymentMode = "card"
 	PaymentModeBankTransfer PaymentMode = "bank_transfer"
 	PaymentModeCredit       PaymentMode = "credit" // no upfront payment / full balance
+	PaymentModeEMI          PaymentMode = "emi"    // financed through a third-party NBFC/bank
 )
 
 // Sale represents a completed or cancelled retail transaction.
@@ -72,8 +73,13 @@ type Sale struct {
 	TotalAmount   float64            `bson:"total_amount"           json:"total_amount"`  // sum of sale prices
 	AmountPaid    float64            `bson:"amount_paid"            json:"amount_paid"`
 	Balance       float64            `bson:"balance"                json:"balance"`       // total_amount - amount_paid
-	PaymentMode   PaymentMode        `bson:"payment_mode,omitempty" json:"payment_mode,omitempty"`
-	Status        SaleStatus         `bson:"status"                 json:"status"`
+	PaymentMode         PaymentMode `bson:"payment_mode,omitempty"          json:"payment_mode,omitempty"`
+	// FinanceProvider and FinanceCompanyName are set only when PaymentMode == "emi".
+	// FinanceProvider is the canonical slug (bajaj|tata_capital|…|other).
+	// FinanceCompanyName holds the free-text name when FinanceProvider == "other".
+	FinanceProvider     string      `bson:"finance_provider,omitempty"      json:"finance_provider,omitempty"`
+	FinanceCompanyName  string      `bson:"finance_company_name,omitempty"  json:"finance_company_name,omitempty"`
+	Status              SaleStatus  `bson:"status"                          json:"status"`
 	Notes         string             `bson:"notes,omitempty"        json:"notes,omitempty"`
 	SoldAt        time.Time          `bson:"sold_at"                json:"sold_at"`
 	CancelledAt   *time.Time         `bson:"cancelled_at,omitempty" json:"cancelled_at,omitempty"`

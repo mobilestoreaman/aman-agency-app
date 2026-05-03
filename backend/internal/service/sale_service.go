@@ -3,6 +3,7 @@ package service
 import (
 	"context"
 	"fmt"
+	"strings"
 	"time"
 
 	"aman-agency/backend/internal/dto"
@@ -32,12 +33,14 @@ type saleService struct {
 	userRepo     repository.UserRepository
 	ledgerRepo   repository.CreditLedgerRepository
 	billRepo     repository.BillRepository
+	loanRefRepo  repository.LoanReferenceRepository
 }
 
 // NewSaleService constructs a SaleService with required repositories.
 // ledgerRepo is used to create credit ledger entries whenever a sale has a
 // positive balance (credit) or is cancelled.
 // billRepo is used to void any bill associated with a cancelled sale.
+// loanRefRepo is used to auto-create a LoanReference when payment_mode == "emi".
 func NewSaleService(
 	saleRepo repository.SaleRepository,
 	customerRepo repository.CustomerRepository,
@@ -45,6 +48,7 @@ func NewSaleService(
 	userRepo repository.UserRepository,
 	ledgerRepo repository.CreditLedgerRepository,
 	billRepo repository.BillRepository,
+	loanRefRepo repository.LoanReferenceRepository,
 ) SaleService {
 	return &saleService{
 		saleRepo:     saleRepo,
@@ -53,6 +57,7 @@ func NewSaleService(
 		userRepo:     userRepo,
 		ledgerRepo:   ledgerRepo,
 		billRepo:     billRepo,
+		loanRefRepo:  loanRefRepo,
 	}
 }
 
@@ -85,23 +90,25 @@ func toSaleResponse(s *models.Sale) *dto.SaleResponse {
 	}
 
 	resp := &dto.SaleResponse{
-		ID:            s.ID.Hex(),
-		InvoiceNumber: s.InvoiceNumber,
-		CustomerID:    s.CustomerID.Hex(),
-		CustomerName:  s.CustomerName,
-		CustomerPhone: s.CustomerPhone,
-		StaffID:       s.StaffID.Hex(),
-		StaffName:     s.StaffName,
-		Items:         items,
-		TotalAmount:   s.TotalAmount,
-		AmountPaid:    s.AmountPaid,
-		Balance:       s.Balance,
-		PaymentMode:   string(s.PaymentMode),
-		Status:        string(s.Status),
-		Notes:         s.Notes,
-		SoldAt:        s.SoldAt.Format("2006-01-02T15:04:05Z"),
-		CreatedAt:     s.CreatedAt.Format("2006-01-02T15:04:05Z"),
-		UpdatedAt:     s.UpdatedAt.Format("2006-01-02T15:04:05Z"),
+		ID:                 s.ID.Hex(),
+		InvoiceNumber:      s.InvoiceNumber,
+		CustomerID:         s.CustomerID.Hex(),
+		CustomerName:       s.CustomerName,
+		CustomerPhone:      s.CustomerPhone,
+		StaffID:            s.StaffID.Hex(),
+		StaffName:          s.StaffName,
+		Items:              items,
+		TotalAmount:        s.TotalAmount,
+		AmountPaid:         s.AmountPaid,
+		Balance:            s.Balance,
+		PaymentMode:        string(s.PaymentMode),
+		FinanceProvider:    s.FinanceProvider,
+		FinanceCompanyName: s.FinanceCompanyName,
+		Status:             string(s.Status),
+		Notes:              s.Notes,
+		SoldAt:             s.SoldAt.Format("2006-01-02T15:04:05Z"),
+		CreatedAt:          s.CreatedAt.Format("2006-01-02T15:04:05Z"),
+		UpdatedAt:          s.UpdatedAt.Format("2006-01-02T15:04:05Z"),
 	}
 	if s.CancelledAt != nil {
 		resp.CancelledAt = s.CancelledAt.Format("2006-01-02T15:04:05Z")
@@ -129,6 +136,16 @@ func (s *saleService) Create(ctx context.Context, staffID, staffName string, req
 	customer, err := s.customerRepo.FindByID(ctx, customerOID)
 	if err != nil {
 		return nil, apperror.NotFound("customer not found")
+	}
+
+	// Cross-field validation: EMI sales require a finance provider.
+	if req.PaymentMode == string(models.PaymentModeEMI) {
+		if strings.TrimSpace(req.FinanceProvider) == "" {
+			return nil, apperror.BadRequest("finance_provider is required when payment_mode is 'emi'")
+		}
+		if req.FinanceProvider == "other" && strings.TrimSpace(req.FinanceCompanyName) == "" {
+			return nil, apperror.BadRequest("finance_company_name is required when finance_provider is 'other'")
+		}
 	}
 
 	// Parse optional sold_at.
@@ -214,19 +231,21 @@ func (s *saleService) Create(ctx context.Context, staffID, staffName string, req
 	}
 
 	sale := &models.Sale{
-		CustomerID:    customerOID,
-		CustomerName:  customer.Name,
-		CustomerPhone: customer.Phone,
-		StaffID:       staffOID,
-		StaffName:     staffName,
-		Items:         saleItems,
-		TotalAmount:   totalAmount,
-		AmountPaid:    amountPaid,
-		Balance:       totalAmount - amountPaid,
-		PaymentMode:   models.PaymentMode(req.PaymentMode),
-		Status:        models.SaleStatusCompleted,
-		Notes:         req.Notes,
-		SoldAt:        soldAt,
+		CustomerID:         customerOID,
+		CustomerName:       customer.Name,
+		CustomerPhone:      customer.Phone,
+		StaffID:            staffOID,
+		StaffName:          staffName,
+		Items:              saleItems,
+		TotalAmount:        totalAmount,
+		AmountPaid:         amountPaid,
+		Balance:            totalAmount - amountPaid,
+		PaymentMode:        models.PaymentMode(req.PaymentMode),
+		FinanceProvider:    req.FinanceProvider,
+		FinanceCompanyName: req.FinanceCompanyName,
+		Status:             models.SaleStatusCompleted,
+		Notes:              req.Notes,
+		SoldAt:             soldAt,
 	}
 
 	if err := s.saleRepo.Create(ctx, sale); err != nil {
@@ -272,6 +291,28 @@ func (s *saleService) Create(ctx context.Context, staffID, staffName string, req
 			}
 			return nil, fmt.Errorf("failed to update customer credit balance; sale rolled back: %w", err)
 		}
+	}
+
+	// If payment mode is EMI, auto-create a LoanReference record so the finance
+	// partner loan is immediately visible in the Loan References module.
+	// This is non-fatal: a failure here does NOT roll back the sale — the sale
+	// is already committed and the operator can create the loan reference manually.
+	if sale.PaymentMode == models.PaymentModeEMI && strings.TrimSpace(sale.FinanceProvider) != "" {
+		loanRef := &models.LoanReference{
+			CustomerID:         customerOID,
+			CustomerName:       customer.Name,
+			SaleID:             &sale.ID,
+			InvoiceNumber:      sale.InvoiceNumber,
+			Provider:           sale.FinanceProvider,
+			FinanceCompanyName: sale.FinanceCompanyName,
+			// LoanAccountNumber defaults to "PENDING" — the finance company issues
+			// the actual number after loan approval. Staff can update it later.
+			LoanAccountNumber: "PENDING",
+			LoanAmount:        totalAmount,
+			Status:            models.LoanReferenceStatusActive,
+			CreatedBy:         staffName,
+		}
+		_ = s.loanRefRepo.Create(ctx, loanRef) // non-fatal: ignore error
 	}
 
 	return toSaleResponse(sale), nil

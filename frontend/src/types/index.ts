@@ -219,7 +219,7 @@ export interface SaleItem {
   storage?:       string
 }
 
-export type PaymentMode = 'cash' | 'upi' | 'card' | 'bank_transfer' | 'credit'
+export type PaymentMode = 'cash' | 'upi' | 'card' | 'bank_transfer' | 'credit' | 'emi'
 
 export interface Sale {
   id:             string
@@ -234,9 +234,11 @@ export interface Sale {
   total_amount:   number
   amount_paid:    number
   balance:        number
-  payment_mode?:  PaymentMode
-  notes?:         string
-  sold_at:        string
+  payment_mode?:       PaymentMode
+  finance_provider?:   string
+  finance_company_name?: string
+  notes?:              string
+  sold_at:             string
   cancelled_at?:  string
   created_at:     string
   updated_at:     string
@@ -276,7 +278,7 @@ export interface CreditLedgerEntry {
 
 // ── Loan Reference ────────────────────────────────────────────
 export type LoanStatus = 'active' | 'closed' | 'overdue'
-export type LoanProvider = 'bajaj' | 'hdfc' | 'icici' | 'axis' | 'idfc' | 'tvs_credit' | 'other'
+export type LoanProvider = 'bajaj' | 'tata_capital' | 'hdb_financial' | 'home_credit' | 'hdfc' | 'icici' | 'axis' | 'idfc' | 'tvs_credit' | 'other'
 
 export interface LoanReference {
   id: string

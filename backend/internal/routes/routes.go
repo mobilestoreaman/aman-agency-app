@@ -256,7 +256,11 @@ func Setup(app *fiber.App, db *database.Client, cfg *config.Config) {
 	// Bill repo declared here so it can be injected into saleSvc for handling orphaned bills on cancellation.
 	billRepo := repository.NewBillRepository(db.DB)
 
-	saleSvc := service.NewSaleService(saleRepo, customerRepo, deviceRepo, userRepo, creditLedgerRepo, billRepo)
+	// loanRefRepo declared here (before saleSvc) so it can be injected into saleSvc
+	// for auto-creating LoanReference records when payment_mode == "emi".
+	loanRefRepo := repository.NewLoanReferenceRepository(db.DB)
+
+	saleSvc := service.NewSaleService(saleRepo, customerRepo, deviceRepo, userRepo, creditLedgerRepo, billRepo, loanRefRepo)
 
 	customerCtrl := controller.NewCustomerController(customerSvc)
 	saleCtrl := controller.NewSaleController(saleSvc, auditSvc)
@@ -299,7 +303,7 @@ func Setup(app *fiber.App, db *database.Client, cfg *config.Config) {
 	customersAdmin.Post("/:id/adjustments", creditLedgerCtrl.RecordAdjustment)
 
 	// ── Step 10: Loan References ─────────────────────────────────────
-	loanRefRepo := repository.NewLoanReferenceRepository(db.DB)
+	// loanRefRepo is already declared in Step 8 (injected into saleSvc for EMI auto-creation).
 	loanRefSvc := service.NewLoanReferenceService(loanRefRepo, customerRepo, saleRepo)
 	loanRefCtrl := controller.NewLoanReferenceController(loanRefSvc)
 

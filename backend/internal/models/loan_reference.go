@@ -31,8 +31,12 @@ type LoanReference struct {
 	CustomerName      string              `bson:"customer_name"              json:"customer_name"`   // denormalised
 	SaleID            *primitive.ObjectID `bson:"sale_id,omitempty"          json:"sale_id,omitempty"`
 	InvoiceNumber     string              `bson:"invoice_number,omitempty"   json:"invoice_number,omitempty"` // denormalised
-	Provider          string              `bson:"provider"                   json:"provider"`          // bajaj|hdfc|icici|axis|idfc|tvs_credit|other
-	LoanAccountNumber string              `bson:"loan_account_number"        json:"loan_account_number"`
+	// Provider is the canonical slug for the finance company.
+	// Full set: bajaj|tata_capital|hdb_financial|home_credit|hdfc|icici|axis|idfc|tvs_credit|other
+	Provider           string              `bson:"provider"                    json:"provider"`
+	// FinanceCompanyName holds the free-text name entered when Provider == "other".
+	FinanceCompanyName string              `bson:"finance_company_name,omitempty" json:"finance_company_name,omitempty"`
+	LoanAccountNumber  string              `bson:"loan_account_number"         json:"loan_account_number"`
 	LoanAmount        float64             `bson:"loan_amount"                json:"loan_amount"`
 	EMIAmount         float64             `bson:"emi_amount,omitempty"       json:"emi_amount,omitempty"`
 	TenureMonths      int                 `bson:"tenure_months,omitempty"    json:"tenure_months,omitempty"`

@@ -7,13 +7,19 @@ type SaleItemRequest struct {
 }
 
 // CreateSaleRequest is the body for POST /api/v1/sales.
+//
+// EMI/Finance rules (enforced in the service layer, not here):
+//   - If PaymentMode == "emi", FinanceProvider is required.
+//   - If FinanceProvider == "other", FinanceCompanyName is required (max 100 chars).
 type CreateSaleRequest struct {
-	CustomerID  string            `json:"customer_id"   validate:"required,objectid"`
-	Items       []SaleItemRequest `json:"items"         validate:"required,min=1,max=100,dive"`
-	AmountPaid  float64           `json:"amount_paid"   validate:"min=0,max=10000000"`
-	PaymentMode string            `json:"payment_mode"  validate:"omitempty,oneof=cash upi card bank_transfer credit"`
-	Notes       string            `json:"notes"         validate:"omitempty,max=500"`
-	SoldAt      string            `json:"sold_at"       validate:"omitempty"` // ISO 8601; defaults to now
+	CustomerID         string            `json:"customer_id"          validate:"required,objectid"`
+	Items              []SaleItemRequest `json:"items"                validate:"required,min=1,max=100,dive"`
+	AmountPaid         float64           `json:"amount_paid"          validate:"min=0,max=10000000"`
+	PaymentMode        string            `json:"payment_mode"         validate:"omitempty,oneof=cash upi card bank_transfer credit emi"`
+	FinanceProvider    string            `json:"finance_provider"     validate:"omitempty,max=50"`
+	FinanceCompanyName string            `json:"finance_company_name" validate:"omitempty,max=100"`
+	Notes              string            `json:"notes"                validate:"omitempty,max=500"`
+	SoldAt             string            `json:"sold_at"              validate:"omitempty"` // ISO 8601; defaults to now
 }
 
 // CancelSaleRequest optionally carries a cancellation note.
@@ -45,8 +51,10 @@ type SaleResponse struct {
 	TotalAmount   float64            `json:"total_amount"`
 	AmountPaid    float64            `json:"amount_paid"`
 	Balance       float64            `json:"balance"`
-	PaymentMode   string             `json:"payment_mode,omitempty"`
-	Status        string             `json:"status"`
+	PaymentMode        string             `json:"payment_mode,omitempty"`
+	FinanceProvider    string             `json:"finance_provider,omitempty"`
+	FinanceCompanyName string             `json:"finance_company_name,omitempty"`
+	Status             string             `json:"status"`
 	Notes         string             `json:"notes,omitempty"`
 	SoldAt        string             `json:"sold_at"`
 	CancelledAt   string             `json:"cancelled_at,omitempty"`

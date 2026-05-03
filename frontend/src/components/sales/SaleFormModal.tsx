@@ -31,6 +31,7 @@ import { billsApi } from '@/api/bills'
 import { paymentPromisesApi } from '@/api/paymentPromises'
 import ConfirmDialog from '@/components/shared/ConfirmDialog'
 import { useConfirm } from '@/hooks/useConfirm'
+import { LOAN_PROVIDERS, PROVIDER_LABELS } from '@/hooks/useLoanReferences'
 import { getApiError } from '@/utils/error'
 import { formatCurrency } from '@/utils/currency'
 import { sanitizeBillSuffix, validateBillSuffix, previewBillNumber } from '@/utils/billNumber'
@@ -44,6 +45,7 @@ const PAYMENT_MODES = [
   { value: 'card',          label: 'Card',          icon: '💳' },
   { value: 'bank_transfer', label: 'Bank Transfer', icon: '🏦' },
   { value: 'credit',        label: 'Credit',        icon: '📋' },
+  { value: 'emi',           label: 'Finance/EMI',   icon: '🏛️' },
 ] as const
 
 // ── Zod schema ───────────────────────────────────────────────────────────────
@@ -55,12 +57,31 @@ const itemSchema = z.object({
 })
 
 const schema = z.object({
-  customer_id:  z.string().min(1, 'Customer is required'),
-  sale_date:    z.string().min(1, 'Sale date is required'),
-  amount_paid:  z.coerce.number().min(0).default(0),
-  payment_mode: z.enum(['cash', 'upi', 'card', 'bank_transfer', 'credit']).optional(),
-  notes:        z.string().max(500).optional().or(z.literal('')),
-  items:        z.array(itemSchema).min(1, 'Add at least one device'),
+  customer_id:          z.string().min(1, 'Customer is required'),
+  sale_date:            z.string().min(1, 'Sale date is required'),
+  amount_paid:          z.coerce.number().min(0).default(0),
+  payment_mode:         z.enum(['cash', 'upi', 'card', 'bank_transfer', 'credit', 'emi']).optional(),
+  finance_provider:     z.string().optional(),
+  finance_company_name: z.string().max(100).optional().or(z.literal('')),
+  notes:                z.string().max(500).optional().or(z.literal('')),
+  items:                z.array(itemSchema).min(1, 'Add at least one device'),
+}).superRefine((data, ctx) => {
+  if (data.payment_mode === 'emi') {
+    if (!data.finance_provider) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: 'Finance provider is required for EMI',
+        path: ['finance_provider'],
+      })
+    }
+    if (data.finance_provider === 'other' && !data.finance_company_name?.trim()) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: 'Company name is required when provider is "Other"',
+        path: ['finance_company_name'],
+      })
+    }
+  }
 })
 type FormValues = z.infer<typeof schema>
 
@@ -400,13 +421,17 @@ export default function SaleFormModal({ open, onClose }: Props) {
     resolver: zodResolver(schema),
     defaultValues: {
       customer_id: '', sale_date: todayValue(),
-      amount_paid: 0, payment_mode: undefined, notes: '', items: [],
+      amount_paid: 0, payment_mode: undefined,
+      finance_provider: undefined, finance_company_name: '',
+      notes: '', items: [],
     },
   })
 
   const { fields, append, remove } = useFieldArray({ control: form.control, name: 'items' })
-  const watchedItems      = useWatch({ control: form.control, name: 'items' })
-  const watchedAmountPaid = useWatch({ control: form.control, name: 'amount_paid' })
+  const watchedItems           = useWatch({ control: form.control, name: 'items' })
+  const watchedAmountPaid      = useWatch({ control: form.control, name: 'amount_paid' })
+  const watchedPaymentMode     = useWatch({ control: form.control, name: 'payment_mode' })
+  const watchedFinanceProvider = useWatch({ control: form.control, name: 'finance_provider' })
 
   const total   = (watchedItems ?? []).reduce((s, i) => s + (Number(i.sale_price) || 0), 0)
   const balance = Math.max(0, total - (Number(watchedAmountPaid) || 0))
@@ -428,7 +453,9 @@ export default function SaleFormModal({ open, onClose }: Props) {
     if (open) {
       form.reset({
         customer_id: '', sale_date: todayValue(),
-        amount_paid: 0, payment_mode: undefined, notes: '', items: [],
+        amount_paid: 0, payment_mode: undefined,
+        finance_provider: undefined, finance_company_name: '',
+        notes: '', items: [],
       })
       setPromiseDate('')
       setBillSuffix('')
@@ -446,11 +473,13 @@ export default function SaleFormModal({ open, onClose }: Props) {
     try {
       // ── 1. Create the sale ──────────────────────────────────────────────────
       const saleRes = await salesApi.create({
-        customer_id:  values.customer_id,
-        sold_at:      toISODate(values.sale_date),
-        amount_paid:  values.amount_paid,
-        payment_mode: values.payment_mode || undefined,
-        notes:        values.notes || undefined,
+        customer_id:           values.customer_id,
+        sold_at:               toISODate(values.sale_date),
+        amount_paid:           values.amount_paid,
+        payment_mode:          values.payment_mode || undefined,
+        finance_provider:      values.payment_mode === 'emi' ? values.finance_provider : undefined,
+        finance_company_name:  values.payment_mode === 'emi' ? (values.finance_company_name || undefined) : undefined,
+        notes:                 values.notes || undefined,
         items: values.items.map((i) => ({
           device_id:  i.device_id,
           sale_price: i.sale_price,
@@ -464,6 +493,10 @@ export default function SaleFormModal({ open, onClose }: Props) {
       qc.invalidateQueries({ queryKey: ['dashboard'] })
       qc.invalidateQueries({ queryKey: ['customers'] })
       qc.invalidateQueries({ queryKey: ['credit-ledger'] })
+      // EMI sales auto-create a LoanReference — invalidate so the list is fresh
+      if (values.payment_mode === 'emi') {
+        qc.invalidateQueries({ queryKey: ['loan-references'] })
+      }
 
       // ── 2. Create + issue the bill automatically ────────────────────────────
       try {
@@ -505,8 +538,14 @@ export default function SaleFormModal({ open, onClose }: Props) {
           : 'Sale recorded successfully.',
       )
 
-      form.reset()
+      form.reset({
+        customer_id: '', sale_date: todayValue(),
+        amount_paid: 0, payment_mode: undefined,
+        finance_provider: undefined, finance_company_name: '',
+        notes: '', items: [],
+      })
       setPromiseDate('')
+      setBillSuffix('')
       selectedCustomerIdRef.current = ''
       onClose()
 
@@ -717,6 +756,67 @@ export default function SaleFormModal({ open, onClose }: Props) {
                       </FormItem>
                     )}
                   />
+                  {/* Finance / EMI section — revealed when EMI chip is selected */}
+                  {watchedPaymentMode === 'emi' && (
+                    <div className="rounded-md border border-blue-200 bg-blue-50/60 p-3 space-y-3 dark:border-blue-800 dark:bg-blue-950/30">
+                      <p className="text-xs font-semibold text-blue-700 dark:text-blue-300 uppercase tracking-wide">
+                        Finance Details
+                      </p>
+                      <FormField
+                        control={form.control}
+                        name="finance_provider"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>
+                              Finance Provider <span className="text-destructive">*</span>
+                            </FormLabel>
+                            <Select
+                              onValueChange={field.onChange}
+                              value={field.value ?? ''}
+                              disabled={isSubmitting}
+                            >
+                              <FormControl>
+                                <SelectTrigger>
+                                  <SelectValue placeholder="Select provider…" />
+                                </SelectTrigger>
+                              </FormControl>
+                              <SelectContent>
+                                {LOAN_PROVIDERS.map((p) => (
+                                  <SelectItem key={p} value={p}>
+                                    {PROVIDER_LABELS[p]}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                      {watchedFinanceProvider === 'other' && (
+                        <FormField
+                          control={form.control}
+                          name="finance_company_name"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>
+                                Company Name <span className="text-destructive">*</span>
+                              </FormLabel>
+                              <FormControl>
+                                <Input
+                                  {...field}
+                                  placeholder="e.g. Mahindra Finance"
+                                  disabled={isSubmitting}
+                                  maxLength={100}
+                                />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                      )}
+                    </div>
+                  )}
+
                   {/* Custom bill number suffix */}
                   <div className="space-y-1.5">
                     <label className="text-sm font-medium leading-none">
