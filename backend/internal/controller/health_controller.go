@@ -81,3 +81,42 @@ func (h *HealthController) Check(c *fiber.Ctx) error {
 
 	return response.OK(c, res)
 }
+
+// Live handles GET /api/health/live
+// Returns 200 immediately — used for liveness probes (is the app running?).
+// @Summary      Liveness probe
+// @Description  Always returns 200 — used to detect if the application process is alive.
+// @Tags         health
+// @Produce      json
+// @Success      200  {object}  fiber.Map
+// @Router       /health/live [get]
+func (h *HealthController) Live(c *fiber.Ctx) error {
+	return c.Status(fiber.StatusOK).JSON(fiber.Map{
+		"status": "alive",
+	})
+}
+
+// Ready handles GET /api/health/ready
+// Returns 200 if MongoDB is reachable, 503 if not — used for readiness probes.
+// @Summary      Readiness probe
+// @Description  Returns 200 if the app is ready to handle requests (MongoDB is reachable), 503 otherwise.
+// @Tags         health
+// @Produce      json
+// @Success      200  {object}  fiber.Map
+// @Failure      503  {object}  fiber.Map  "MongoDB unreachable"
+// @Router       /health/ready [get]
+func (h *HealthController) Ready(c *fiber.Ctx) error {
+	ctx, cancel := context.WithTimeout(c.Context(), 3*time.Second)
+	defer cancel()
+
+	if err := h.db.Ping(ctx); err != nil {
+		return c.Status(fiber.StatusServiceUnavailable).JSON(fiber.Map{
+			"status": "not_ready",
+			"reason": "mongodb_unreachable",
+		})
+	}
+
+	return c.Status(fiber.StatusOK).JSON(fiber.Map{
+		"status": "ready",
+	})
+}

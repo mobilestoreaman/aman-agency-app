@@ -35,12 +35,12 @@ import type { Expense, ExpenseCategory } from '@/types'
 
 // ── Colour map for category badges ───────────────────────────────────────────
 const CATEGORY_VARIANT: Record<ExpenseCategory, string> = {
-  rent:          'bg-violet-100 text-violet-800',
-  salary:        'bg-blue-100 text-blue-800',
-  utilities:     'bg-cyan-100 text-cyan-800',
-  maintenance:   'bg-amber-100 text-amber-800',
-  marketing:     'bg-pink-100 text-pink-800',
-  miscellaneous: 'bg-slate-100 text-slate-700',
+  rent:          'bg-violet-100 text-violet-800 dark:bg-violet-900/50 dark:text-violet-300',
+  salary:        'bg-blue-100 text-blue-800 dark:bg-blue-900/50 dark:text-blue-300',
+  utilities:     'bg-cyan-100 text-cyan-800 dark:bg-cyan-900/50 dark:text-cyan-300',
+  maintenance:   'bg-amber-100 text-amber-800 dark:bg-amber-900/50 dark:text-amber-300',
+  marketing:     'bg-pink-100 text-pink-800 dark:bg-pink-900/50 dark:text-pink-300',
+  miscellaneous: 'bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300',
 }
 
 // ── Zod schema ────────────────────────────────────────────────────────────────

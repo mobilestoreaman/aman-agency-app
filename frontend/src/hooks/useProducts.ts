@@ -19,6 +19,7 @@ export function useProducts(params?: {
   return useQuery({
     queryKey: productKeys.list(params),
     queryFn: () => productsApi.list(params).then((r) => r.data),
+    staleTime: 60_000,
   })
 }
 
@@ -27,6 +28,7 @@ export function useProduct(id: string) {
     queryKey: productKeys.detail(id),
     queryFn: () => productsApi.getById(id).then((r) => r.data.data),
     enabled: !!id,
+    staleTime: 60_000,
   })
 }
 

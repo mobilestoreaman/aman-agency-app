@@ -31,8 +31,8 @@ type BillFilter struct {
 	SaleID     string `query:"sale_id"`
 	Status     string `query:"status"`    // draft|issued|voided
 	Search     string `query:"search"`    // regex on bill_number, customer_name, customer_phone
-	FromDate   string `query:"from_date"` // YYYY-MM-DD filter on created_at
-	ToDate     string `query:"to_date"`   // YYYY-MM-DD filter on created_at
+	FromDate   string `query:"from_date"` // DD-MM-YYYY filter on created_at
+	ToDate     string `query:"to_date"`   // DD-MM-YYYY filter on created_at
 	Page       int    `query:"page"`
 	Limit      int    `query:"limit"`
 }

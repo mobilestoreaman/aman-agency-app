@@ -49,7 +49,7 @@ function EntryTypeBadge({ entry }: { entry: VendorLedgerEntry }) {
     <div className="flex items-center gap-1.5">
       {debit
         ? <TrendingUp  className="h-3.5 w-3.5 text-destructive" />
-        : <TrendingDown className="h-3.5 w-3.5 text-emerald-600" />
+        : <TrendingDown className="h-3.5 w-3.5 text-emerald-600 dark:text-emerald-400" />
       }
       <Badge
         variant={debit ? 'destructive' : 'success'}
@@ -174,7 +174,7 @@ export default function VendorLedgerPage() {
       cell:      (e) => {
         const debit = isDebit(e)
         return (
-          <span className={`font-mono font-semibold whitespace-nowrap ${debit ? 'text-destructive' : 'text-emerald-600'}`}>
+          <span className={`font-mono font-semibold whitespace-nowrap ${debit ? 'text-destructive' : 'text-emerald-600 dark:text-emerald-400'}`}>
             {debit ? '+' : '−'}{formatCurrency(Math.abs(e.amount))}
           </span>
         )
@@ -188,7 +188,7 @@ export default function VendorLedgerPage() {
       cell:      (e) => {
         const owed = e.balance_after > 0
         return (
-          <span className={`font-mono text-sm whitespace-nowrap ${owed ? 'text-destructive' : 'text-emerald-600'}`}>
+          <span className={`font-mono text-sm whitespace-nowrap ${owed ? 'text-destructive' : 'text-emerald-600 dark:text-emerald-400'}`}>
             {owed ? '' : '−'}{formatCurrency(Math.abs(e.balance_after))}
             {!owed && e.balance_after < 0 && (
               <span className="ml-1 text-xs font-normal opacity-70">(overpaid)</span>
@@ -239,10 +239,10 @@ export default function VendorLedgerPage() {
                 ? 'border-destructive/30 bg-destructive/5'
                 : 'border-emerald-200 bg-emerald-50 dark:border-emerald-800 dark:bg-emerald-950/20'
             }`}>
-              <TrendingUp className={`h-5 w-5 shrink-0 ${selectedVendor.payable_balance > 0 ? 'text-destructive' : 'text-emerald-600'}`} />
+              <TrendingUp className={`h-5 w-5 shrink-0 ${selectedVendor.payable_balance > 0 ? 'text-destructive' : 'text-emerald-600 dark:text-emerald-400'}`} />
               <div>
                 <p className="text-xs text-muted-foreground">Outstanding — {selectedVendor.name}</p>
-                <p className={`font-semibold ${selectedVendor.payable_balance > 0 ? 'text-destructive' : 'text-emerald-600'}`}>
+                <p className={`font-semibold ${selectedVendor.payable_balance > 0 ? 'text-destructive' : 'text-emerald-600 dark:text-emerald-400'}`}>
                   {selectedVendor.payable_balance > 0 ? formatCurrency(selectedVendor.payable_balance) : 'Nil — fully settled'}
                 </p>
               </div>
@@ -254,7 +254,7 @@ export default function VendorLedgerPage() {
               <TrendingUp className={`h-5 w-5 shrink-0 ${totalOutstanding > 0 ? 'text-destructive' : 'text-muted-foreground'}`} />
               <div>
                 <p className="text-xs text-muted-foreground">Total outstanding (all vendors)</p>
-                <p className={`font-semibold ${totalOutstanding > 0 ? 'text-destructive' : 'text-emerald-600'}`}>
+                <p className={`font-semibold ${totalOutstanding > 0 ? 'text-destructive' : 'text-emerald-600 dark:text-emerald-400'}`}>
                   {totalOutstanding > 0 ? formatCurrency(totalOutstanding) : 'Nil'}
                   {vendorsWithDebt > 0 && (
                     <span className="ml-2 text-xs font-normal text-muted-foreground">
@@ -271,10 +271,10 @@ export default function VendorLedgerPage() {
             const paid = pageEntries.filter((e) => e.amount < 0).reduce((s, e) => s + Math.abs(e.amount), 0)
             return paid > 0 ? (
               <div className="flex items-center gap-3 rounded-lg border bg-emerald-50 px-4 py-3 dark:bg-emerald-950/20">
-                <TrendingDown className="h-5 w-5 shrink-0 text-emerald-600" />
+                <TrendingDown className="h-5 w-5 shrink-0 text-emerald-600 dark:text-emerald-400" />
                 <div>
                   <p className="text-xs text-muted-foreground">Payments on this page</p>
-                  <p className="font-semibold text-emerald-600">{formatCurrency(paid)}</p>
+                  <p className="font-semibold text-emerald-600 dark:text-emerald-400">{formatCurrency(paid)}</p>
                 </div>
               </div>
             ) : null

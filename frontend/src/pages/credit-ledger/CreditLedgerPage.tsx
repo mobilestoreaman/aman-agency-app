@@ -39,7 +39,7 @@ function EntryTypeBadge({ entry }: { entry: CreditLedgerEntry }) {
     <div className="flex items-center gap-1.5">
       {debit
         ? <TrendingUp  className="h-3.5 w-3.5 text-destructive" />
-        : <TrendingDown className="h-3.5 w-3.5 text-emerald-600" />
+        : <TrendingDown className="h-3.5 w-3.5 text-emerald-600 dark:text-emerald-400" />
       }
       <Badge
         variant={debit ? 'destructive' : 'success'}
@@ -144,7 +144,7 @@ export default function CreditLedgerPage() {
       cell:   (e) => {
         const debit = isDebit(e)
         return (
-          <span className={`font-mono font-semibold whitespace-nowrap ${debit ? 'text-destructive' : 'text-emerald-600'}`}>
+          <span className={`font-mono font-semibold whitespace-nowrap ${debit ? 'text-destructive' : 'text-emerald-600 dark:text-emerald-400'}`}>
             {debit ? '+' : '−'}{formatCurrency(Math.abs(e.amount))}
           </span>
         )
@@ -157,7 +157,7 @@ export default function CreditLedgerPage() {
       cell:   (e) => {
         const owed = e.balance_after > 0
         return (
-          <span className={`font-mono text-sm whitespace-nowrap ${owed ? 'text-destructive' : 'text-emerald-600'}`}>
+          <span className={`font-mono text-sm whitespace-nowrap ${owed ? 'text-destructive' : 'text-emerald-600 dark:text-emerald-400'}`}>
             {owed ? '' : '−'}{formatCurrency(Math.abs(e.balance_after))}
             {!owed && e.balance_after < 0 && (
               <span className="ml-1 text-xs font-normal opacity-70">(credit)</span>
@@ -211,10 +211,10 @@ export default function CreditLedgerPage() {
             </div>
           </div>
           <div className="flex items-center gap-3 rounded-lg border bg-emerald-50 px-4 py-3 dark:bg-emerald-950/20">
-            <TrendingDown className="h-5 w-5 shrink-0 text-emerald-600" />
+            <TrendingDown className="h-5 w-5 shrink-0 text-emerald-600 dark:text-emerald-400" />
             <div className="min-w-0">
               <p className="text-xs text-muted-foreground">Payments received (page)</p>
-              <p className="font-semibold text-emerald-600">{formatCurrency(totalCredit)}</p>
+              <p className="font-semibold text-emerald-600 dark:text-emerald-400">{formatCurrency(totalCredit)}</p>
             </div>
           </div>
           <div className="col-span-2 flex items-center gap-3 rounded-lg border bg-muted/40 px-4 py-3 sm:col-span-1">
@@ -223,7 +223,7 @@ export default function CreditLedgerPage() {
               {(() => {
                 const net = totalDebit - totalCredit
                 return (
-                  <p className={`font-semibold ${net > 0 ? 'text-destructive' : 'text-emerald-600'}`}>
+                  <p className={`font-semibold ${net > 0 ? 'text-destructive' : 'text-emerald-600 dark:text-emerald-400'}`}>
                     {formatCurrency(Math.abs(net))}
                     <span className="ml-1 text-xs font-normal">
                       {net > 0 ? 'owed' : net < 0 ? 'surplus' : ''}

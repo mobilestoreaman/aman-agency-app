@@ -184,7 +184,7 @@ export function BarcodeScanner({ open, onClose, onDetect, hint }: BarcodeScanner
     } finally {
       setStarting(false)
     }
-  }, [drawOverlay, onDetect, supported]) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [drawOverlay, onDetect, supported])
 
   function stopStream() {
     if (timerRef.current)  { clearInterval(timerRef.current);  timerRef.current  = null }
@@ -203,7 +203,7 @@ export function BarcodeScanner({ open, onClose, onDetect, hint }: BarcodeScanner
       stopStream()
     }
     return stopStream
-  }, [open]) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [open, facing, startCamera])
 
   // ── Flip camera ───────────────────────────────────────────────────────────
   const flipCamera = () => {

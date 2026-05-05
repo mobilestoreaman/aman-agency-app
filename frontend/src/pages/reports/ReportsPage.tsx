@@ -106,7 +106,7 @@ export default function ReportsPage() {
                 <CardTitle className="text-xs font-medium text-muted-foreground">Collected</CardTitle>
               </CardHeader>
               <CardContent>
-                <p className="text-2xl font-bold font-mono text-emerald-600">{formatCurrency(revenue.total_collected)}</p>
+                <p className="text-2xl font-bold font-mono text-emerald-600 dark:text-emerald-400">{formatCurrency(revenue.total_collected)}</p>
                 <p className="text-xs text-muted-foreground mt-1">Avg sale: {formatCurrency(revenue.avg_sale_value)}</p>
               </CardContent>
             </Card>
@@ -196,12 +196,12 @@ export default function ReportsPage() {
             ) : stock ? (
               <div className="space-y-2">
                 <MetricRow label="Total units"         value={stock.total_units} />
-                <MetricRow label="Available"           value={<span className="text-emerald-600">{stock.available_units}</span>} />
+                <MetricRow label="Available"           value={<span className="text-emerald-600 dark:text-emerald-400">{stock.available_units}</span>} />
                 <MetricRow label="Sold"                value={stock.sold_units} />
                 <Separator />
                 <MetricRow label="Purchase cost"       value={<span className="font-mono">{formatCurrency(stock.total_purchase_cost)}</span>} />
                 <MetricRow label="Potential revenue"   value={<span className="font-mono">{formatCurrency(stock.total_potential_revenue)}</span>} />
-                <MetricRow label="Estimated profit"    value={<span className={`font-mono ${stock.estimated_profit > 0 ? 'text-emerald-600' : 'text-destructive'}`}>{formatCurrency(stock.estimated_profit)}</span>} />
+                <MetricRow label="Estimated profit"    value={<span className={`font-mono ${stock.estimated_profit > 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-destructive'}`}>{formatCurrency(stock.estimated_profit)}</span>} />
                 {stock.by_status?.length > 0 && (
                   <>
                     <Separator />

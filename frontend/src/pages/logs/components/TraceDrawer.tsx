@@ -220,16 +220,16 @@ export default function TraceDrawer({ open, onClose, traceId }: TraceDrawerProps
                       {log.path}
                     </span>
                     <span className={`ml-auto font-bold text-xs ${
-                      log.status_code >= 500 ? 'text-red-600' :
-                      log.status_code >= 400 ? 'text-yellow-600' :
-                      'text-green-600'
+                      log.status_code >= 500 ? 'text-red-600 dark:text-red-400' :
+                      log.status_code >= 400 ? 'text-yellow-600 dark:text-yellow-400' :
+                      'text-green-600 dark:text-green-400'
                     }`}>
                       {log.status_code}
                     </span>
                     <span className={`text-xs font-semibold ${
-                      log.latency_ms < 100 ? 'text-green-600' :
-                      log.latency_ms < 500 ? 'text-yellow-600' :
-                      'text-red-600'
+                      log.latency_ms < 100 ? 'text-green-600 dark:text-green-400' :
+                      log.latency_ms < 500 ? 'text-yellow-600 dark:text-yellow-400' :
+                      'text-red-600 dark:text-red-400'
                     }`}>
                       {log.latency_ms}ms
                     </span>

@@ -19,6 +19,11 @@ type DashboardService interface {
 type dashboardService struct {
 	repo         repository.DashboardRepository
 	settingsRepo repository.SettingsRepository
+
+	// In-memory cache for stock summary with 5-minute TTL
+	stockMu    sync.Mutex
+	stockCache *dto.StockDashboardSummary
+	stockExpiry time.Time
 }
 
 // NewDashboardService constructs a DashboardService.
@@ -69,7 +74,7 @@ func (s *dashboardService) Get(ctx context.Context) (*dto.DashboardResponse, err
 
 	go func() {
 		defer wg.Done()
-		if v, err := s.repo.StockSummary(ctx); err == nil {
+		if v, err := s.getStockSummary(ctx); err == nil {
 			stock = v
 		}
 	}()
@@ -145,4 +150,28 @@ func (s *dashboardService) Get(ctx context.Context) (*dto.DashboardResponse, err
 		RecentSales:            recentSales,
 		LowStockAlerts:         lowStockAlerts,
 	}, nil
+}
+
+// getStockSummary returns the cached stock summary if valid (TTL = 5 minutes),
+// otherwise fetches fresh data and updates the cache.
+func (s *dashboardService) getStockSummary(ctx context.Context) (*dto.StockDashboardSummary, error) {
+	s.stockMu.Lock()
+	defer s.stockMu.Unlock()
+
+	now := time.Now()
+	if s.stockCache != nil && now.Before(s.stockExpiry) {
+		return s.stockCache, nil
+	}
+
+	// Cache miss or expired — fetch fresh data
+	stock, err := s.repo.StockSummary(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	// Update cache with 5-minute TTL
+	s.stockCache = stock
+	s.stockExpiry = now.Add(5 * time.Minute)
+
+	return stock, nil
 }

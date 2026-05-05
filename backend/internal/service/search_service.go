@@ -60,40 +60,58 @@ func (s *searchService) Search(ctx context.Context, f dto.SearchFilter) (*dto.Se
 	// Determine which entity types to query.
 	types := parseSearchTypes(f.Types)
 
-	resp := &dto.SearchResponse{Query: q}
-	var wg sync.WaitGroup
+	// Each goroutine writes to its own local variable, eliminating the data race
+	// that occurred when goroutines wrote directly to resp fields concurrently.
+	var (
+		mu        sync.Mutex
+		customers []dto.CustomerSearchResult
+		products  []dto.ProductSearchResult
+		devices   []dto.DeviceSearchResult
+		sales     []dto.SaleSearchResult
+		wg        sync.WaitGroup
+	)
 
 	if types["customers"] {
 		wg.Add(1)
 		go func() {
 			defer wg.Done()
-			resp.Customers, _ = s.searchCustomers(ctx, q, limit)
+			res, _ := s.searchCustomers(ctx, q, limit)
+			mu.Lock(); customers = res; mu.Unlock()
 		}()
 	}
 	if types["products"] {
 		wg.Add(1)
 		go func() {
 			defer wg.Done()
-			resp.Products, _ = s.searchProducts(ctx, q, limit)
+			res, _ := s.searchProducts(ctx, q, limit)
+			mu.Lock(); products = res; mu.Unlock()
 		}()
 	}
 	if types["devices"] {
 		wg.Add(1)
 		go func() {
 			defer wg.Done()
-			resp.Devices, _ = s.searchDevices(ctx, q, limit)
+			res, _ := s.searchDevices(ctx, q, limit)
+			mu.Lock(); devices = res; mu.Unlock()
 		}()
 	}
 	if types["sales"] {
 		wg.Add(1)
 		go func() {
 			defer wg.Done()
-			resp.Sales, _ = s.searchSales(ctx, q, limit)
+			res, _ := s.searchSales(ctx, q, limit)
+			mu.Lock(); sales = res; mu.Unlock()
 		}()
 	}
 
 	wg.Wait()
-	return resp, nil
+	return &dto.SearchResponse{
+		Query:     q,
+		Customers: customers,
+		Products:  products,
+		Devices:   devices,
+		Sales:     sales,
+	}, nil
 }
 
 // ─── entity-level search queries ─────────────────────────────────────────────

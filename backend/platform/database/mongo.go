@@ -130,11 +130,21 @@ func (c *Client) EnsureIndexes(ctx context.Context) error {
 				// brand_name. MongoDB permits only ONE text index per collection, so all
 				// searchable fields must be declared together.
 				// Used by the ?search= query in the product list endpoint.
-				textIndex(map[string]int{
-					"model_name": 10, // highest weight — most discriminating field
-					"barcode":    5,
-					"brand_name": 3,
-				}),
+				// Fixed to use ordered bson.D instead of non-deterministic map.
+				mongo.IndexModel{
+					Keys: bson.D{
+						{Key: "model_name", Value: "text"},
+						{Key: "barcode", Value: "text"},
+						{Key: "brand_name", Value: "text"},
+					},
+					Options: options.Index().
+						SetWeights(bson.D{
+							{Key: "model_name", Value: 10},
+							{Key: "barcode", Value: 5},
+							{Key: "brand_name", Value: 3},
+						}).
+						SetName("products_text_search"),
+				},
 			},
 		},
 		{
@@ -169,6 +179,10 @@ func (c *Client) EnsureIndexes(ctx context.Context) error {
 				uniqueIndex("invoice_number"),
 				singleIndex("customer_id"),
 				descIndex("created_at"),
+				// Compound index for the common "customer history" query pattern.
+				mongo.IndexModel{
+					Keys: bson.D{{Key: "customer_id", Value: 1}, {Key: "sold_at", Value: -1}},
+				},
 			},
 		},
 		{
@@ -190,6 +204,8 @@ func (c *Client) EnsureIndexes(ctx context.Context) error {
 			models: []mongo.IndexModel{
 				singleIndex("sale_id"),
 				singleIndex("customer_id"),
+				singleIndex("status"),
+				singleIndex("provider"),
 			},
 		},
 		{
@@ -205,6 +221,7 @@ func (c *Client) EnsureIndexes(ctx context.Context) error {
 			models: []mongo.IndexModel{
 				uniqueIndex("sale_id"),
 				uniqueIndex("invoice_number"),
+				singleIndex("status"),
 			},
 		},
 		{
@@ -228,6 +245,16 @@ func (c *Client) EnsureIndexes(ctx context.Context) error {
 				singleIndex("category"),
 				descIndex("date"),
 				descIndex("created_at"),
+				// Text index for the ?search= filter across description and notes.
+				// MongoDB allows only one text index per collection; both fields are
+				// declared together here with equal weight.
+				mongo.IndexModel{
+					Keys: bson.D{
+						{Key: "description", Value: "text"},
+						{Key: "notes", Value: "text"},
+					},
+					Options: options.Index().SetName("expenses_text_search"),
+				},
 			},
 		},
 		{
@@ -329,28 +356,5 @@ func singleIndex(field string) mongo.IndexModel {
 func descIndex(field string) mongo.IndexModel {
 	return mongo.IndexModel{
 		Keys: bson.D{{Key: field, Value: -1}},
-	}
-}
-
-// textIndex creates a compound text index across multiple fields with individual
-// weights. Only one text index is allowed per collection; include all searchable
-// fields here. The weights map controls relevance ranking.
-func textIndex(weights map[string]int) mongo.IndexModel {
-	keys := bson.D{}
-	for field := range weights {
-		keys = append(keys, bson.E{Key: field, Value: "text"})
-	}
-
-	// Build weights document
-	wDoc := bson.D{}
-	for field, w := range weights {
-		wDoc = append(wDoc, bson.E{Key: field, Value: w})
-	}
-
-	return mongo.IndexModel{
-		Keys: keys,
-		Options: options.Index().
-			SetWeights(wDoc).
-			SetName("products_text_search"),
 	}
 }

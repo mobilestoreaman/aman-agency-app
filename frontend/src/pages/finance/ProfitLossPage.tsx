@@ -26,7 +26,7 @@ function MetricCard({
         <CardTitle className="text-xs font-medium text-muted-foreground">{title}</CardTitle>
       </CardHeader>
       <CardContent>
-        <p className={`text-2xl font-bold font-mono ${positive === true ? 'text-emerald-600' : positive === false ? 'text-destructive' : ''}`}>
+        <p className={`text-2xl font-bold font-mono ${positive === true ? 'text-emerald-600 dark:text-emerald-400' : positive === false ? 'text-destructive' : ''}`}>
           {value}
         </p>
         {sub && <p className="text-xs text-muted-foreground mt-1">{sub}</p>}
@@ -127,10 +127,10 @@ export default function ProfitLossPage() {
               <div className="flex justify-between text-xs mb-1">
                 <span className="text-muted-foreground">Gross Margin</span>
                 <div className="flex items-center gap-2">
-                  <span className={`font-semibold ${grossPct >= 0 ? 'text-emerald-600' : 'text-destructive'}`}>
+                  <span className={`font-semibold ${grossPct >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-destructive'}`}>
                     {grossPct.toFixed(1)}%
                   </span>
-                  {grossPct > 100 && <span className="font-bold text-emerald-600">⚡ {grossPct.toFixed(1)}%</span>}
+                  {grossPct > 100 && <span className="font-bold text-emerald-600 dark:text-emerald-400">⚡ {grossPct.toFixed(1)}%</span>}
                 </div>
               </div>
               <div className="h-2 rounded-full bg-muted overflow-hidden">
@@ -145,7 +145,7 @@ export default function ProfitLossPage() {
                   <span className={`font-semibold ${netPct >= 0 ? 'text-blue-600' : 'text-destructive'}`}>
                     {netPct.toFixed(1)}%
                   </span>
-                  {netPct > 100 && <span className="font-bold text-emerald-600">⚡ {netPct.toFixed(1)}%</span>}
+                  {netPct > 100 && <span className="font-bold text-emerald-600 dark:text-emerald-400">⚡ {netPct.toFixed(1)}%</span>}
                 </div>
               </div>
               <div className="h-2 rounded-full bg-muted overflow-hidden">

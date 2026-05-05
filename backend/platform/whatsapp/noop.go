@@ -1,12 +1,16 @@
 package whatsapp
 
-import "log"
+import (
+	"context"
+	"log"
+)
 
 // NoopProvider satisfies MessageProvider without sending any real messages.
 // Use this in development / test environments where WA_PROVIDER is unset or "noop".
 type NoopProvider struct{}
 
 func (n *NoopProvider) SendInvoiceLink(
+	_ context.Context,
 	toPhone, customerName, invoiceURL, billNumber, totalAmount string,
 ) error {
 	log.Printf("[whatsapp/noop] would send invoice %s (%s) to %s — URL: %s",

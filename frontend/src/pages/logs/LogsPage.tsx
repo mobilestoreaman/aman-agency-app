@@ -221,7 +221,7 @@ export default function LogsPage() {
               onClick={() => setIsAutoRefresh(r => !r)}
               title={isAutoRefresh ? 'Auto-refresh on — click to pause' : 'Auto-refresh paused'}
             >
-              <RefreshCw className={`h-4 w-4 transition-colors ${isAutoRefresh ? 'text-green-600' : ''}`} />
+              <RefreshCw className={`h-4 w-4 transition-colors ${isAutoRefresh ? 'text-green-600 dark:text-green-400' : ''}`} />
             </Button>
             <DropdownMenu>
               <DropdownMenuTrigger asChild>

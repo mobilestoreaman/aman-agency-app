@@ -287,6 +287,19 @@ func (s *billService) GetBySaleID(ctx context.Context, saleID string) (*dto.Bill
 }
 
 func (s *billService) List(ctx context.Context, f dto.BillFilter) ([]*dto.BillResponse, *response.Meta, error) {
+	// Validate date format early so callers get a clear error rather than silently
+	// receiving unfiltered results when the format is wrong (DD-MM-YYYY required).
+	if f.FromDate != "" {
+		if _, err := time.Parse("02-01-2006", f.FromDate); err != nil {
+			return nil, nil, apperror.BadRequest("from_date must be DD-MM-YYYY")
+		}
+	}
+	if f.ToDate != "" {
+		if _, err := time.Parse("02-01-2006", f.ToDate); err != nil {
+			return nil, nil, apperror.BadRequest("to_date must be DD-MM-YYYY")
+		}
+	}
+
 	bills, total, err := s.billRepo.List(ctx, f)
 	if err != nil {
 		return nil, nil, err

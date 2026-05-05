@@ -14,6 +14,7 @@ export function useBrands(params?: { page?: number; limit?: number; search?: str
   return useQuery({
     queryKey: brandKeys.list(params),
     queryFn: () => brandsApi.list(params).then((r) => r.data),
+    staleTime: 60_000,
   })
 }
 
@@ -22,6 +23,7 @@ export function useBrand(id: string) {
     queryKey: brandKeys.detail(id),
     queryFn: () => brandsApi.getById(id).then((r) => r.data.data),
     enabled: !!id,
+    staleTime: 60_000,
   })
 }
 
@@ -30,6 +32,7 @@ export function useBrandProducts(id: string, params?: { page?: number; limit?: n
     queryKey: brandKeys.products(id, params),
     queryFn: () => brandsApi.getProducts(id, params).then((r) => r.data),
     enabled: !!id,
+    staleTime: 60_000,
   })
 }
 

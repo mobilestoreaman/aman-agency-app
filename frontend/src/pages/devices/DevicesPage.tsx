@@ -620,18 +620,22 @@ export default function DevicesPage() {
             <EmptyState
               icon={Cpu}
               title={
-                statusFilter === 'available'
-                  ? 'No available devices'
-                  : hasFilters
-                    ? 'No devices match your filters'
-                    : 'No devices yet'
+                hasFilters && (search || !!productId)
+                  ? 'No devices match your current filters'
+                  : statusFilter === 'available'
+                    ? 'No available devices'
+                    : hasFilters
+                      ? 'No devices match your filters'
+                      : 'No devices yet'
               }
               description={
-                statusFilter === 'available'
-                  ? 'All devices are currently sold or in another status.'
-                  : hasFilters
-                    ? 'Try adjusting or clearing your filters.'
-                    : 'Add your first device to get started.'
+                hasFilters && (search || !!productId)
+                  ? 'Try different search terms or filters.'
+                  : statusFilter === 'available'
+                    ? 'All devices are currently sold or in another status.'
+                    : hasFilters
+                      ? 'Try adjusting or clearing your filters.'
+                      : 'Add your first device to get started.'
               }
               action={
                 statusFilter === 'available'

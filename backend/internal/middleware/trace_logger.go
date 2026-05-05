@@ -143,7 +143,7 @@ func TraceLogger(repo repository.TraceLogRepository, cfg *config.Config) fiber.H
 						Msg("panic in trace log goroutine")
 				}
 			}()
-			insertCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+			insertCtx, cancel := context.WithTimeout(c.Context(), 5*time.Second)
 			defer cancel()
 			if insertErr := repo.Insert(insertCtx, entry); insertErr != nil {
 				log.Error().

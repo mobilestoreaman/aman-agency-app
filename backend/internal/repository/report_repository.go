@@ -60,7 +60,7 @@ func (r *reportRepository) RevenueSummary(ctx context.Context, from, to time.Tim
 		}}},
 	}
 
-	cur, err := col.Aggregate(ctx, pipeline)
+	cur, err := col.Aggregate(ctx, pipeline, options.Aggregate().SetAllowDiskUse(true))
 	if err != nil {
 		return nil, err
 	}
@@ -116,7 +116,7 @@ func (r *reportRepository) StockValuation(ctx context.Context) (*dto.StockValuat
 		{{Key: "$sort", Value: bson.D{{Key: "_id", Value: 1}}}},
 	}
 
-	cur, err := col.Aggregate(ctx, pipeline)
+	cur, err := col.Aggregate(ctx, pipeline, options.Aggregate().SetAllowDiskUse(true))
 	if err != nil {
 		return nil, err
 	}
@@ -177,7 +177,7 @@ func (r *reportRepository) CreditSummary(ctx context.Context) (*dto.CreditSummar
 		}}},
 	}
 
-	cur, err := col.Aggregate(ctx, pipeline)
+	cur, err := col.Aggregate(ctx, pipeline, options.Aggregate().SetAllowDiskUse(true))
 	if err != nil {
 		return nil, err
 	}
@@ -275,7 +275,7 @@ func (r *reportRepository) SalesByPeriod(ctx context.Context, from, to time.Time
 		{{Key: "$sort", Value: bson.D{{Key: "_id", Value: 1}}}},
 	}
 
-	cur, err := col.Aggregate(ctx, pipeline)
+	cur, err := col.Aggregate(ctx, pipeline, options.Aggregate().SetAllowDiskUse(true))
 	if err != nil {
 		return nil, err
 	}
@@ -483,7 +483,7 @@ func (r *reportRepository) ProductPerformance(ctx context.Context, from, to time
 		{{Key: "$limit", Value: 50}},
 	}
 
-	cur, err := col.Aggregate(ctx, pipeline)
+	cur, err := col.Aggregate(ctx, pipeline, options.Aggregate().SetAllowDiskUse(true))
 	if err != nil {
 		return nil, err
 	}
@@ -587,7 +587,7 @@ func (r *reportRepository) CustomerInsights(ctx context.Context, from, to time.T
 		{{Key: "$limit", Value: 50}},
 	}
 
-	cur, err := col.Aggregate(ctx, pipeline)
+	cur, err := col.Aggregate(ctx, pipeline, options.Aggregate().SetAllowDiskUse(true))
 	if err != nil {
 		return nil, err
 	}
@@ -657,7 +657,7 @@ func (r *reportRepository) InventoryHealth(ctx context.Context) (*dto.InventoryH
 		{{Key: "$sort", Value: bson.D{{Key: "created_at", Value: 1}}}},
 	}
 
-	cur, err := col.Aggregate(ctx, pipeline)
+	cur, err := col.Aggregate(ctx, pipeline, options.Aggregate().SetAllowDiskUse(true))
 	if err != nil {
 		return nil, err
 	}

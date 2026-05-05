@@ -91,6 +91,9 @@ func Load() (*Config, error) {
 
 	// ── JWT ──────────────────────────────────────────────────────────
 	cfg.JWT.Secret = mustGetEnv("JWT_SECRET")
+	if len(cfg.JWT.Secret) < 32 {
+		return nil, fmt.Errorf("JWT_SECRET must be at least 32 characters long (got %d)", len(cfg.JWT.Secret))
+	}
 
 	accessTTL, err := parseDuration("JWT_ACCESS_TTL", "15m")
 	if err != nil {

@@ -13,6 +13,7 @@ import (
 	"aman-agency/backend/pkg/pagination"
 	"aman-agency/backend/pkg/response"
 
+	"github.com/rs/zerolog/log"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 )
@@ -220,12 +221,20 @@ func (s *paymentPromiseService) Reschedule(
 		return nil, err
 	}
 
-	// Now mark the old promise as rescheduled. If this update fails, log it but
-	// don't fail the request — the new promise already exists and is the source of truth.
+	// Mark the old promise as rescheduled. If this fails, compensate by deleting
+	// the newly created promise so we don't end up with two active promises for
+	// the same debt.
 	if _, err := s.repo.Update(ctx, oid, bson.M{"status": string(models.PromiseStatusRescheduled)}); err != nil {
-		// Non-fatal: new promise is created; old one will appear as pending but
-		// the user can manually mark it. Log in production.
-		_ = err
+		log.Error().Err(err).
+			Str("old_promise_id", oid.Hex()).
+			Str("new_promise_id", newPromise.ID.Hex()).
+			Msg("rescheduling: failed to close old promise — compensating by deleting new promise")
+		if delErr := s.repo.Delete(ctx, newPromise.ID); delErr != nil {
+			log.Error().Err(delErr).
+				Str("new_promise_id", newPromise.ID.Hex()).
+				Msg("CRITICAL: compensating delete also failed — duplicate active promises may exist; manual cleanup required")
+		}
+		return nil, fmt.Errorf("failed to mark old promise as rescheduled: %w", err)
 	}
 
 	return toPromiseResponse(newPromise), nil
@@ -297,8 +306,15 @@ func (s *paymentPromiseService) NotifyDueToday(ctx context.Context) {
 			CreatedBy:  "system",
 		})
 
-		// Mark as notified so this won't fire again
-		_, _ = s.repo.Update(ctx, p.ID, bson.M{"notified": true})
+		// Mark as notified so this won't fire again on subsequent hourly ticks.
+		// If this fails, the notification will fire again next hour — log it so
+		// ops can identify and manually mark stuck promises.
+		if _, err := s.repo.Update(ctx, p.ID, bson.M{"notified": true}); err != nil {
+			log.Error().Err(err).
+				Str("promise_id", p.ID.Hex()).
+				Str("customer", p.CustomerName).
+				Msg("failed to mark promise as notified — will re-fire next hour")
+		}
 	}
 }
 

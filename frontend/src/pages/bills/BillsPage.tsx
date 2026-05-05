@@ -214,7 +214,7 @@ function BillDetailDrawer({ billId, open, onClose }: {
             {bill && bill.customer_phone && (
               <Button
                 variant="outline"
-                className="gap-1.5 text-emerald-600 border-emerald-200 hover:bg-emerald-50"
+                className="gap-1.5 text-emerald-600 border-emerald-200 hover:bg-emerald-50 dark:text-emerald-400 dark:border-emerald-800 dark:hover:bg-emerald-900/20"
                 disabled={sendWhatsApp.isPending}
                 onClick={whatsAppConfirm.open}
               >

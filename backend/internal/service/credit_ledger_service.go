@@ -13,6 +13,7 @@ import (
 	"aman-agency/backend/pkg/pagination"
 	"aman-agency/backend/pkg/response"
 
+	"github.com/rs/zerolog/log"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 
@@ -229,7 +230,16 @@ func (s *creditLedgerService) RecordPayment(
 	if err := s.customerRepo.IncrementCredit(ctx, oid, delta); err != nil {
 		// Compensating action: remove the ledger entry we just created so
 		// financial records stay consistent.
-		_ = s.ledgerRepo.Delete(ctx, entry.ID)
+		if delErr := s.ledgerRepo.Delete(ctx, entry.ID); delErr != nil {
+			log.Error().Err(delErr).
+				Str("ledger_entry_id", entry.ID.Hex()).
+				Str("customer_id", oid.Hex()).
+				Msg("CRITICAL: payment ledger rollback failed — phantom entry exists; manual reconciliation required")
+			return nil, fmt.Errorf(
+				"credit update failed (%w) AND ledger rollback failed (%v) — entry %s may be orphaned",
+				err, delErr, entry.ID.Hex(),
+			)
+		}
 		return nil, fmt.Errorf("failed to update credit balance; ledger entry rolled back: %w", err)
 	}
 
@@ -277,7 +287,16 @@ func (s *creditLedgerService) RecordAdjustment(
 
 	// Step 2: Update the running balance — roll back ledger entry on failure.
 	if err := s.customerRepo.IncrementCredit(ctx, oid, req.Amount); err != nil {
-		_ = s.ledgerRepo.Delete(ctx, entry.ID)
+		if delErr := s.ledgerRepo.Delete(ctx, entry.ID); delErr != nil {
+			log.Error().Err(delErr).
+				Str("ledger_entry_id", entry.ID.Hex()).
+				Str("customer_id", oid.Hex()).
+				Msg("CRITICAL: adjustment ledger rollback failed — phantom entry exists; manual reconciliation required")
+			return nil, fmt.Errorf(
+				"credit update failed (%w) AND ledger rollback failed (%v) — entry %s may be orphaned",
+				err, delErr, entry.ID.Hex(),
+			)
+		}
 		return nil, fmt.Errorf("failed to update credit balance; ledger entry rolled back: %w", err)
 	}
 

@@ -1,6 +1,7 @@
 package whatsapp
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -36,6 +37,7 @@ func NewTwilioProvider(accountSID, authToken, fromNumber string) *TwilioProvider
 }
 
 func (t *TwilioProvider) SendInvoiceLink(
+	ctx context.Context,
 	toPhone, customerName, invoiceURL, billNumber, totalAmount string,
 ) error {
 	body := fmt.Sprintf(
@@ -62,7 +64,7 @@ func (t *TwilioProvider) SendInvoiceLink(
 	form.Set("From", t.FromNumber)
 	form.Set("Body", body)
 
-	req, err := http.NewRequest(http.MethodPost, apiURL, strings.NewReader(form.Encode()))
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, apiURL, strings.NewReader(form.Encode()))
 	if err != nil {
 		return fmt.Errorf("whatsapp/twilio: build request: %w", err)
 	}

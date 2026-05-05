@@ -23,6 +23,7 @@ type PaymentPromiseRepository interface {
 	FindByID(ctx context.Context, id primitive.ObjectID) (*models.PaymentPromise, error)
 	List(ctx context.Context, f dto.PaymentPromiseFilter) ([]*models.PaymentPromise, int64, error)
 	Update(ctx context.Context, id primitive.ObjectID, fields bson.M) (*models.PaymentPromise, error)
+	Delete(ctx context.Context, id primitive.ObjectID) error
 	// FindDueTodayUnnotified returns pending promises whose promised_date falls on
 	// today (in UTC) and for which a reminder notification has not yet been sent.
 	FindDueTodayUnnotified(ctx context.Context) ([]*models.PaymentPromise, error)
@@ -66,6 +67,17 @@ func (r *paymentPromiseRepository) Update(ctx context.Context, id primitive.Obje
 		return nil, err
 	}
 	return &p, nil
+}
+
+func (r *paymentPromiseRepository) Delete(ctx context.Context, id primitive.ObjectID) error {
+	res, err := r.col.DeleteOne(ctx, bson.M{"_id": id})
+	if err != nil {
+		return err
+	}
+	if res.DeletedCount == 0 {
+		return ErrNotFound
+	}
+	return nil
 }
 
 // ── Reads ─────────────────────────────────────────────────────────────────────

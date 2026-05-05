@@ -74,7 +74,7 @@ func (s *auditService) Log(ctx context.Context, c *fiber.Ctx, action, resource, 
 				log.Error().Interface("panic", r).Str("action", action).Msg("panic in audit log goroutine")
 			}
 		}()
-		insertCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+		insertCtx, cancel := context.WithTimeout(ctx, 5*time.Second)
 		defer cancel()
 
 		if err := s.repo.Insert(insertCtx, entry); err != nil {

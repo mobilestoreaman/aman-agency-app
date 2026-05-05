@@ -26,7 +26,10 @@ export default function AppShell() {
 
       {/* ── Mobile sidebar drawer ─────────────────────────── */}
       <Sheet open={mobileOpen} onOpenChange={setMobileOpen}>
-        <SheetContent side="left" className="p-0 w-64 border-r-0">
+        <SheetContent
+          side="left"
+          className="p-0 w-64 border-r-0 [&>button]:text-sidebar-foreground [&>button]:opacity-80 [&>button]:hover:opacity-100 [&>button]:ring-offset-sidebar"
+        >
           <Sidebar onNavigate={closeMobile} />
         </SheetContent>
       </Sheet>

@@ -266,6 +266,7 @@ func (ctrl *BillController) SendWhatsApp(c *fiber.Ctx) error {
 	totalStr := fmt.Sprintf("%s%.2f", currency, bill.TotalAmount)
 
 	if waErr := ctrl.wa.SendInvoiceLink(
+		c.Context(),
 		bill.CustomerPhone,
 		bill.CustomerName,
 		invoiceURL,

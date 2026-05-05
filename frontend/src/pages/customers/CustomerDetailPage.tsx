@@ -116,7 +116,7 @@ export default function CustomerDetailPage() {
       cell:   (e) => (
         <div className="flex items-center gap-2 text-sm">
           {e.amount < 0
-            ? <CheckCircle2 className="h-4 w-4 text-emerald-500" />
+            ? <CheckCircle2 className="h-4 w-4 text-emerald-500 dark:text-emerald-400" />
             : e.type === 'sale'
             ? <CreditCard className="h-4 w-4 text-amber-500" />
             : <MinusCircle className="h-4 w-4 text-blue-500" />
@@ -131,7 +131,7 @@ export default function CustomerDetailPage() {
       header: 'Amount',
       cell:   (e) => (
         <span className={`font-mono font-semibold text-sm ${
-          e.amount < 0 ? 'text-emerald-600' : 'text-amber-600'
+          e.amount < 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-amber-600 dark:text-amber-400'
         }`}>
           {e.amount < 0 ? '−' : '+'} {formatCurrency(Math.abs(e.amount))}
         </span>
@@ -142,7 +142,7 @@ export default function CustomerDetailPage() {
       key:    'balance',
       header: 'Balance after',
       cell:   (e) => (
-        <span className={`font-mono text-sm ${e.balance_after > 0 ? 'text-amber-600' : 'text-emerald-600'}`}>
+        <span className={`font-mono text-sm ${e.balance_after > 0 ? 'text-amber-600 dark:text-amber-400' : 'text-emerald-600 dark:text-emerald-400'}`}>
           {formatCurrency(Math.abs(e.balance_after))}
           {e.balance_after < 0 && <span className="ml-1 text-xs opacity-70">(credit)</span>}
         </span>
@@ -241,7 +241,7 @@ export default function CustomerDetailPage() {
                 <div className="flex items-end justify-between">
                   <span className="text-xs text-muted-foreground">Outstanding</span>
                   <span className={`text-2xl font-bold font-mono ${
-                    customer.credit_balance > 0 ? 'text-destructive' : 'text-emerald-600'
+                    customer.credit_balance > 0 ? 'text-destructive' : 'text-emerald-600 dark:text-emerald-400'
                   }`}>
                     {formatCurrency(customer.credit_balance)}
                   </span>
@@ -253,7 +253,7 @@ export default function CustomerDetailPage() {
                 {customer.credit_balance > 0 ? (
                   <Button
                     size="sm"
-                    className="w-full gap-1.5 bg-emerald-600 text-white hover:bg-emerald-700"
+                    className="w-full gap-1.5 bg-emerald-600 text-white hover:bg-emerald-700 dark:bg-emerald-700 dark:hover:bg-emerald-600"
                     onClick={() => setPaymentOpen(true)}
                   >
                     <TrendingDown className="h-3.5 w-3.5" />
@@ -287,7 +287,7 @@ export default function CustomerDetailPage() {
                 </div>
                 <div className="flex items-end justify-between">
                   <span className="text-xs text-muted-foreground">Revenue (this page)</span>
-                  <span className="font-mono font-semibold text-sm text-emerald-600">
+                  <span className="font-mono font-semibold text-sm text-emerald-600 dark:text-emerald-400">
                     {formatCurrency(
                       (salesData.data ?? [])
                         .filter((s) => s.status === 'completed')

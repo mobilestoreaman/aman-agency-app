@@ -134,7 +134,7 @@ export default function NotificationsPage() {
           {n.status === 'unread' && (
             <Button
               variant="ghost" size="sm"
-              className="h-8 gap-1 px-2 text-xs text-emerald-600 hover:text-emerald-700"
+              className="h-8 gap-1 px-2 text-xs text-emerald-600 hover:text-emerald-700 dark:text-emerald-400 dark:hover:text-emerald-300"
               onClick={() => markRead.mutate(n.id)}
               disabled={markRead.isPending}
             >

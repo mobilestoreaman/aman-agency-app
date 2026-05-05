@@ -35,11 +35,16 @@ export const billsApi = {
     const blob = new Blob([res.data], { type: 'text/html; charset=utf-8' })
     const blobUrl = URL.createObjectURL(blob)
     const win = window.open(blobUrl, '_blank')
-    // Revoke the object URL after a minute — the new tab has already loaded it.
-    setTimeout(() => URL.revokeObjectURL(blobUrl), 60_000)
+
     if (!win) {
-      // Popup was blocked — fall back to same-tab navigation.
-      window.location.href = blobUrl
+      // Popup was blocked — revoke the URL immediately since it won't be used.
+      URL.revokeObjectURL(blobUrl)
+    } else {
+      // Popup opened successfully — revoke after the document has loaded.
+      // Listen for the load event to ensure the document is fully loaded.
+      win.addEventListener('load', () => {
+        URL.revokeObjectURL(blobUrl)
+      }, { once: true })
     }
   },
 

@@ -221,7 +221,7 @@ function MarkPaidModal({
           <Button
             onClick={handleSubmit}
             disabled={markPaid.isPending}
-            className="gap-1.5 bg-green-600 hover:bg-green-700"
+            className="gap-1.5 bg-green-600 hover:bg-green-700 text-white dark:bg-green-700 dark:hover:bg-green-600"
           >
             <CheckCircle2 className="h-3.5 w-3.5" />
             Confirm Payment
@@ -349,7 +349,7 @@ export default function PaymentPromisesPage() {
             <Button
               variant="ghost"
               size="sm"
-              className="h-8 gap-1 text-xs text-green-700 hover:text-green-700 hover:bg-green-50"
+              className="h-8 gap-1 text-xs text-green-700 hover:text-green-700 hover:bg-green-50 dark:text-green-400 dark:hover:text-green-400 dark:hover:bg-green-900/20"
               onClick={() => setMarkingPaid(p)}
               title="Mark as paid"
             >

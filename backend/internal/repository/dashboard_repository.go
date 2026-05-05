@@ -108,9 +108,9 @@ func (r *dashboardRepository) StockSummary(ctx context.Context) (*dto.StockDashb
 			summary.Available += row.Count
 		case "sold":
 			summary.Sold = row.Count
-		case "reserved":
+		case "returned":
 			summary.Reserved = row.Count
-		case "under_repair":
+		case "repair":
 			summary.UnderRepair = row.Count
 		}
 	}

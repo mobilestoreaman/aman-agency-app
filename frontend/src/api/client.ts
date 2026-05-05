@@ -71,8 +71,13 @@ apiClient.interceptors.response.use(
         return apiClient(originalRequest)
       } catch (refreshError) {
         processQueue(refreshError, null)
-        clearAuth()
-        window.location.href = '/login'
+        // Only clear auth on HTTP 401/403 responses. Network errors (no .response)
+        // should not log the user out.
+        if (axios.isAxiosError(refreshError) && refreshError.response &&
+            (refreshError.response.status === 401 || refreshError.response.status === 403)) {
+          clearAuth()
+          window.location.href = '/login'
+        }
         return Promise.reject(refreshError)
       } finally {
         isRefreshing = false

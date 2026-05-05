@@ -25,10 +25,10 @@ interface Props {
 
 function InfoRow({ icon: Icon, label, value }: { icon: React.ElementType; label: string; value: React.ReactNode }) {
   return (
-    <div className="flex items-start gap-3 text-sm">
+    <div className="flex items-start gap-3 text-sm min-w-0">
       <Icon className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground" />
-      <span className="w-28 shrink-0 text-muted-foreground">{label}</span>
-      <span className="font-medium">{value}</span>
+      <span className="w-24 shrink-0 text-muted-foreground">{label}</span>
+      <span className="font-medium min-w-0 break-words">{value}</span>
     </div>
   )
 }
@@ -83,12 +83,12 @@ export default function SaleDetailModal({ open, onClose, saleId }: Props) {
       <Dialog open={open} onOpenChange={(v) => !v && onClose()}>
         <DialogContent className="flex max-h-[92vh] flex-col sm:max-w-xl">
           <DialogHeader className="shrink-0">
-            <div className="flex items-center gap-3">
-              <DialogTitle className="text-base">
+            <div className="flex items-center gap-2 min-w-0">
+              <DialogTitle className="text-base min-w-0 truncate">
                 {isLoading ? <Skeleton className="h-5 w-36" /> : `Invoice #${sale?.invoice_number}`}
               </DialogTitle>
               {!isLoading && sale && (
-                <Badge variant={statusVariant} className="text-xs">
+                <Badge variant={statusVariant} className="text-xs shrink-0">
                   {SALE_STATUS_LABELS[sale.status]}
                 </Badge>
               )}
@@ -97,13 +97,13 @@ export default function SaleDetailModal({ open, onClose, saleId }: Props) {
 
           <ScrollArea className="flex-1">
             {isLoading ? (
-              <div className="space-y-3 p-1">
+              <div className="space-y-3 px-1 py-1 pr-4">
                 {Array.from({ length: 5 }).map((_, i) => (
                   <Skeleton key={i} className="h-5 w-full" />
                 ))}
               </div>
             ) : sale ? (
-              <div className="space-y-5 p-1">
+              <div className="space-y-5 px-1 py-1 pr-4">
                 {/* Meta info */}
                 <div className="space-y-2.5">
                   <InfoRow icon={User}        label="Customer"  value={sale.customer_name} />
@@ -125,13 +125,13 @@ export default function SaleDetailModal({ open, onClose, saleId }: Props) {
                   </p>
                   <div className="rounded-md border divide-y">
                     {(sale.items ?? []).map((item, i) => (
-                      <div key={i} className="flex items-center justify-between gap-3 px-3 py-2.5 text-sm">
-                        <div className="min-w-0">
+                      <div key={i} className="flex items-center justify-between gap-2 px-3 py-2.5 text-sm">
+                        <div className="min-w-0 flex-1">
                           <p className="font-medium truncate">{item.product_name}</p>
-                          <p className="font-mono text-xs text-muted-foreground">{item.imei1}</p>
+                          <p className="font-mono text-xs text-muted-foreground truncate">{item.imei1}</p>
                           {item.color && <p className="text-xs text-muted-foreground">{item.color}{item.storage ? ` · ${item.storage}` : ''}</p>}
                         </div>
-                        <span className="shrink-0 font-mono font-semibold">{formatCurrency(item.sale_price)}</span>
+                        <span className="shrink-0 font-mono font-semibold text-right">{formatCurrency(item.sale_price)}</span>
                       </div>
                     ))}
                   </div>
@@ -141,18 +141,18 @@ export default function SaleDetailModal({ open, onClose, saleId }: Props) {
 
                 {/* Totals */}
                 <div className="space-y-1.5 text-sm">
-                  <div className="flex justify-between font-bold text-base">
-                    <span>Total</span>
-                    <span className="font-mono">{formatCurrency(sale.total_amount)}</span>
+                  <div className="flex items-center justify-between gap-2 font-bold text-base">
+                    <span className="shrink-0">Total</span>
+                    <span className="font-mono text-right">{formatCurrency(sale.total_amount)}</span>
                   </div>
-                  <div className="flex justify-between text-muted-foreground">
-                    <span>Paid</span>
-                    <span className="font-mono text-emerald-600">{formatCurrency(sale.amount_paid)}</span>
+                  <div className="flex items-center justify-between gap-2 text-muted-foreground">
+                    <span className="shrink-0">Paid</span>
+                    <span className="font-mono text-right text-emerald-600 dark:text-emerald-400">{formatCurrency(sale.amount_paid)}</span>
                   </div>
                   {sale.balance > 0 && (
-                    <div className="flex justify-between text-amber-600">
-                      <span>Balance due</span>
-                      <span className="font-mono">{formatCurrency(sale.balance)}</span>
+                    <div className="flex items-center justify-between gap-2 text-amber-600 dark:text-amber-400">
+                      <span className="shrink-0">Balance due</span>
+                      <span className="font-mono text-right">{formatCurrency(sale.balance)}</span>
                     </div>
                   )}
                 </div>

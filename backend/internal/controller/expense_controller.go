@@ -28,6 +28,7 @@ func NewExpenseController(svc service.ExpenseService) *ExpenseController {
 // @Produce      json
 // @Security     BearerAuth
 // @Param        category  query  string  false  "rent | salary | utilities | maintenance | marketing | miscellaneous"
+// @Param        search    query  string  false  "Regex search on description and notes"
 // @Param        from      query  string  false  "Start date DD-MM-YYYY IST (default: 30 days ago)"
 // @Param        to        query  string  false  "End date DD-MM-YYYY IST (default: today)"
 // @Param        page      query  int     false  "Page number (default 1)"

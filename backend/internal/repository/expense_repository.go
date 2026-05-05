@@ -214,7 +214,11 @@ func buildExpenseFilter(category, search string, from, to time.Time) bson.M {
 		filter["category"] = category
 	}
 	if search != "" {
-		filter["description"] = bson.M{"$regex": primitive.Regex{Pattern: regexutil.Escape(search), Options: "i"}}
+		regex := primitive.Regex{Pattern: regexutil.Escape(search), Options: "i"}
+		filter["$or"] = bson.A{
+			bson.M{"description": bson.M{"$regex": regex}},
+			bson.M{"notes": bson.M{"$regex": regex}},
+		}
 	}
 	if !from.IsZero() && !to.IsZero() {
 		filter["date"] = bson.M{"$gte": from, "$lte": to}

@@ -50,6 +50,8 @@ func Setup(app *fiber.App, db *database.Client, cfg *config.Config) {
 	// ── Health check (unauthenticated) ───────────────────────────────
 	healthCtrl := controller.NewHealthController(&cfg.App, db)
 	app.Get("/api/health", healthCtrl.Check)
+	app.Get("/api/health/live", healthCtrl.Live)
+	app.Get("/api/health/ready", healthCtrl.Ready)
 
 	// ── WhatsApp provider setup (before routes that use it) ──────────
 	// Startup is not aborted if provider config is missing; a noop is used instead.
@@ -108,6 +110,21 @@ func Setup(app *fiber.App, db *database.Client, cfg *config.Config) {
 			return c.Status(fiber.StatusTooManyRequests).JSON(fiber.Map{
 				"success": false,
 				"error":   "too many write requests — please slow down",
+			})
+		},
+	})
+
+	// Rate limiter for expensive read-only endpoints (reports, global search).
+	// These run heavy MongoDB aggregation pipelines — limit to 30 req/min per IP
+	// to prevent a single user from monopolising the DB under load.
+	readLimiter := fiberlimiter.New(fiberlimiter.Config{
+		Max:          30,
+		Expiration:   1 * time.Minute,
+		KeyGenerator: func(c *fiber.Ctx) string { return c.IP() },
+		LimitReached: func(c *fiber.Ctx) error {
+			return c.Status(fiber.StatusTooManyRequests).JSON(fiber.Map{
+				"success": false,
+				"error":   "too many requests — please wait before trying again",
 			})
 		},
 	})
@@ -375,6 +392,7 @@ func Setup(app *fiber.App, db *database.Client, cfg *config.Config) {
 	reports := v1.Group("/reports",
 		middleware.Authenticate(jwtManager),
 		middleware.AdminOnly(),
+		readLimiter,
 	)
 	reports.Get("/revenue", reportCtrl.RevenueSummary)
 	reports.Get("/stock-valuation", reportCtrl.StockValuation)
@@ -467,6 +485,7 @@ func Setup(app *fiber.App, db *database.Client, cfg *config.Config) {
 	v1.Get("/search",
 		middleware.Authenticate(jwtManager),
 		middleware.AnyStaff(),
+		readLimiter,
 		searchCtrl.Search,
 	)
 
@@ -523,11 +542,16 @@ func Setup(app *fiber.App, db *database.Client, cfg *config.Config) {
 		ticker := time.NewTicker(1 * time.Hour)
 		defer ticker.Stop()
 		// Run once immediately at startup, then on each tick.
-		promiseSvc.NotifyDueToday(notifyCtx)
+		// Wrap each call with a 30-second timeout to prevent long-running operations.
+		callCtx, callCancel := context.WithTimeout(notifyCtx, 30*time.Second)
+		promiseSvc.NotifyDueToday(callCtx)
+		callCancel()
 		for {
 			select {
 			case <-ticker.C:
-				promiseSvc.NotifyDueToday(notifyCtx)
+				callCtx, callCancel := context.WithTimeout(notifyCtx, 30*time.Second)
+				promiseSvc.NotifyDueToday(callCtx)
+				callCancel()
 			case <-notifyCtx.Done():
 				return
 			}

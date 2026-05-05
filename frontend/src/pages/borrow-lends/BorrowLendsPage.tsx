@@ -166,7 +166,7 @@ export default function BorrowLendsPage() {
             <p>Due: {formatDate(e.expected_return_date)}</p>
           )}
           {e.actual_return_date && (
-            <p className="text-emerald-600">Closed: {formatDate(e.actual_return_date)}</p>
+            <p className="text-emerald-600 dark:text-emerald-400">Closed: {formatDate(e.actual_return_date)}</p>
           )}
         </div>
       ),
@@ -182,7 +182,7 @@ export default function BorrowLendsPage() {
           {e.status !== 'returned' && isAdmin && (
             <Button
               variant="ghost" size="sm"
-              className="h-8 gap-1 px-2 text-xs text-emerald-600 hover:text-emerald-700"
+              className="h-8 gap-1 px-2 text-xs text-emerald-600 hover:text-emerald-700 dark:text-emerald-400 dark:hover:text-emerald-300"
               onClick={() => setResolving(e)}
             >
               <RotateCcw className="h-3 w-3" /> Resolve

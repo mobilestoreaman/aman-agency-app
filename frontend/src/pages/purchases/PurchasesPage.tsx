@@ -27,11 +27,11 @@ import type { Purchase } from '@/types'
 function StatusBadge({ status }: { status: string }) {
   switch (status) {
     case 'received':
-      return <Badge className="bg-emerald-100 text-emerald-700 hover:bg-emerald-100">Received</Badge>
+      return <Badge className="bg-emerald-100 text-emerald-800 hover:bg-emerald-100 dark:bg-emerald-900/50 dark:text-emerald-300 dark:hover:bg-emerald-900/50">Received</Badge>
     case 'pending':
-      return <Badge className="bg-amber-100 text-amber-700 hover:bg-amber-100">Pending</Badge>
+      return <Badge className="bg-amber-100 text-amber-800 hover:bg-amber-100 dark:bg-amber-900/50 dark:text-amber-300 dark:hover:bg-amber-900/50">Pending</Badge>
     case 'cancelled':
-      return <Badge className="bg-red-100 text-red-700 hover:bg-red-100">Cancelled</Badge>
+      return <Badge className="bg-red-100 text-red-800 hover:bg-red-100 dark:bg-red-900/50 dark:text-red-300 dark:hover:bg-red-900/50">Cancelled</Badge>
     default:
       return <Badge variant="outline">{status}</Badge>
   }
@@ -196,7 +196,7 @@ export default function PurchasesPage() {
               <Button
                 variant="outline"
                 size="sm"
-                className="h-8 gap-1.5 text-emerald-700 border-emerald-300 hover:bg-emerald-50"
+                className="h-8 gap-1.5 text-emerald-700 border-emerald-300 hover:bg-emerald-50 dark:text-emerald-400 dark:border-emerald-700 dark:hover:bg-emerald-900/20"
                 onClick={() => setReceiving(p)}
                 title="Mark as received and add devices to inventory"
               >

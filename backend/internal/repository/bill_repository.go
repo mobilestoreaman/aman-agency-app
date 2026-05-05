@@ -103,17 +103,19 @@ func (r *billRepository) List(ctx context.Context, f dto.BillFilter) ([]*models.
 		}
 	}
 	// Date range filter on created_at using the app-wide DD-MM-YYYY IST format.
-	from, _ := dateutil.ParseDDMMYYYY(f.FromDate)
-	to, _ := dateutil.ParseDDMMYYYY(f.ToDate)
-	if !from.IsZero() || !to.IsZero() {
+	from, errFrom := dateutil.ParseDDMMYYYY(f.FromDate)
+	to, errTo := dateutil.ParseDDMMYYYY(f.ToDate)
+	if errFrom == nil || errTo == nil {
 		dateFilter := bson.M{}
-		if !from.IsZero() {
+		if errFrom == nil && !from.IsZero() {
 			dateFilter["$gte"] = from
 		}
-		if !to.IsZero() {
+		if errTo == nil && !to.IsZero() {
 			dateFilter["$lte"] = dateutil.EndOfDay(to)
 		}
-		filter["created_at"] = dateFilter
+		if len(dateFilter) > 0 {
+			filter["created_at"] = dateFilter
+		}
 	}
 
 	page := f.Page

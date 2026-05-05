@@ -13,6 +13,7 @@ import (
 	"aman-agency/backend/pkg/pagination"
 	"aman-agency/backend/pkg/response"
 
+	"github.com/rs/zerolog/log"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
@@ -361,7 +362,12 @@ func (s *purchaseService) Receive(ctx context.Context, id, staffName string, req
 		if err := s.deviceRepo.Create(ctx, d); err != nil {
 			// Rollback devices already created in this loop.
 			for _, cd := range createdDevices {
-				_ = s.deviceRepo.Delete(ctx, cd.deviceID)
+				if delErr := s.deviceRepo.Delete(ctx, cd.deviceID); delErr != nil {
+					log.Error().Err(delErr).
+						Str("device_id", cd.deviceID.Hex()).
+						Int("item_index", cd.index).
+						Msg("CRITICAL: device rollback failed — inventory may have phantom record; manual cleanup required")
+				}
 			}
 			if mongo.IsDuplicateKeyError(err) {
 				return nil, apperror.Conflict(fmt.Sprintf(

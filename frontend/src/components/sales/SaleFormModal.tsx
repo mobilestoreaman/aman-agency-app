@@ -66,7 +66,23 @@ const schema = z.object({
   notes:                z.string().max(500).optional().or(z.literal('')),
   items:                z.array(itemSchema).min(1, 'Add at least one device'),
 }).superRefine((data, ctx) => {
-  if (data.payment_mode === 'emi') {
+  if (data.payment_mode === 'finance') {
+    // For finance mode, both finance_provider and finance_company_name are required
+    if (!data.finance_provider) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: 'Finance provider is required for finance payments',
+        path: ['finance_provider'],
+      })
+    }
+    if (!data.finance_company_name?.trim()) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: 'Company name is required for finance payments',
+        path: ['finance_company_name'],
+      })
+    }
+  } else if (data.payment_mode === 'emi') {
     if (!data.finance_provider) {
       ctx.addIssue({
         code: z.ZodIssueCode.custom,
@@ -559,7 +575,9 @@ export default function SaleFormModal({ open, onClose }: Props) {
         }), 200)
       }
     } catch (err) {
-      toast.error(getApiError(err))
+      // On API error, keep the form open and show error in the UI
+      const errorMsg = getApiError(err)
+      form.setError('root', { message: errorMsg })
     } finally {
       setIsSubmitting(false)
     }
@@ -582,6 +600,15 @@ export default function SaleFormModal({ open, onClose }: Props) {
         <div className="flex-1 overflow-y-auto min-h-0">
           <Form {...form}>
             <form id="sale-form" onSubmit={form.handleSubmit(onSubmit)} className="px-5 py-4 space-y-4">
+
+              {/* Root error (from API failures) */}
+              {form.formState.errors.root && (
+                <div className="rounded-md bg-destructive/10 border border-destructive/30 p-3">
+                  <p className="text-sm text-destructive font-medium">
+                    {form.formState.errors.root.message}
+                  </p>
+                </div>
+              )}
 
               {/* Row 1 — Customer + Date */}
               <div className="grid grid-cols-1 gap-3 sm:grid-cols-[1fr_160px]">

@@ -34,7 +34,7 @@ function CreditBadge({ balance }: { balance: number }) {
     )
   // negative = customer has advance / overpaid
   return (
-    <Badge variant="secondary" className="gap-1 font-mono text-emerald-600">
+    <Badge variant="secondary" className="gap-1 font-mono text-emerald-600 dark:text-emerald-400">
       <CreditCard className="h-3 w-3" />
       +{formatCurrency(Math.abs(balance))}
     </Badge>

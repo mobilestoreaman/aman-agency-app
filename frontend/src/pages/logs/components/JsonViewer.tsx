@@ -10,28 +10,28 @@ interface JsonViewerProps {
 
 function JsonRenderer({ data, depth = 0 }: { data: unknown, depth?: number }): React.ReactNode {
   if (data === null) {
-    return <span className="text-orange-600 font-semibold">null</span>
+    return <span className="text-orange-600 dark:text-orange-400 font-semibold">null</span>
   }
 
   if (data === undefined) {
-    return <span className="text-gray-500 italic">undefined</span>
+    return <span className="text-gray-500 dark:text-gray-400 italic">undefined</span>
   }
 
   if (typeof data === 'boolean') {
-    return <span className="text-orange-600 font-semibold">{String(data)}</span>
+    return <span className="text-orange-600 dark:text-orange-400 font-semibold">{String(data)}</span>
   }
 
   if (typeof data === 'number') {
-    return <span className="text-blue-600 font-semibold">{data}</span>
+    return <span className="text-blue-600 dark:text-blue-400 font-semibold">{data}</span>
   }
 
   if (typeof data === 'string') {
-    return <span className="text-green-600">"{data}"</span>
+    return <span className="text-green-600 dark:text-green-400">"{data}"</span>
   }
 
   if (Array.isArray(data)) {
     if (data.length === 0) {
-      return <span className="text-gray-600">[]</span>
+      return <span className="text-gray-600 dark:text-gray-400">[]</span>
     }
     return (
       <CollapsibleArray items={data} depth={depth} />
@@ -41,7 +41,7 @@ function JsonRenderer({ data, depth = 0 }: { data: unknown, depth?: number }): R
   if (typeof data === 'object') {
     const entries = Object.entries(data as Record<string, unknown>)
     if (entries.length === 0) {
-      return <span className="text-gray-600">{'{}'}</span>
+      return <span className="text-gray-600 dark:text-gray-400">{'{}'}</span>
     }
     return (
       <CollapsibleObject entries={entries} depth={depth} />

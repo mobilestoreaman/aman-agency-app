@@ -87,10 +87,10 @@ function LatencyBar({ ms }: { ms: number }) {
         <div className={`h-full rounded-full ${color} transition-all`} style={{ width: `${pct}%` }} />
       </div>
       <span className={`text-sm font-semibold ${
-        ms < 100 ? 'text-green-600' :
-        ms < 500 ? 'text-yellow-600' :
-        ms < 1000 ? 'text-orange-600' :
-        'text-red-600'
+        ms < 100 ? 'text-green-600 dark:text-green-400' :
+        ms < 500 ? 'text-yellow-600 dark:text-yellow-400' :
+        ms < 1000 ? 'text-orange-600 dark:text-orange-400' :
+        'text-red-600 dark:text-red-400'
       }`}>{ms}ms</span>
     </div>
   )
@@ -153,9 +153,9 @@ export default function LogDetailDrawer({ open, onClose, logId, onViewTrace }: L
               } />
               <InfoRow label="Status Code" value={
                 <span className={`font-semibold ${
-                  log.status_code >= 500 ? 'text-red-600' :
-                  log.status_code >= 400 ? 'text-yellow-600' :
-                  'text-green-600'
+                  log.status_code >= 500 ? 'text-red-600 dark:text-red-400' :
+                  log.status_code >= 400 ? 'text-yellow-600 dark:text-yellow-400' :
+                  'text-green-600 dark:text-green-400'
                 }`}>{log.status_code}</span>
               } />
               <div>

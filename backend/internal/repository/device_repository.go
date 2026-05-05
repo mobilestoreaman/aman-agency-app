@@ -224,7 +224,17 @@ func buildDeviceFilter(f dto.DeviceFilter) bson.M {
 		}
 	}
 	if f.Status != "" {
-		query["status"] = f.Status
+		// "available" and the legacy "in_stock" value are the same lifecycle state.
+		// Use $in so that old seed documents (status="in_stock") are included when
+		// the caller filters for available devices.
+		if f.Status == string(models.DeviceStatusAvailable) {
+			query["status"] = bson.M{"$in": bson.A{
+				string(models.DeviceStatusAvailable),
+				string(models.DeviceStatusInStock),
+			}}
+		} else {
+			query["status"] = f.Status
+		}
 	}
 	if f.Condition != "" {
 		query["condition"] = f.Condition

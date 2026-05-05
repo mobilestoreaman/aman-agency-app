@@ -156,10 +156,10 @@ export default function InventoryHealthPage() {
         {[
           { label: 'Total Available', value: report?.total_available ?? 0, color: '',              fmt: (v: number) => v.toLocaleString() },
           { label: 'Capital Locked',  value: report?.capital_locked ?? 0,  color: '',              fmt: formatCurrency },
-          { label: 'Fresh (<30d)',    value: report?.fresh ?? 0,            color: 'text-green-600', fmt: (v: number) => v.toLocaleString() },
-          { label: 'Aging (31-60d)',  value: report?.aging ?? 0,            color: 'text-yellow-600', fmt: (v: number) => v.toLocaleString() },
-          { label: 'Slow (61-90d)',   value: report?.slow ?? 0,             color: 'text-orange-600', fmt: (v: number) => v.toLocaleString() },
-          { label: 'Dead (>90d)',     value: report?.dead ?? 0,             color: 'text-red-600',   fmt: (v: number) => v.toLocaleString() },
+          { label: 'Fresh (<30d)',    value: report?.fresh ?? 0,            color: 'text-green-600 dark:text-green-400', fmt: (v: number) => v.toLocaleString() },
+          { label: 'Aging (31-60d)',  value: report?.aging ?? 0,            color: 'text-yellow-600 dark:text-yellow-400', fmt: (v: number) => v.toLocaleString() },
+          { label: 'Slow (61-90d)',   value: report?.slow ?? 0,             color: 'text-orange-600 dark:text-orange-400', fmt: (v: number) => v.toLocaleString() },
+          { label: 'Dead (>90d)',     value: report?.dead ?? 0,             color: 'text-red-600 dark:text-red-400',   fmt: (v: number) => v.toLocaleString() },
         ].map((s) => (
           <Card key={s.label}>
             <CardHeader className="pb-2">

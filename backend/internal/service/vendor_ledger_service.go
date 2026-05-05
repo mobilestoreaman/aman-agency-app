@@ -13,6 +13,7 @@ import (
 	"aman-agency/backend/pkg/pagination"
 	"aman-agency/backend/pkg/response"
 
+	"github.com/rs/zerolog/log"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 
@@ -225,14 +226,24 @@ func (s *vendorLedgerService) RecordPayment(
 
 	// Step 2: Update the running balance on the vendor document.
 	if err := s.vendorRepo.IncrementPayable(ctx, oid, delta); err != nil {
-		// Compensating action: remove the ledger entry we just created so
-		// financial records stay consistent.
-		_ = s.ledgerRepo.Delete(ctx, entry.ID)
+		if delErr := s.ledgerRepo.Delete(ctx, entry.ID); delErr != nil {
+			log.Error().Err(delErr).
+				Str("ledger_entry_id", entry.ID.Hex()).
+				Str("vendor_id", oid.Hex()).
+				Msg("CRITICAL: vendor payment ledger rollback failed — phantom entry exists; manual reconciliation required")
+			return nil, fmt.Errorf(
+				"payable update failed (%w) AND ledger rollback failed (%v) — entry %s may be orphaned",
+				err, delErr, entry.ID.Hex(),
+			)
+		}
 		return nil, fmt.Errorf("failed to update payable balance; ledger entry rolled back: %w", err)
 	}
 
 	// Mark vendor as having ledger history (idempotent, non-fatal).
-	_ = s.vendorRepo.MarkHasLedger(ctx, oid)
+	if err := s.vendorRepo.MarkHasLedger(ctx, oid); err != nil {
+		log.Warn().Err(err).Str("vendor_id", oid.Hex()).
+			Msg("failed to set has_ledger=true on vendor — vendor may be excluded from ledger UI filters")
+	}
 
 	return toVendorLedgerResponse(entry), nil
 }
@@ -278,12 +289,24 @@ func (s *vendorLedgerService) RecordAdjustment(
 
 	// Step 2: Update the running balance — roll back ledger entry on failure.
 	if err := s.vendorRepo.IncrementPayable(ctx, oid, req.Amount); err != nil {
-		_ = s.ledgerRepo.Delete(ctx, entry.ID)
+		if delErr := s.ledgerRepo.Delete(ctx, entry.ID); delErr != nil {
+			log.Error().Err(delErr).
+				Str("ledger_entry_id", entry.ID.Hex()).
+				Str("vendor_id", oid.Hex()).
+				Msg("CRITICAL: vendor adjustment ledger rollback failed — phantom entry exists; manual reconciliation required")
+			return nil, fmt.Errorf(
+				"payable update failed (%w) AND ledger rollback failed (%v) — entry %s may be orphaned",
+				err, delErr, entry.ID.Hex(),
+			)
+		}
 		return nil, fmt.Errorf("failed to update payable balance; ledger entry rolled back: %w", err)
 	}
 
 	// Mark vendor as having ledger history (idempotent, non-fatal).
-	_ = s.vendorRepo.MarkHasLedger(ctx, oid)
+	if err := s.vendorRepo.MarkHasLedger(ctx, oid); err != nil {
+		log.Warn().Err(err).Str("vendor_id", oid.Hex()).
+			Msg("failed to set has_ledger=true on vendor — vendor may be excluded from ledger UI filters")
+	}
 
 	return toVendorLedgerResponse(entry), nil
 }
@@ -333,12 +356,24 @@ func (s *vendorLedgerService) RecordOpeningBalance(
 	}
 
 	if err := s.vendorRepo.IncrementPayable(ctx, oid, req.Amount); err != nil {
-		_ = s.ledgerRepo.Delete(ctx, entry.ID)
+		if delErr := s.ledgerRepo.Delete(ctx, entry.ID); delErr != nil {
+			log.Error().Err(delErr).
+				Str("ledger_entry_id", entry.ID.Hex()).
+				Str("vendor_id", oid.Hex()).
+				Msg("CRITICAL: opening balance ledger rollback failed — phantom entry exists; manual reconciliation required")
+			return nil, fmt.Errorf(
+				"payable update failed (%w) AND ledger rollback failed (%v) — entry %s may be orphaned",
+				err, delErr, entry.ID.Hex(),
+			)
+		}
 		return nil, fmt.Errorf("failed to update payable balance; opening balance entry rolled back: %w", err)
 	}
 
 	// Mark vendor as having ledger history (idempotent, non-fatal).
-	_ = s.vendorRepo.MarkHasLedger(ctx, oid)
+	if err := s.vendorRepo.MarkHasLedger(ctx, oid); err != nil {
+		log.Warn().Err(err).Str("vendor_id", oid.Hex()).
+			Msg("failed to set has_ledger=true on vendor — vendor may be excluded from ledger UI filters")
+	}
 
 	return toVendorLedgerResponse(entry), nil
 }
@@ -389,12 +424,24 @@ func (s *vendorLedgerService) RecordPurchase(
 	}
 
 	if err := s.vendorRepo.IncrementPayable(ctx, oid, amount); err != nil {
-		_ = s.ledgerRepo.Delete(ctx, entry.ID)
+		if delErr := s.ledgerRepo.Delete(ctx, entry.ID); delErr != nil {
+			log.Error().Err(delErr).
+				Str("ledger_entry_id", entry.ID.Hex()).
+				Str("vendor_id", oid.Hex()).
+				Msg("CRITICAL: purchase ledger rollback failed — phantom entry exists; manual reconciliation required")
+			return fmt.Errorf(
+				"payable update failed (%w) AND ledger rollback failed (%v) — entry %s may be orphaned",
+				err, delErr, entry.ID.Hex(),
+			)
+		}
 		return fmt.Errorf("failed to update payable balance; ledger entry rolled back: %w", err)
 	}
 
 	// Mark vendor as having ledger history (idempotent, non-fatal).
-	_ = s.vendorRepo.MarkHasLedger(ctx, oid)
+	if err := s.vendorRepo.MarkHasLedger(ctx, oid); err != nil {
+		log.Warn().Err(err).Str("vendor_id", oid.Hex()).
+			Msg("failed to set has_ledger=true on vendor — vendor may be excluded from ledger UI filters")
+	}
 
 	return nil
 }
