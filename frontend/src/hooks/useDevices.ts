@@ -16,10 +16,11 @@ export function useDevices(params?: {
   page?: number; limit?: number
   search?: string; status?: DeviceStatus; product_id?: string
   sort_available_first?: boolean
-}) {
+} | undefined) {
   return useQuery({
     queryKey: deviceKeys.list(params),
     queryFn:  () => devicesApi.list(params).then((r) => r.data),
+    enabled:  params !== undefined,
     staleTime: 30_000, // 30s — device stock changes infrequently within a session
   })
 }

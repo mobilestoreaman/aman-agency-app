@@ -25,7 +25,7 @@ import {
 import { Separator } from '@/components/ui/separator'
 import { BarcodeScannerButton } from '@/components/shared/BarcodeScanner'
 import { CustomerSearchBox } from '@/components/shared/CustomerSearchBox'
-import { useDevices, useDeviceByIMEI } from '@/hooks/useDevices'
+import { useDevices, useDeviceByIMEI, useStockSummary } from '@/hooks/useDevices'
 import { salesApi } from '@/api/sales'
 import { billsApi } from '@/api/bills'
 import { paymentPromisesApi } from '@/api/paymentPromises'
@@ -204,9 +204,10 @@ function ImeiScanBar({ onAdd, addedDeviceIds }: ImeiScanBarProps) {
 }
 
 // ── Product-picker row (secondary: pick by product → choose IMEI) ─────────────
-// Loads all available devices upfront so:
-//  • Only products with stock appear in the list
-//  • The product picker is searchable by brand, model, storage, colour
+// Uses the StockSummary aggregation for the product list — this is a server-side
+// GROUP BY so it always returns accurate per-product counts regardless of how
+// many total devices exist, with no pagination issues.
+// Device IMEIs are fetched on-demand only after the user selects a product.
 function ProductPickerRow({ onAdd }: { onAdd: (d: DeviceItem) => void }) {
   const [productSearch,   setProductSearch]   = useState('')
   const [pickerOpen,      setPickerOpen]      = useState(false)
@@ -214,58 +215,34 @@ function ProductPickerRow({ onAdd }: { onAdd: (d: DeviceItem) => void }) {
   const searchRef = useRef<HTMLInputElement>(null)
   const pickerRef = useRef<HTMLDivElement>(null)
 
-  // Fetch all available devices — limit 500 covers typical inventory sizes.
-  // The backend now accepts up to 500; staleTime keeps this fresh for 60s so
-  // reopening the modal doesn't trigger a redundant network call.
-  const { data: availableData, isLoading: loadingDevices } = useDevices({
-    status: 'available',
-    limit:  500,
-  })
-  const allAvailable = availableData?.data ?? []
+  // StockSummary is a server-side aggregation — no pagination, always correct counts.
+  const { data: stockRows, isLoading: loadingStock } = useStockSummary()
 
-  // Derive unique products that actually have available stock
-  const productMap = useMemo(() => {
-    const map = new Map<string, { id: string; label: string; count: number }>()
-    for (const d of allAvailable) {
-      if (!map.has(d.product_id)) {
-        map.set(d.product_id, {
-          id:    d.product_id,
-          label: `${d.brand_name} — ${d.product_name}`,
-          count: 0,
-        })
-      }
-      map.get(d.product_id)!.count++
-    }
-    return map
-  }, [allAvailable])
+  // Only products with at least 1 available unit, mapped to picker shape
+  const allProducts = useMemo(() => {
+    if (!stockRows) return []
+    return stockRows
+      .filter((r) => r.in_stock > 0)
+      .map((r) => ({
+        id:    r.product_id,
+        label: `${r.brand_name} — ${r.product_name}`,
+        count: r.in_stock,
+      }))
+  }, [stockRows])
 
-  // Filter products by the search query (brand, model, storage, colour all live in the label or device)
+  // Filter product list by search query
   const filteredProducts = useMemo(() => {
     const q = productSearch.toLowerCase().trim()
-    const all = Array.from(productMap.values())
-    if (!q) return all
-    // also match storage/colour that lives on the devices themselves
-    const matchingProductIds = new Set(
-      allAvailable
-        .filter((d) => {
-          const haystack = [
-            d.brand_name, d.product_name,
-            d.storage ?? '', d.color ?? '',
-          ].join(' ').toLowerCase()
-          return haystack.includes(q)
-        })
-        .map((d) => d.product_id),
-    )
-    return all.filter((p) => matchingProductIds.has(p.id))
-  }, [productMap, productSearch, allAvailable])
+    if (!q) return allProducts
+    return allProducts.filter((p) => p.label.toLowerCase().includes(q))
+  }, [allProducts, productSearch])
 
-  // Devices available for the currently selected product
-  const devicesForProduct = useMemo(
-    () => selectedProduct
-      ? allAvailable.filter((d) => d.product_id === selectedProduct.id)
-      : [],
-    [allAvailable, selectedProduct],
+  // Fetch the available devices for the selected product on demand.
+  // Only fires when a product is selected (enabled guard).
+  const { data: productDevicesData, isFetching: loadingIMEIs } = useDevices(
+    selectedProduct ? { status: 'available', product_id: selectedProduct.id, limit: 500 } : undefined,
   )
+  const devicesForProduct = productDevicesData?.data ?? []
 
   // Close picker on outside click
   useEffect(() => {
@@ -281,7 +258,6 @@ function ProductPickerRow({ onAdd }: { onAdd: (d: DeviceItem) => void }) {
 
   const openPicker = () => {
     setPickerOpen(true)
-    // focus the search input after the dropdown renders
     setTimeout(() => searchRef.current?.focus(), 30)
   }
 
@@ -314,7 +290,7 @@ function ProductPickerRow({ onAdd }: { onAdd: (d: DeviceItem) => void }) {
           )}
         >
           <span className="truncate">
-            {loadingDevices ? 'Loading stock…' : (selectedProduct?.label ?? 'Pick product…')}
+            {loadingStock ? 'Loading stock…' : (selectedProduct?.label ?? 'Pick product…')}
           </span>
           <div className="flex shrink-0 items-center gap-1">
             {selectedProduct && (
@@ -340,7 +316,7 @@ function ProductPickerRow({ onAdd }: { onAdd: (d: DeviceItem) => void }) {
               <input
                 ref={searchRef}
                 className="w-full rounded-sm bg-transparent px-2 py-1 text-sm outline-none placeholder:text-muted-foreground"
-                placeholder="Search brand, model, storage, colour…"
+                placeholder="Search brand or model…"
                 value={productSearch}
                 onChange={(e) => setProductSearch(e.target.value)}
               />
@@ -362,7 +338,7 @@ function ProductPickerRow({ onAdd }: { onAdd: (d: DeviceItem) => void }) {
                     className="flex w-full items-center justify-between px-3 py-2 text-sm hover:bg-accent"
                   >
                     <span className="text-left">{p.label}</span>
-                    <span className="ml-3 shrink-0 rounded-full bg-emerald-100 px-1.5 py-0.5 text-[10px] font-medium text-emerald-700">
+                    <span className="ml-3 shrink-0 rounded-full bg-emerald-100 px-1.5 py-0.5 text-[10px] font-medium text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-400">
                       {p.count} avail.
                     </span>
                   </button>
@@ -375,16 +351,20 @@ function ProductPickerRow({ onAdd }: { onAdd: (d: DeviceItem) => void }) {
 
       {/* ── IMEI selector for the chosen product ── */}
       {selectedProduct && (
-        <Select onValueChange={handleSelectDevice}>
+        <Select onValueChange={handleSelectDevice} disabled={loadingIMEIs}>
           <SelectTrigger className="w-full text-sm">
             <SelectValue
               placeholder={
-                devicesForProduct.length === 0 ? 'No stock for this product' : 'Select IMEI…'
+                loadingIMEIs
+                  ? 'Loading devices…'
+                  : devicesForProduct.length === 0
+                    ? 'No stock for this product'
+                    : 'Select IMEI…'
               }
             />
           </SelectTrigger>
           <SelectContent>
-            {devicesForProduct.length === 0 ? (
+            {devicesForProduct.length === 0 && !loadingIMEIs ? (
               <div className="flex items-center gap-2 px-3 py-2 text-sm text-muted-foreground">
                 <PackageX className="h-4 w-4" /> No available devices
               </div>
