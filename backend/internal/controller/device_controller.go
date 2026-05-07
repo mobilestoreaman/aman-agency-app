@@ -31,7 +31,7 @@ func NewDeviceController(svc service.DeviceService) *DeviceController {
 // @Produce      json
 // @Security     BearerAuth
 // @Param        page       query  int     false  "Page (default 1)"
-// @Param        limit      query  int     false  "Per page (default 20, max 100)"
+// @Param        limit      query  int     false  "Per page (default 20, max 500)"
 // @Param        product_id query  string  false  "Filter by product ObjectID"
 // @Param        status     query  string  false  "Filter by status (in_stock|sold|repair|returned|defective)"
 // @Param        condition  query  string  false  "Filter by condition (new|used|refurbished)"

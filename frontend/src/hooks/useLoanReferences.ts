@@ -61,15 +61,16 @@ export function useLoanReference(id: string) {
 }
 
 export interface CreateLoanPayload {
-  customer_id:         string
-  sale_id?:            string
-  provider:            LoanProvider
-  loan_account_number: string
-  loan_amount:         number
-  emi_amount?:         number
-  tenure_months?:      number
-  disbursed_date?:     string
-  notes?:              string
+  customer_id:          string
+  sale_id?:             string
+  provider:             LoanProvider
+  finance_company_name?: string  // required when provider='other'
+  loan_account_number:  string
+  loan_amount:          number
+  emi_amount?:          number
+  tenure_months?:       number
+  disbursed_date?:      string
+  notes?:               string
 }
 
 export function useCreateLoanReference() {

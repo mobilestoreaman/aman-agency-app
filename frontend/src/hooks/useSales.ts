@@ -58,11 +58,14 @@ export interface SaleItemPayload {
 }
 
 export interface CreateSalePayload {
-  customer_id: string
-  items:       SaleItemPayload[]
-  amount_paid: number
-  notes?:      string
-  sold_at?:    string  // ISO 8601
+  customer_id:           string
+  items:                 SaleItemPayload[]
+  amount_paid:           number
+  payment_mode?:         'cash' | 'upi' | 'card' | 'bank_transfer' | 'credit' | 'emi'
+  finance_provider?:     string  // required when payment_mode='emi'
+  finance_company_name?: string  // required when finance_provider='other'
+  notes?:                string
+  sold_at?:              string  // ISO 8601
 }
 
 export function useCreateSale() {

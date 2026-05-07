@@ -160,8 +160,10 @@ func (r *deviceRepository) List(ctx context.Context, f dto.DeviceFilter) ([]*mod
 		page = maxPage
 	}
 	limit := f.Limit
-	if limit < 1 || limit > 100 {
+	if limit < 1 {
 		limit = 20
+	} else if limit > 500 {
+		limit = 500
 	}
 	// When no status filter is active, optionally sort available devices first.
 	// Alphabetical sort on status naturally yields: available → defective → repair → returned → sold.

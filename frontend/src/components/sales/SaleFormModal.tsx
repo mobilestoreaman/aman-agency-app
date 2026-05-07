@@ -214,7 +214,9 @@ function ProductPickerRow({ onAdd }: { onAdd: (d: DeviceItem) => void }) {
   const searchRef = useRef<HTMLInputElement>(null)
   const pickerRef = useRef<HTMLDivElement>(null)
 
-  // Fetch all available devices once — limit 500 covers typical inventory sizes
+  // Fetch all available devices — limit 500 covers typical inventory sizes.
+  // The backend now accepts up to 500; staleTime keeps this fresh for 60s so
+  // reopening the modal doesn't trigger a redundant network call.
   const { data: availableData, isLoading: loadingDevices } = useDevices({
     status: 'available',
     limit:  500,
@@ -436,11 +438,17 @@ export default function SaleFormModal({ open, onClose }: Props) {
   const total   = (watchedItems ?? []).reduce((s, i) => s + (Number(i.sale_price) || 0), 0)
   const balance = Math.max(0, total - (Number(watchedAmountPaid) || 0))
 
-  // Auto-fill amount paid to match the running total whenever items change.
-  // Staff can still override it manually after the fact.
+  // Auto-fill amount paid to match the running total whenever items change,
+  // BUT only when the payment mode is not EMI. For EMI/Finance the default
+  // upfront amount is 0 (the finance company covers the balance) — staff can
+  // still type in a partial cash amount if the customer pays something upfront.
   useEffect(() => {
-    form.setValue('amount_paid', total, { shouldValidate: false })
-  }, [total, form])
+    if (watchedPaymentMode === 'emi') {
+      form.setValue('amount_paid', 0, { shouldValidate: false })
+    } else {
+      form.setValue('amount_paid', total, { shouldValidate: false })
+    }
+  }, [total, watchedPaymentMode, form])
 
   const addedDeviceIds = new Set((watchedItems ?? []).map((i) => i.device_id))
 
@@ -515,8 +523,10 @@ export default function SaleFormModal({ open, onClose }: Props) {
       }
 
       // ── 3. Record payment promise if balance outstanding ───────────────────
+      // EMI sales: the finance company collects from the customer, not the store.
+      // A payment promise against the store would be incorrect for financed amounts.
       const currentBalance = Math.max(0, total - (Number(values.amount_paid) || 0))
-      if (currentBalance > 0 && promiseDate) {
+      if (currentBalance > 0 && promiseDate && values.payment_mode !== 'emi') {
         try {
           await paymentPromisesApi.create({
             customer_id:     values.customer_id,
@@ -731,6 +741,11 @@ export default function SaleFormModal({ open, onClose }: Props) {
                             disabled={isSubmitting}
                           />
                         </FormControl>
+                        {watchedPaymentMode === 'emi' && (
+                          <p className="text-[11px] text-muted-foreground">
+                            Enter the upfront cash/UPI amount collected. The remaining balance will be recorded as the financed loan amount.
+                          </p>
+                        )}
                         <FormMessage />
                       </FormItem>
                     )}
@@ -901,21 +916,43 @@ export default function SaleFormModal({ open, onClose }: Props) {
                     <span>{fields.length} item{fields.length !== 1 ? 's' : ''}</span>
                     <span className="font-mono">{formatCurrency(total)}</span>
                   </div>
-                  <div className="flex justify-between text-emerald-600">
-                    <span>Paid</span>
+                  <div className="flex justify-between text-emerald-600 dark:text-emerald-400">
+                    <span>{watchedPaymentMode === 'emi' ? 'Upfront paid' : 'Paid'}</span>
                     <span className="font-mono">{formatCurrency(Number(watchedAmountPaid) || 0)}</span>
                   </div>
                   <Separator />
-                  <div className={cn(
-                    'flex justify-between font-semibold',
-                    balance > 0 ? 'text-amber-600' : 'text-emerald-700',
-                  )}>
-                    <span>{balance > 0 ? 'Balance' : 'Paid ✓'}</span>
-                    <span className="font-mono">{formatCurrency(balance)}</span>
-                  </div>
+                  {watchedPaymentMode === 'emi' ? (
+                    /* EMI: remaining balance = loan amount sent to finance company */
+                    <div className={cn(
+                      'flex justify-between font-semibold',
+                      balance > 0 ? 'text-blue-600 dark:text-blue-400' : 'text-emerald-700 dark:text-emerald-400',
+                    )}>
+                      <span>{balance > 0 ? 'Loan amount' : 'Fully paid ✓'}</span>
+                      <span className="font-mono">{formatCurrency(balance)}</span>
+                    </div>
+                  ) : (
+                    /* Cash / Credit: remaining balance owed by customer to store */
+                    <div className={cn(
+                      'flex justify-between font-semibold',
+                      balance > 0 ? 'text-amber-600 dark:text-amber-400' : 'text-emerald-700 dark:text-emerald-400',
+                    )}>
+                      <span>{balance > 0 ? 'Balance due' : 'Paid ✓'}</span>
+                      <span className="font-mono">{formatCurrency(balance)}</span>
+                    </div>
+                  )}
 
-                  {/* Promise date — inline below balance, only when outstanding */}
-                  {balance > 0 && (
+                  {/* EMI hint — explains what the loan amount means */}
+                  {watchedPaymentMode === 'emi' && balance > 0 && (
+                    <>
+                      <Separator />
+                      <p className="text-[10px] text-blue-600 dark:text-blue-400 leading-tight">
+                        This amount will be recorded as the loan with the selected finance provider.
+                      </p>
+                    </>
+                  )}
+
+                  {/* Promise date — only for non-EMI sales with an outstanding balance */}
+                  {balance > 0 && watchedPaymentMode !== 'emi' && (
                     <>
                       <Separator />
                       <div className="space-y-1.5">

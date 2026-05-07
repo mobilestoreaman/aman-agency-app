@@ -256,11 +256,13 @@ func (s *saleService) Create(ctx context.Context, staffID, staffName string, req
 		return nil, err
 	}
 
-	// If there is an unpaid balance, record a credit debit on the ledger and
-	// increment the customer's running credit_balance.
-	// Both operations must succeed; on failure we rollback the entire sale so
-	// the financial records stay consistent.
-	if sale.Balance > 0 {
+	// For EMI sales the outstanding balance is financed by a third-party lender —
+	// the finance company pays the store directly (immediately or on processing).
+	// Recording the financed balance as customer credit would incorrectly inflate
+	// the customer's outstanding debt and the dashboard's "Outstanding Credit" KPI.
+	// Only non-EMI sales with a positive balance create a customer credit ledger entry.
+	isEMI := sale.PaymentMode == models.PaymentModeEMI
+	if sale.Balance > 0 && !isEMI {
 		newBalance := customer.CreditBalance + sale.Balance
 		entry := &models.CreditLedger{
 			CustomerID:   customerOID,
@@ -295,9 +297,18 @@ func (s *saleService) Create(ctx context.Context, staffID, staffName string, req
 
 	// If payment mode is EMI, auto-create a LoanReference record so the finance
 	// partner loan is immediately visible in the Loan References module.
+	// LoanAmount = sale.Balance (the financed portion), NOT totalAmount.
+	// When a customer pays part in cash and finances the rest, only the outstanding
+	// balance (totalAmount - amountPaid) is sent to the finance company.
 	// This is non-fatal: a failure here does NOT roll back the sale — the sale
 	// is already committed and the operator can create the loan reference manually.
-	if sale.PaymentMode == models.PaymentModeEMI && strings.TrimSpace(sale.FinanceProvider) != "" {
+	if isEMI && strings.TrimSpace(sale.FinanceProvider) != "" {
+		// Use balance as the financed amount. If staff entered amount_paid = total
+		// (unlikely for EMI but valid), loan amount defaults to total to avoid ₹0.
+		loanAmount := sale.Balance
+		if loanAmount <= 0 {
+			loanAmount = totalAmount
+		}
 		loanRef := &models.LoanReference{
 			CustomerID:         customerOID,
 			CustomerName:       customer.Name,
@@ -308,7 +319,7 @@ func (s *saleService) Create(ctx context.Context, staffID, staffName string, req
 			// LoanAccountNumber defaults to "PENDING" — the finance company issues
 			// the actual number after loan approval. Staff can update it later.
 			LoanAccountNumber: "PENDING",
-			LoanAmount:        totalAmount,
+			LoanAmount:        loanAmount,
 			Status:            models.LoanReferenceStatusActive,
 			CreatedBy:         staffName,
 		}
@@ -397,10 +408,12 @@ func (s *saleService) Cancel(ctx context.Context, id, staffName string, req dto.
 	// The bill void failure is non-fatal since the sale is already cancelled.
 
 	// Waive any outstanding credit balance the customer still owes for this sale.
+	// EMI sales never create a customer credit ledger entry (the finance company
+	// covers the balance), so there is nothing to waive on cancellation for EMI.
 	// We fetch the customer's *current* credit_balance rather than using sale.Balance
 	// because the customer may have made partial payments since the sale was recorded —
 	// using the stale sale.Balance would over-correct and push the balance negative.
-	if sale.Balance > 0 {
+	if sale.Balance > 0 && sale.PaymentMode != models.PaymentModeEMI {
 		customer, cerr := s.customerRepo.FindByID(ctx, sale.CustomerID)
 		if cerr != nil {
 			// Customer fetch failed — the sale is already cancelled and devices are

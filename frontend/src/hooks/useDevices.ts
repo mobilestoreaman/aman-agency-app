@@ -20,6 +20,7 @@ export function useDevices(params?: {
   return useQuery({
     queryKey: deviceKeys.list(params),
     queryFn:  () => devicesApi.list(params).then((r) => r.data),
+    staleTime: 30_000, // 30s — device stock changes infrequently within a session
   })
 }
 
