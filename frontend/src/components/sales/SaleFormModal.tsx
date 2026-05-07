@@ -26,6 +26,7 @@ import { Separator } from '@/components/ui/separator'
 import { BarcodeScannerButton } from '@/components/shared/BarcodeScanner'
 import { CustomerSearchBox } from '@/components/shared/CustomerSearchBox'
 import { useDevices, useDeviceByIMEI, useStockSummary } from '@/hooks/useDevices'
+import type { StockSummaryRow } from '@/types'
 import { salesApi } from '@/api/sales'
 import { billsApi } from '@/api/bills'
 import { paymentPromisesApi } from '@/api/paymentPromises'
@@ -218,12 +219,14 @@ function ProductPickerRow({ onAdd }: { onAdd: (d: DeviceItem) => void }) {
   // StockSummary is a server-side aggregation — no pagination, always correct counts.
   const { data: stockRows, isLoading: loadingStock } = useStockSummary()
 
+  type ProductOption = { id: string; label: string; count: number }
+
   // Only products with at least 1 available unit, mapped to picker shape
-  const allProducts = useMemo(() => {
-    if (!stockRows) return []
-    return stockRows
-      .filter((r) => r.in_stock > 0)
-      .map((r) => ({
+  const allProducts = useMemo((): ProductOption[] => {
+    if (!stockRows?.rows) return []
+    return stockRows.rows
+      .filter((r: StockSummaryRow) => r.in_stock > 0)
+      .map((r: StockSummaryRow): ProductOption => ({
         id:    r.product_id,
         label: `${r.brand_name} — ${r.product_name}`,
         count: r.in_stock,
@@ -231,10 +234,10 @@ function ProductPickerRow({ onAdd }: { onAdd: (d: DeviceItem) => void }) {
   }, [stockRows])
 
   // Filter product list by search query
-  const filteredProducts = useMemo(() => {
+  const filteredProducts = useMemo((): ProductOption[] => {
     const q = productSearch.toLowerCase().trim()
     if (!q) return allProducts
-    return allProducts.filter((p) => p.label.toLowerCase().includes(q))
+    return allProducts.filter((p: ProductOption) => p.label.toLowerCase().includes(q))
   }, [allProducts, productSearch])
 
   // Fetch the available devices for the selected product on demand.
@@ -418,17 +421,39 @@ export default function SaleFormModal({ open, onClose }: Props) {
   const total   = (watchedItems ?? []).reduce((s, i) => s + (Number(i.sale_price) || 0), 0)
   const balance = Math.max(0, total - (Number(watchedAmountPaid) || 0))
 
-  // Auto-fill amount paid to match the running total whenever items change,
-  // BUT only when the payment mode is not EMI. For EMI/Finance the default
-  // upfront amount is 0 (the finance company covers the balance) — staff can
-  // still type in a partial cash amount if the customer pays something upfront.
+  // ── amount_paid auto-fill rules ──────────────────────────────────────────
+  // Two separate effects are intentional:
+  //
+  // Effect A — reacts to TOTAL changes only.
+  //   Only updates amount_paid for full-payment modes (cash / upi / card /
+  //   bank_transfer / undefined). Skips emi and credit so a staff member's
+  //   manually-entered upfront amount (e.g. ₹2 000 on an EMI sale) is never
+  //   clobbered when a second device is added to the cart.
+  //
+  // Effect B — reacts to PAYMENT MODE changes only.
+  //   Sets the sensible default for the newly-selected mode:
+  //     • emi / credit → 0   (finance company or customer owes; nothing collected upfront by default)
+  //     • any full-payment mode → total (staff collects the full amount)
+  //     • undefined (cleared) → total (fall back to full amount)
+
+  // Effect A: keep full-payment amount_paid in sync when total changes
   useEffect(() => {
-    if (watchedPaymentMode === 'emi') {
-      form.setValue('amount_paid', 0, { shouldValidate: false })
-    } else {
+    if (watchedPaymentMode !== 'emi' && watchedPaymentMode !== 'credit') {
       form.setValue('amount_paid', total, { shouldValidate: false })
     }
-  }, [total, watchedPaymentMode, form])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [total])
+
+  // Effect B: reset amount_paid to the mode's sensible default when mode changes
+  useEffect(() => {
+    if (watchedPaymentMode === 'emi' || watchedPaymentMode === 'credit') {
+      form.setValue('amount_paid', 0, { shouldValidate: false })
+    } else {
+      // cash / upi / card / bank_transfer / undefined → sync to total
+      form.setValue('amount_paid', total, { shouldValidate: false })
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [watchedPaymentMode])
 
   const addedDeviceIds = new Set((watchedItems ?? []).map((i) => i.device_id))
 
