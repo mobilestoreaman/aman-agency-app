@@ -35,6 +35,7 @@ const ProductPerformancePage = lazy(() => import('@/pages/finance/ProductPerform
 const CustomerInsightsPage  = lazy(() => import('@/pages/finance/CustomerInsightsPage'))
 const InventoryHealthPage   = lazy(() => import('@/pages/finance/InventoryHealthPage'))
 const CashFlowPage          = lazy(() => import('@/pages/finance/CashFlowPage'))
+const DatabaseExplorerPage  = lazy(() => import('@/pages/admin/DatabaseExplorerPage'))
 
 // ── Route guards ──────────────────────────────────────────────
 function RequireAuth() {
@@ -109,6 +110,8 @@ export const router = createBrowserRouter([
               { path: 'finance/customers',   element: withSuspense(<CustomerInsightsPage />) },
               { path: 'finance/inventory',   element: withSuspense(<InventoryHealthPage />) },
               { path: 'finance/cash-flow',   element: withSuspense(<CashFlowPage />) },
+              // DB Explorer
+              { path: 'admin/db', element: withSuspense(<DatabaseExplorerPage />) },
             ],
           },
         ],

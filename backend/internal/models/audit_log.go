@@ -32,4 +32,6 @@ const (
 	AuditActionCreditAdjust    = "credit.adjust"
 	AuditActionSettingsUpdate  = "settings.update"
 	AuditActionPasswordReset   = "user.password_reset"
+	AuditActionDBDumpGenerate  = "admin_db_dump_generate"
+	AuditActionDBDumpDownload  = "admin_db_dump_download"
 )

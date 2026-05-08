@@ -532,6 +532,46 @@ func Setup(app *fiber.App, db *database.Client, cfg *config.Config) {
 	traceLogs.Get("/trace/:traceID", traceLogCtrl.GetTrace)
 	traceLogs.Get("/:id", traceLogCtrl.GetByID)
 
+	// ── Step 21: DB Explorer (admin-only) ───────────────────────
+	// Provides secure read-only introspection of all MongoDB collections
+	// with sensitive field masking and dump generation.
+	adminDBRepo := repository.NewAdminRepository(db.DB)
+	adminSvc := service.NewAdminService(adminDBRepo)
+	adminCtrl := controller.NewAdminController(adminSvc, auditSvc)
+
+	// Rate-limit: expensive read operations — 20 requests/minute per IP.
+	dbExplorerLimiter := fiberlimiter.New(fiberlimiter.Config{
+		Max:          20,
+		Expiration:   1 * time.Minute,
+		KeyGenerator: func(c *fiber.Ctx) string { return c.IP() },
+		LimitReached: func(c *fiber.Ctx) error {
+			return c.Status(fiber.StatusTooManyRequests).JSON(fiber.Map{
+				"success": false,
+				"error":   "too many DB explorer requests — please slow down",
+			})
+		},
+	})
+
+	// All DB explorer routes require admin role.
+	adminDB := v1.Group("/admin/db",
+		middleware.Authenticate(jwtManager),
+		middleware.AdminOnly(),
+		dbExplorerLimiter,
+	)
+
+	// Collections
+	adminDB.Get("/collections", adminCtrl.ListCollections)
+	adminDB.Get("/collections/:collection/stats", adminCtrl.GetCollectionStats)
+
+	// Documents — static sub-paths BEFORE /:id
+	adminDB.Get("/collections/:collection/documents", adminCtrl.ListDocuments)
+	adminDB.Get("/collections/:collection/documents/:id", adminCtrl.GetDocument)
+
+	// Dumps — static paths BEFORE /:id
+	adminDB.Get("/dump/history", adminCtrl.ListDumpHistory)
+	adminDB.Post("/dump/generate", adminCtrl.GenerateDump)
+	adminDB.Get("/dump/:id/download", adminCtrl.DownloadDump)
+
 	// ── Background: Payment promise due-date notifications ───────────
 	// Runs every hour. On each tick, any promise whose date is today
 	// and has not yet been notified will trigger a credit_due alert.

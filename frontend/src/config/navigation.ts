@@ -23,6 +23,7 @@ import {
   Boxes,
   Landmark,
   HandCoins,
+  Database,
   type LucideIcon,
 } from 'lucide-react'
 
@@ -94,10 +95,11 @@ export const navGroups: NavGroup[] = [
   {
     label: 'Admin',
     items: [
-      { label: 'Log Tracing',    path: '/logs',           icon: Activity,   adminOnly: true },
-      { label: 'Reports',        path: '/reports',        icon: BarChart3,  adminOnly: true },
-      { label: 'Notifications',  path: '/notifications',  icon: Bell },
-      { label: 'Settings',       path: '/settings',       icon: Settings,   adminOnly: true },
+      { label: 'Log Tracing',       path: '/logs',      icon: Activity,  adminOnly: true },
+      { label: 'Reports',           path: '/reports',   icon: BarChart3, adminOnly: true },
+      { label: 'Notifications',     path: '/notifications', icon: Bell },
+      { label: 'Settings',          path: '/settings',  icon: Settings,  adminOnly: true },
+      { label: 'DB Explorer',       path: '/admin/db',  icon: Database,  adminOnly: true },
     ],
   },
 ]
