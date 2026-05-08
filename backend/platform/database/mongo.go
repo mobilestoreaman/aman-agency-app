@@ -179,6 +179,8 @@ func (c *Client) EnsureIndexes(ctx context.Context) error {
 				uniqueIndex("invoice_number"),
 				singleIndex("customer_id"),
 				descIndex("created_at"),
+				// Primary sort index: list endpoint sorts by sold_at DESC.
+				descIndex("sold_at"),
 				// Compound index for the common "customer history" query pattern.
 				mongo.IndexModel{
 					Keys: bson.D{{Key: "customer_id", Value: 1}, {Key: "sold_at", Value: -1}},
@@ -206,6 +208,8 @@ func (c *Client) EnsureIndexes(ctx context.Context) error {
 				singleIndex("customer_id"),
 				singleIndex("status"),
 				singleIndex("provider"),
+				// List endpoint sorts by created_at DESC.
+				descIndex("created_at"),
 			},
 		},
 		{
@@ -214,6 +218,8 @@ func (c *Client) EnsureIndexes(ctx context.Context) error {
 				singleIndex("device_id"),
 				singleIndex("status"),
 				singleIndex("type"),
+				// List endpoint sorts by borrowed_at DESC.
+				descIndex("borrowed_at"),
 			},
 		},
 		{
@@ -222,6 +228,8 @@ func (c *Client) EnsureIndexes(ctx context.Context) error {
 				uniqueIndex("sale_id"),
 				uniqueIndex("invoice_number"),
 				singleIndex("status"),
+				// List endpoint sorts by created_at DESC.
+				descIndex("created_at"),
 			},
 		},
 		{
