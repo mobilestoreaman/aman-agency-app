@@ -39,6 +39,10 @@ export default defineConfig({
         ],
       },
       workbox: {
+        // Remove service-worker cache entries that belong to an older build.
+        // Without this, a SW installed from a previous deploy can serve stale
+        // precached chunks even after the user's browser gets a fresh index.html.
+        cleanupOutdatedCaches: true,
         globPatterns: ['**/*.{js,css,html,ico,png,svg,woff2}'],
         runtimeCaching: [
           {

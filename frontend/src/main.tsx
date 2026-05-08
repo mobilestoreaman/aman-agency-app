@@ -24,6 +24,16 @@ const queryClient = new QueryClient({
 // Register PWA service worker (no-op in dev when devOptions.enabled = false)
 registerServiceWorker()
 
+// After a new deployment, Vite generates new content-hashed chunk filenames.
+// Old browser tabs still reference the previous chunk URLs — when those are
+// lazily imported they get served index.html (SPA rewrite) instead of JS,
+// causing "'text/html' is not a valid JavaScript MIME type".
+// Catch this event and force a full reload to pick up the new bundle.
+window.addEventListener('vite:preloadError', (event) => {
+  event.preventDefault()
+  window.location.reload()
+})
+
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
     <RootLayout>
