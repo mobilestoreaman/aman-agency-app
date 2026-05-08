@@ -139,12 +139,12 @@ function getValueKind(val: unknown): ValueKind {
 }
 
 const kindClass: Record<ValueKind, string> = {
-  id:     'font-mono text-xs text-violet-600 dark:text-violet-400',
-  date:   'text-sky-600 dark:text-sky-400 text-xs',
-  bool:   'text-amber-600 dark:text-amber-400 font-medium',
-  null:   'text-slate-400 italic text-xs',
+  id: 'font-mono text-xs text-violet-600 dark:text-violet-400',
+  date: 'text-sky-600 dark:text-sky-400 text-xs',
+  bool: 'text-amber-600 dark:text-amber-400 font-medium',
+  null: 'text-slate-400 italic text-xs',
   number: 'font-mono text-emerald-700 dark:text-emerald-400',
-  array:  'text-slate-500 text-xs',
+  array: 'text-slate-500 text-xs',
   object: 'text-slate-500 text-xs',
   masked: 'text-slate-400 tracking-widest',
   string: 'text-slate-800 dark:text-slate-200',
@@ -190,7 +190,7 @@ function JSONNode({ value, depth = 0, defaultExpanded = true }: JSONNodeProps) {
   if (typeof value === 'string') {
     const kind = getValueKind(value)
     if (kind === 'masked') return <span className="text-slate-400">••••••••</span>
-    if (kind === 'id')   return <span className="text-violet-600 dark:text-violet-400 font-mono text-xs">"{value}"</span>
+    if (kind === 'id') return <span className="text-violet-600 dark:text-violet-400 font-mono text-xs">"{value}"</span>
     if (kind === 'date') return <span className="text-sky-500">{value}</span>
     return <span className="text-rose-600 dark:text-rose-400">"{value}"</span>
   }
@@ -320,9 +320,30 @@ function DocumentViewer({ collection, docId, onClose }: DocumentViewerProps) {
         {/* Metadata footer */}
         {doc && (
           <div className="px-5 py-3 border-t bg-slate-50 dark:bg-slate-900 text-xs text-slate-500 flex flex-wrap gap-4 shrink-0">
-            {doc['_id'] && <span><strong>_id:</strong> <span className="font-mono">{String(doc['_id'])}</span></span>}
-            {doc['created_at'] && <span><strong>created_at:</strong> {String(doc['created_at'])}</span>}
-            {doc['updated_at'] && <span><strong>updated_at:</strong> {String(doc['updated_at'])}</span>}
+
+            {doc['_id'] != null && (
+              <span>
+                <strong>_id:</strong>{' '}
+                <span className="font-mono">
+                  {String(doc['_id'])}
+                </span>
+              </span>
+            )}
+
+            {doc['created_at'] != null && (
+              <span>
+                <strong>created_at:</strong>{' '}
+                {String(doc['created_at'])}
+              </span>
+            )}
+
+            {doc['updated_at'] != null && (
+              <span>
+                <strong>updated_at:</strong>{' '}
+                {String(doc['updated_at'])}
+              </span>
+            )}
+
             <span className="ml-auto flex items-center gap-1 text-amber-600">
               <Shield className="h-3 w-3" />
               Sensitive fields are masked
@@ -344,7 +365,7 @@ interface DumpModalProps {
 function DumpModal({ collections, onClose }: DumpModalProps) {
   const [tab, setTab] = useState<'generate' | 'history'>('generate')
   const [collection, setCollection] = useState('')
-  const [format, setFormat]         = useState<'json' | 'zip'>('zip')
+  const [format, setFormat] = useState<'json' | 'zip'>('zip')
   const [confirmOpen, setConfirmOpen] = useState(false)
 
   const generateMutation = useGenerateDump()
@@ -559,7 +580,7 @@ function DumpModal({ collections, onClose }: DumpModalProps) {
 /** Small inline download button that uses a token-authenticated fetch + blob approach
  *  because the backend requires a Bearer token on the download endpoint. */
 function DownloadButton({ dumpId, fileName }: { dumpId: string; fileName: string }) {
-  const url   = getDumpDownloadUrl(dumpId)
+  const url = getDumpDownloadUrl(dumpId)
   const token = useAuthStore.getState().accessToken
 
   const handleDownload = useCallback(async () => {
@@ -714,19 +735,19 @@ interface DocumentsTableProps {
 }
 
 function DocumentsTable({ collection }: DocumentsTableProps) {
-  const [page, setPage]       = useState(1)
-  const [limit]               = useState(20)
-  const [search, setSearch]   = useState('')
-  const [sortBy, setSortBy]   = useState('_id')
+  const [page, setPage] = useState(1)
+  const [limit] = useState(20)
+  const [search, setSearch] = useState('')
+  const [sortBy, setSortBy] = useState('_id')
   const [sortDir, setSortDir] = useState<'asc' | 'desc'>('desc')
-  const [field, setField]     = useState('')
-  const [value, setValue]     = useState('')
+  const [field, setField] = useState('')
+  const [value, setValue] = useState('')
   const [dateFrom, setDateFrom] = useState('')
-  const [dateTo, setDateTo]     = useState('')
+  const [dateTo, setDateTo] = useState('')
   const [dateField, setDateField] = useState('created_at')
   const [filtersOpen, setFiltersOpen] = useState(false)
-  const [viewDocId, setViewDocId]     = useState<string | null>(null)
-  const [copiedCell, setCopiedCell]   = useState<string | null>(null)
+  const [viewDocId, setViewDocId] = useState<string | null>(null)
+  const [copiedCell, setCopiedCell] = useState<string | null>(null)
 
   const debouncedSearch = useDebounce(search, 300)
 
@@ -736,14 +757,14 @@ function DocumentsTable({ collection }: DocumentsTableProps) {
   const params = useMemo(() => ({
     page,
     limit,
-    search:     debouncedSearch || undefined,
-    sort_by:    sortBy,
-    sort_dir:   sortDir,
-    field:      field || undefined,
-    value:      value || undefined,
+    search: debouncedSearch || undefined,
+    sort_by: sortBy,
+    sort_dir: sortDir,
+    field: field || undefined,
+    value: value || undefined,
     date_field: dateField || undefined,
-    from:       dateFrom || undefined,
-    to:         dateTo   || undefined,
+    from: dateFrom || undefined,
+    to: dateTo || undefined,
   }), [page, limit, debouncedSearch, sortBy, sortDir, field, value, dateField, dateFrom, dateTo])
 
   const { data, isLoading, isFetching } = useCollectionDocuments(collection, params)
@@ -1076,8 +1097,8 @@ function DocumentsTable({ collection }: DocumentsTableProps) {
 
 export default function DatabaseExplorerPage() {
   const [activeCollection, setActiveCollection] = useState('')
-  const [dumpOpen, setDumpOpen]                  = useState(false)
-  const { data: collections = [] }               = useCollections()
+  const [dumpOpen, setDumpOpen] = useState(false)
+  const { data: collections = [] } = useCollections()
 
   const collectionNames = useMemo(() => collections.map((c) => c.name), [collections])
 
