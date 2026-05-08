@@ -228,7 +228,7 @@ func (c *Client) EnsureIndexes(ctx context.Context) error {
 				uniqueIndex("sale_id"),
 				uniqueIndex("invoice_number"),
 				singleIndex("status"),
-				// List endpoint sorts by created_at DESC.
+				// List endpoint sorts by created_at DESC — the exact insertion timestamp.
 				descIndex("created_at"),
 			},
 		},

@@ -96,7 +96,14 @@ function todayValue() {
 }
 function toISODate(d: string) {
   if (!d) return new Date().toISOString()
-  return new Date(d + 'T00:00:00').toISOString()
+  // Combine the user-picked date with the current time-of-day so that
+  // multiple sales on the same day have distinct sold_at timestamps and
+  // sort in entry order rather than all landing at midnight UTC.
+  const now = new Date()
+  const [year, month, day] = d.split('-').map(Number)
+  return new Date(year, month - 1, day,
+    now.getHours(), now.getMinutes(), now.getSeconds(), now.getMilliseconds()
+  ).toISOString()
 }
 
 // ── IMEI scan + lookup bar ────────────────────────────────────────────────────

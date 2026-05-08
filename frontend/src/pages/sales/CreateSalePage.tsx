@@ -32,7 +32,11 @@ import { useDebounce } from '@/hooks/useDebounce'
 function todayValue() { return format(new Date(), 'yyyy-MM-dd') }
 function toISODate(d: string) {
   if (!d) return new Date().toISOString()
-  return new Date(d + 'T00:00:00').toISOString()
+  const now = new Date()
+  const [year, month, day] = d.split('-').map(Number)
+  return new Date(year, month - 1, day,
+    now.getHours(), now.getMinutes(), now.getSeconds(), now.getMilliseconds()
+  ).toISOString()
 }
 
 // ── Schema ────────────────────────────────────────────────────────────────────
