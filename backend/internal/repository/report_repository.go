@@ -105,13 +105,16 @@ func (r *reportRepository) RevenueSummary(ctx context.Context, from, to time.Tim
 func (r *reportRepository) StockValuation(ctx context.Context) (*dto.StockValuationResponse, error) {
 	col := r.db.Collection("devices")
 
-	// Group by status — accumulate counts and purchase/sale cost per bucket
+	// Group by status — accumulate counts, purchase cost, and selling price per bucket.
+	// NOTE: The selling price of a device is stored as `selling_price` in the devices
+	// collection (not `sale_price` which doesn't exist on device documents).
+	// Both "available" and legacy "in_stock" status values represent current inventory.
 	pipeline := mongo.Pipeline{
 		{{Key: "$group", Value: bson.M{
-			"_id":   "$status",
-			"count": bson.M{"$sum": 1},
+			"_id":           "$status",
+			"count":         bson.M{"$sum": 1},
 			"purchase_cost": bson.M{"$sum": "$purchase_price"},
-			"sale_value":    bson.M{"$sum": "$sale_price"},
+			"sale_value":    bson.M{"$sum": "$selling_price"}, // was "$sale_price" — field doesn't exist on devices
 		}}},
 		{{Key: "$sort", Value: bson.D{{Key: "_id", Value: 1}}}},
 	}
@@ -144,12 +147,14 @@ func (r *reportRepository) StockValuation(ctx context.Context) (*dto.StockValuat
 		resp.TotalPurchaseCost += b.PurchaseCost
 
 		switch b.Status {
-		case "available":
-			resp.AvailableUnits = b.Count
-			resp.TotalPotentialRevenue = b.SaleValue
-			resp.EstimatedProfit = b.SaleValue - b.PurchaseCost
+		case "available", "in_stock":
+			// "in_stock" is the legacy status value; treat it identically to "available".
+			// Use += so both buckets (if they both exist) are accumulated correctly.
+			resp.AvailableUnits += b.Count
+			resp.TotalPotentialRevenue += b.SaleValue
+			resp.EstimatedProfit += b.SaleValue - b.PurchaseCost
 		case "sold":
-			resp.SoldUnits = b.Count
+			resp.SoldUnits += b.Count
 		}
 	}
 

@@ -287,6 +287,8 @@ export interface LoanReference {
   sale_id?: string
   invoice_number?: string
   provider: LoanProvider
+  /** Free-text name used when provider === 'other'. */
+  finance_company_name?: string
   loan_account_number: string
   loan_amount: number
   emi_amount?: number

@@ -10,8 +10,14 @@ import UserMenu from './UserMenu'
 import Breadcrumbs from './Breadcrumbs'
 import ThemeToggle from './ThemeToggle'
 import PageTransition from './PageTransition'
+import { useTokenExpiry } from '@/hooks/useTokenExpiry'
 
 export default function AppShell() {
+  // Proactively log out when the refresh token expires — handles both the
+  // idle case (timer fires at exact expiry) and the background-tab case
+  // (visibility check fires when user returns to the tab).
+  useTokenExpiry()
+
   const [mobileOpen, setMobileOpen] = useState(false)
   const location = useLocation()
 

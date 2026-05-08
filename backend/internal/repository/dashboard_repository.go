@@ -222,7 +222,9 @@ func (r *dashboardRepository) RecentSales(ctx context.Context, limit int) ([]dto
 			"created_at":     1,
 		})
 
-	cur, err := r.db.Collection("sales").Find(ctx, bson.M{}, opts)
+	// Exclude cancelled sales — the dashboard "Recent Sales" feed should only
+	// show completed transactions, not reversals.
+	cur, err := r.db.Collection("sales").Find(ctx, bson.M{"status": bson.M{"$ne": "cancelled"}}, opts)
 	if err != nil {
 		return nil, err
 	}

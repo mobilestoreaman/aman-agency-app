@@ -4,6 +4,10 @@
 
 @layer base {
   :root {
+    /* Tells the browser to render native form controls (date picker icon,
+       scrollbars, number spinners) using light-mode colours. */
+    color-scheme: light;
+
     /* ── Base surfaces ── */
     --background: 210 20% 98%;
     --foreground: 222 39% 11%;
@@ -67,6 +71,10 @@
   }
 
   .dark {
+    /* Switches browser-native controls (date picker icon, scrollbars) to
+       white/light rendering so they're visible on dark surfaces. */
+    color-scheme: dark;
+
     --background: 234 45% 8%;
     --foreground: 220 20% 95%;
 

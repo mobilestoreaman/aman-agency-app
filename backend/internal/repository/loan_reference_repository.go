@@ -20,6 +20,9 @@ import (
 type LoanReferenceRepository interface {
 	Create(ctx context.Context, ref *models.LoanReference) error
 	FindByID(ctx context.Context, id primitive.ObjectID) (*models.LoanReference, error)
+	// FindBySaleID returns the first loan reference linked to the given sale, or
+	// ErrNotFound if none exists. Used during sale cancellation to close the loan.
+	FindBySaleID(ctx context.Context, saleID primitive.ObjectID) (*models.LoanReference, error)
 	List(ctx context.Context, f dto.LoanReferenceFilter) ([]*models.LoanReference, int64, error)
 	Update(ctx context.Context, id primitive.ObjectID, fields bson.M) (*models.LoanReference, error)
 	Delete(ctx context.Context, id primitive.ObjectID) error
@@ -46,6 +49,18 @@ func (r *loanReferenceRepository) Create(ctx context.Context, ref *models.LoanRe
 func (r *loanReferenceRepository) FindByID(ctx context.Context, id primitive.ObjectID) (*models.LoanReference, error) {
 	var ref models.LoanReference
 	err := r.col.FindOne(ctx, bson.M{"_id": id}).Decode(&ref)
+	if err != nil {
+		if errors.Is(err, mongo.ErrNoDocuments) {
+			return nil, ErrNotFound
+		}
+		return nil, err
+	}
+	return &ref, nil
+}
+
+func (r *loanReferenceRepository) FindBySaleID(ctx context.Context, saleID primitive.ObjectID) (*models.LoanReference, error) {
+	var ref models.LoanReference
+	err := r.col.FindOne(ctx, bson.M{"sale_id": saleID}).Decode(&ref)
 	if err != nil {
 		if errors.Is(err, mongo.ErrNoDocuments) {
 			return nil, ErrNotFound

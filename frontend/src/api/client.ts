@@ -50,7 +50,7 @@ apiClient.interceptors.response.use(
       originalRequest._retry = true
       isRefreshing = true
 
-      const { refreshToken, clearAuth, setAccessToken } = useAuthStore.getState()
+      const { refreshToken, clearAuth, setTokens } = useAuthStore.getState()
       if (!refreshToken) {
         processQueue(error, null)
         isRefreshing = false
@@ -63,18 +63,21 @@ apiClient.interceptors.response.use(
         const { data } = await axios.post(`${BASE_URL}/auth/refresh`, {
           refresh_token: refreshToken,
         })
-        const { access_token } = data.data
-        setAccessToken(access_token)
+        const { access_token, refresh_token } = data.data
+        // Persist both tokens — the backend rotates the refresh token on every
+        // successful refresh, so we must save the new one or subsequent refreshes
+        // will send a stale token.
+        setTokens(access_token, refresh_token ?? refreshToken)
         apiClient.defaults.headers.common.Authorization = `Bearer ${access_token}`
         processQueue(null, access_token)
         originalRequest.headers.Authorization = `Bearer ${access_token}`
         return apiClient(originalRequest)
       } catch (refreshError) {
         processQueue(refreshError, null)
-        // Only clear auth on HTTP 401/403 responses. Network errors (no .response)
-        // should not log the user out.
-        if (axios.isAxiosError(refreshError) && refreshError.response &&
-            (refreshError.response.status === 401 || refreshError.response.status === 403)) {
+        // Log the user out for any server-side rejection of the refresh token.
+        // This covers 401 (expired/invalid token) and any other non-network error
+        // that means the session is no longer valid.
+        if (axios.isAxiosError(refreshError) && refreshError.response) {
           clearAuth()
           window.location.href = '/login'
         }

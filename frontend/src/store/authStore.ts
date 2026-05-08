@@ -10,6 +10,9 @@ interface AuthState {
 
   setAuth: (user: User, accessToken: string, refreshToken: string) => void
   setAccessToken: (token: string) => void
+  /** Called after a successful token refresh — persists BOTH the new access and
+   *  refresh tokens (the backend rotates the refresh token on every refresh). */
+  setTokens: (accessToken: string, refreshToken: string) => void
   clearAuth: () => void
 }
 
@@ -32,6 +35,10 @@ export const useAuthStore = create<AuthState>()(
 
       setAccessToken: (token) => {
         set({ accessToken: token })
+      },
+
+      setTokens: (accessToken, refreshToken) => {
+        set({ accessToken, refreshToken })
       },
 
       clearAuth: () => {

@@ -1,6 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { toast } from 'sonner'
 import { purchasesApi, type CreatePurchasePayload, type UpdatePurchasePayload, type ReceivePurchasePayload } from '@/api/purchases'
+import { deviceKeys } from '@/hooks/useDevices'
 import { getApiError } from '@/utils/error'
 
 export const purchaseKeys = {
@@ -71,8 +72,8 @@ export function useReceivePurchase() {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: purchaseKeys.all })
       // Receiving creates Device documents — refresh inventory everywhere.
-      qc.invalidateQueries({ queryKey: ['devices'] })
-      qc.invalidateQueries({ queryKey: ['stock'] })
+      // deviceKeys.all covers both the list and the stock-summary aggregation.
+      qc.invalidateQueries({ queryKey: deviceKeys.all })
       qc.invalidateQueries({ queryKey: ['dashboard'] })
       toast.success('Stock received! Devices are now available in inventory.')
     },

@@ -50,9 +50,10 @@ export default function ProductPerformancePage() {
     const totalUnits   = products.reduce((s, p) => s + p.units_sold,    0)
     const totalRevenue = products.reduce((s, p) => s + p.total_revenue, 0)
     const totalProfit  = products.reduce((s, p) => s + p.gross_profit,  0)
-    const avgMargin    = products.length > 0
-      ? products.reduce((s, p) => s + p.margin_pct, 0) / products.length
-      : 0
+    // Use revenue-weighted margin: total gross profit ÷ total revenue.
+    // An arithmetic mean of per-product margin_pct values is misleading because
+    // a ₹5 product with 80% margin skews the average as much as a ₹1 lakh product.
+    const avgMargin = totalRevenue > 0 ? (totalProfit / totalRevenue) * 100 : 0
     return { units: totalUnits, revenue: totalRevenue, profit: totalProfit, margin: avgMargin }
   }, [products])
 

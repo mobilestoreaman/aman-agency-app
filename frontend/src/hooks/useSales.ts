@@ -97,6 +97,9 @@ export function useCancelSale() {
       // and may affect open payment promises — refresh both.
       qc.invalidateQueries({ queryKey: ['credit-ledger'] })
       qc.invalidateQueries({ queryKey: ['payment-promises'] })
+      // An EMI sale that is cancelled had an auto-created loan reference —
+      // invalidate so the loan reference list reflects the cancellation.
+      qc.invalidateQueries({ queryKey: ['loan-references'] })
       toast.success('Sale cancelled')
     },
     onError: (e) => toast.error(getApiError(e)),

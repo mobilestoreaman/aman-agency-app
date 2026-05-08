@@ -230,6 +230,14 @@ func (s *saleService) Create(ctx context.Context, staffID, staffName string, req
 			fmt.Sprintf("amount paid (%.2f) cannot exceed total amount (%.2f)", amountPaid, totalAmount))
 	}
 
+	// For EMI sales the balance is the loan amount sent to the finance company.
+	// If amount_paid >= total the balance would be ₹0 — a loan with no principal
+	// makes no sense. Reject early so the loan reference is never created with ₹0.
+	if req.PaymentMode == string(models.PaymentModeEMI) && amountPaid >= totalAmount {
+		return nil, apperror.BadRequest(
+			"for Finance/EMI sales, amount paid must be less than the total — the remaining balance is the financed loan amount")
+	}
+
 	sale := &models.Sale{
 		CustomerID:         customerOID,
 		CustomerName:       customer.Name,
@@ -406,6 +414,17 @@ func (s *saleService) Cancel(ctx context.Context, id, staffName string, req dto.
 	}
 	// If no bill exists or bill void fails, continue with sale cancellation.
 	// The bill void failure is non-fatal since the sale is already cancelled.
+
+	// Close any loan reference linked to this sale. EMI sales auto-create a
+	// LoanReference at creation time; cancelling the sale renders the loan void.
+	// Non-fatal: cash/credit sales have no loan reference, so ErrNotFound is ignored.
+	if loanRef, err := s.loanRefRepo.FindBySaleID(ctx, oid); err == nil && loanRef != nil {
+		loanNotes := fmt.Sprintf("Loan closed: linked sale %s was cancelled. %s", sale.InvoiceNumber, req.Notes)
+		_, _ = s.loanRefRepo.Update(ctx, loanRef.ID, bson.M{
+			"status": models.LoanReferenceStatusClosed,
+			"notes":  loanNotes,
+		})
+	}
 
 	// Waive any outstanding credit balance the customer still owes for this sale.
 	// EMI sales never create a customer credit ledger entry (the finance company
