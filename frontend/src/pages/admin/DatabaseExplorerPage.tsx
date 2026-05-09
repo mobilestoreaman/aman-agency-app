@@ -11,7 +11,7 @@
  * the frontend also wraps this page in <RequireAdmin />.
  */
 
-import { useState, useMemo, useCallback } from 'react'
+import { useState, useMemo, useCallback, useRef } from 'react'
 import { useDebounce } from '@/hooks/useDebounce'
 import { useAuthStore } from '@/store/authStore'
 import {
@@ -29,6 +29,7 @@ import {
   RefreshCw,
   Search,
   ChevronRight,
+  ChevronLeft,
   Download,
   Copy,
   Check,
@@ -48,6 +49,9 @@ import {
   ArrowUpDown,
   History,
   Shield,
+  Menu,
+  ArrowLeft,
+  LayoutGrid,
 } from 'lucide-react'
 
 import { Button } from '@/components/ui/button'
@@ -672,8 +676,8 @@ function CollectionsSidebar({ activeCollection, onSelect }: CollectionsSidebarPr
         </div>
       </div>
 
-      {/* List */}
-      <div className="flex-1 overflow-y-auto min-h-0">
+      {/* List — explicit max-h so the list itself scrolls, not the page */}
+      <div className="overflow-y-auto max-h-[calc(100dvh-180px)]">
         {isLoading ? (
           <div className="flex flex-col gap-2 p-3">
             {Array.from({ length: 8 }).map((_, i) => (
@@ -793,6 +797,13 @@ function DocumentsTable({ collection }: DocumentsTableProps) {
     return String(doc['_id'] ?? doc['id'] ?? '')
   }
 
+  // Scroll-shadow: show a subtle shadow under the sticky thead when scrolled
+  const tableScrollRef = useRef<HTMLDivElement>(null)
+  const [theadShadow, setTheadShadow] = useState(false)
+  const handleTableScroll = useCallback(() => {
+    setTheadShadow((tableScrollRef.current?.scrollTop ?? 0) > 2)
+  }, [])
+
   const activeFilters = [
     debouncedSearch && `search: "${debouncedSearch}"`,
     field && value && `${field} = "${value}"`,
@@ -801,31 +812,44 @@ function DocumentsTable({ collection }: DocumentsTableProps) {
   ].filter(Boolean).length
 
   return (
-    <div className="flex flex-col h-full min-h-0 min-w-0 gap-0">
-      {/* Table toolbar */}
-      <div className="flex flex-col gap-2 px-4 py-3 border-b shrink-0">
-        <div className="flex items-center gap-2 flex-wrap">
-          {/* Collection name */}
-          <div className="flex items-center gap-1.5 mr-2">
-            <Database className="h-4 w-4 text-blue-600 shrink-0" />
-            <span className="font-semibold text-sm text-slate-800 dark:text-slate-200">{collection}</span>
-            {meta && (
-              <Badge variant="secondary" className="text-xs">
-                {(meta.total ?? 0).toLocaleString()} docs
-              </Badge>
-            )}
-            {(isLoading || isFetching) && <Loader2 className="h-3.5 w-3.5 animate-spin text-slate-400" />}
-          </div>
+    <div className="flex flex-col w-full h-full min-h-0 min-w-0">
+      {/* ── Toolbar ── */}
+      <div className="flex flex-col gap-2 px-3 sm:px-4 py-2.5 border-b shrink-0">
 
-          {/* Search */}
-          <div className="relative flex-1 min-w-[200px] max-w-xs">
-            <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-slate-400" />
+        {/* Row 1: collection name + loading indicator */}
+        <div className="flex items-center gap-2 min-w-0">
+          <Database className="h-3.5 w-3.5 text-blue-600 shrink-0" />
+          <span className="font-semibold text-sm text-slate-800 dark:text-slate-200 truncate">{collection}</span>
+          {meta && (
+            <Badge variant="secondary" className="text-xs shrink-0">
+              {(meta.total ?? 0).toLocaleString()} docs
+            </Badge>
+          )}
+          {(isLoading || isFetching) && (
+            <Loader2 className="h-3.5 w-3.5 animate-spin text-slate-400 shrink-0 ml-auto" />
+          )}
+        </div>
+
+        {/* Row 2: search + filter toggle + sort */}
+        <div className="flex items-center gap-1.5 flex-wrap">
+          {/* Search — grows to fill available space */}
+          <div className="relative flex-1 min-w-[140px]">
+            <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-slate-400 pointer-events-none" />
             <Input
-              placeholder="Search documents…"
+              placeholder="Search…"
               value={search}
               onChange={(e) => { setSearch(e.target.value); resetPage() }}
               className="pl-8 h-8 text-xs"
             />
+            {search && (
+              <button
+                className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
+                onClick={() => { setSearch(''); resetPage() }}
+                aria-label="Clear search"
+              >
+                <X className="h-3 w-3" />
+              </button>
+            )}
           </div>
 
           {/* Filters toggle */}
@@ -833,253 +857,329 @@ function DocumentsTable({ collection }: DocumentsTableProps) {
             variant={filtersOpen || activeFilters > 0 ? 'default' : 'outline'}
             size="sm"
             onClick={() => setFiltersOpen(!filtersOpen)}
-            className="gap-1.5 h-8 text-xs"
+            className="h-8 gap-1.5 text-xs shrink-0"
+            aria-expanded={filtersOpen}
           >
             <Filter className="h-3 w-3" />
-            Filters
+            <span className="hidden sm:inline">Filters</span>
             {activeFilters > 0 && (
-              <Badge className="h-4 w-4 p-0 text-[10px] flex items-center justify-center rounded-full">
+              <span className="flex h-4 w-4 items-center justify-center rounded-full bg-white/20 text-[10px] font-bold">
                 {activeFilters}
-              </Badge>
+              </span>
             )}
           </Button>
 
-          {/* Sort selector */}
-          <div className="flex items-center gap-1">
+          {/* Sort — field selector + direction toggle */}
+          <div className="flex items-center gap-1 shrink-0">
             <Select value={sortBy} onValueChange={(v) => { setSortBy(v); resetPage() }}>
-              <SelectTrigger className="h-8 text-xs w-auto min-w-[120px]">
-                <ArrowUpDown className="h-3 w-3 mr-1" />
+              <SelectTrigger className="h-8 text-xs w-auto max-w-[130px]">
+                <ArrowUpDown className="h-3 w-3 mr-1 shrink-0" />
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
                 {['_id', 'created_at', 'updated_at', 'sold_at', 'name', 'status'].map((f) => (
                   <SelectItem key={f} value={f} className="text-xs">{f}</SelectItem>
                 ))}
-                {columns.filter(c => !['_id', 'created_at', 'updated_at', 'sold_at', 'name', 'status'].includes(c)).map((f) => (
-                  <SelectItem key={f} value={f} className="text-xs">{f}</SelectItem>
-                ))}
+                {columns
+                  .filter((c) => !['_id', 'created_at', 'updated_at', 'sold_at', 'name', 'status'].includes(c))
+                  .map((f) => (
+                    <SelectItem key={f} value={f} className="text-xs">{f}</SelectItem>
+                  ))}
               </SelectContent>
             </Select>
             <Button
               variant="outline"
               size="icon"
-              className="h-8 w-8"
-              onClick={() => setSortDir(d => d === 'asc' ? 'desc' : 'asc')}
+              className="h-8 w-8 shrink-0"
+              onClick={() => setSortDir((d) => (d === 'asc' ? 'desc' : 'asc'))}
+              title={sortDir === 'asc' ? 'Sort descending' : 'Sort ascending'}
             >
-              {sortDir === 'asc' ? <SortAsc className="h-3.5 w-3.5" /> : <SortDesc className="h-3.5 w-3.5" />}
+              {sortDir === 'asc'
+                ? <SortAsc className="h-3.5 w-3.5" />
+                : <SortDesc className="h-3.5 w-3.5" />}
             </Button>
           </div>
         </div>
 
-        {/* Expanded filters panel */}
+        {/* Expanded filter panel */}
         {filtersOpen && (
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-2 pt-1">
+          <div className="grid grid-cols-1 xs:grid-cols-2 md:grid-cols-4 gap-2 pt-1 border-t border-slate-100 dark:border-slate-800">
             <div className="flex flex-col gap-1">
               <label className="text-[10px] text-slate-500 font-medium uppercase tracking-wide">Field</label>
-              <Input
-                placeholder="e.g. status"
-                value={field}
-                onChange={(e) => { setField(e.target.value); resetPage() }}
-                className="h-8 text-xs"
-              />
+              <Input placeholder="e.g. status" value={field}
+                onChange={(e) => { setField(e.target.value); resetPage() }} className="h-8 text-xs" />
             </div>
             <div className="flex flex-col gap-1">
               <label className="text-[10px] text-slate-500 font-medium uppercase tracking-wide">Value</label>
-              <Input
-                placeholder="e.g. active"
-                value={value}
-                onChange={(e) => { setValue(e.target.value); resetPage() }}
-                className="h-8 text-xs"
-              />
+              <Input placeholder="e.g. active" value={value}
+                onChange={(e) => { setValue(e.target.value); resetPage() }} className="h-8 text-xs" />
             </div>
             <div className="flex flex-col gap-1">
-              <label className="text-[10px] text-slate-500 font-medium uppercase tracking-wide">
-                Date From (ISO)
-              </label>
-              <Input
-                type="datetime-local"
-                value={dateFrom ? dateFrom.slice(0, 16) : ''}
+              <label className="text-[10px] text-slate-500 font-medium uppercase tracking-wide">From (ISO)</label>
+              <Input type="datetime-local" value={dateFrom ? dateFrom.slice(0, 16) : ''}
                 onChange={(e) => { setDateFrom(e.target.value ? new Date(e.target.value).toISOString() : ''); resetPage() }}
-                className="h-8 text-xs"
-              />
+                className="h-8 text-xs" />
             </div>
             <div className="flex flex-col gap-1">
-              <label className="text-[10px] text-slate-500 font-medium uppercase tracking-wide">
-                Date To (ISO)
-              </label>
-              <Input
-                type="datetime-local"
-                value={dateTo ? dateTo.slice(0, 16) : ''}
+              <label className="text-[10px] text-slate-500 font-medium uppercase tracking-wide">To (ISO)</label>
+              <Input type="datetime-local" value={dateTo ? dateTo.slice(0, 16) : ''}
                 onChange={(e) => { setDateTo(e.target.value ? new Date(e.target.value).toISOString() : ''); resetPage() }}
-                className="h-8 text-xs"
-              />
+                className="h-8 text-xs" />
             </div>
           </div>
         )}
       </div>
 
-      {/* Table */}
-      <div className="flex-1 overflow-auto min-h-0 min-w-0">
-        {isLoading ? (
-          <div className="flex flex-col gap-0">
-            <div className="h-10 bg-slate-100 dark:bg-slate-800 border-b" />
-            {Array.from({ length: 10 }).map((_, i) => (
-              <div key={i} className="h-12 border-b animate-pulse">
-                <div className="h-3 bg-slate-100 dark:bg-slate-800 m-3 rounded-md" />
+      {/* ── Table card — matches Log Tracing page visual style ──────────────
+           • rounded-xl border card with overflow-hidden clips rounded corners
+           • Scroll container uses explicit max-h (not flex-1) so it scrolls
+             independently of the page — same technique as Log Tracing page.
+             The page lives inside AppShell's <ScrollArea>, so flex-1/h-full
+             chains don't create bounded heights; only an explicit max-h works.
+           • Sticky thead is relative to the scroll container so headers stay
+             pinned vertically while moving horizontally with the table body.  */}
+      {/* min-w-0 is critical: without it the card expands to fit table content,
+          the scroll container expands with it, and horizontal scroll never fires */}
+      <div className="m-3 min-w-0 flex flex-col rounded-xl border border-border/70 bg-card shadow-sm overflow-hidden">
+
+        {/* w-full ensures the scroll container is exactly as wide as the card,
+            not wider (which would also prevent the horizontal scroll) */}
+        <div
+          ref={tableScrollRef}
+          onScroll={handleTableScroll}
+          className="w-full overflow-auto min-h-[180px] max-h-[calc(100dvh-320px)]"
+        >
+          {isLoading ? (
+            /* ── Skeleton ────────────────────────────────────────────────── */
+            <table className="min-w-full border-collapse text-xs" style={{ minWidth: '700px' }}>
+              <thead className="sticky top-0 z-10 border-b border-border/60">
+                <tr>
+                  {['#', 'Field 1', 'Field 2', 'Field 3', 'Field 4', 'Field 5', ''].map((h, i) => (
+                    <th key={i} className="px-3 py-2.5 text-left font-semibold text-[10px] uppercase tracking-wider text-muted-foreground whitespace-nowrap bg-slate-100 dark:bg-slate-800">
+                      {h}
+                    </th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-border/40">
+                {Array.from({ length: 12 }).map((_, i) => (
+                  <tr key={i} className={cn(i % 2 === 1 && 'bg-muted/15')}>
+                    {Array.from({ length: 7 }).map((__, j) => (
+                      <td key={j} className="px-3 py-2.5">
+                        <div className="h-3 bg-muted rounded animate-pulse" style={{ width: `${50 + (j * 17 + i * 11) % 45}%` }} />
+                      </td>
+                    ))}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          ) : docs.length === 0 ? (
+            /* ── Empty state ─────────────────────────────────────────────── */
+            <div className="flex flex-col items-center justify-center h-48 text-muted-foreground gap-3">
+              <div className="flex h-12 w-12 items-center justify-center rounded-full bg-muted">
+                <Database className="h-6 w-6 opacity-40" />
               </div>
-            ))}
-          </div>
-        ) : docs.length === 0 ? (
-          <div className="flex flex-col items-center justify-center h-48 text-slate-400 gap-3">
-            <Database className="h-8 w-8 opacity-40" />
-            <p className="text-sm">No documents found</p>
-            {(search || field) && (
-              <Button variant="outline" size="sm" onClick={() => { setSearch(''); setField(''); setValue('') }}>
-                Clear filters
-              </Button>
+              <p className="text-sm font-medium">No documents found</p>
+              {(search || field) && (
+                <Button variant="outline" size="sm" onClick={() => { setSearch(''); setField(''); setValue('') }}>
+                  Clear filters
+                </Button>
+              )}
+            </div>
+          ) : (
+            /* ── Data table ──────────────────────────────────────────────── */
+            <table className="min-w-full border-collapse text-xs" style={{ minWidth: `${columns.length * 140 + 80}px` }}>
+              {/* Sticky header — MUST use a fully opaque solid bg.
+                  bg-muted/40 is 40% opacity → body rows show through when scrolled. */}
+              <thead
+                className={cn(
+                  'sticky top-0 z-10 border-b border-border/60 transition-shadow duration-150',
+                  theadShadow
+                    ? 'shadow-[0_2px_8px_0_rgba(0,0,0,0.08)] dark:shadow-[0_2px_8px_0_rgba(0,0,0,0.3)]'
+                    : '',
+                )}
+              >
+                <tr>
+                  {/* Row number */}
+                  <th
+                    scope="col"
+                    className="w-10 px-2 py-2.5 text-left text-[10px] font-semibold uppercase tracking-wider text-muted-foreground whitespace-nowrap bg-slate-100 dark:bg-slate-800 select-none"
+                  >
+                    #
+                  </th>
+
+                  {/* Dynamic document columns */}
+                  {columns.map((col) => (
+                    <th
+                      key={col}
+                      scope="col"
+                      className={cn(
+                        'group px-3 py-2.5 text-left text-[10px] font-semibold uppercase tracking-wider whitespace-nowrap min-w-[130px]',
+                        'cursor-pointer select-none bg-slate-100 dark:bg-slate-800',
+                        'hover:bg-slate-200 dark:hover:bg-slate-700 hover:text-foreground transition-colors',
+                        'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-blue-500',
+                        sortBy === col
+                          ? 'text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/30'
+                          : 'text-slate-500 dark:text-slate-400',
+                      )}
+                      onClick={() => handleSort(col)}
+                      onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); handleSort(col) } }}
+                      tabIndex={0}
+                      aria-sort={sortBy === col ? (sortDir === 'asc' ? 'ascending' : 'descending') : 'none'}
+                    >
+                      <span className="inline-flex items-center gap-1">
+                        {col}
+                        {sortBy === col
+                          ? sortDir === 'asc'
+                            ? <ChevronUp className="h-3 w-3 shrink-0" />
+                            : <ChevronDown className="h-3 w-3 shrink-0" />
+                          : <ChevronsUpDown className="h-3 w-3 shrink-0 opacity-0 group-hover:opacity-40 transition-opacity" />
+                        }
+                      </span>
+                    </th>
+                  ))}
+
+                  {/* Sticky "View" column pinned to the right — solid bg matches header row */}
+                  <th
+                    scope="col"
+                    className="w-14 px-2 py-2.5 text-center text-[10px] font-semibold uppercase tracking-wider text-slate-400 dark:text-slate-500 whitespace-nowrap bg-slate-100 dark:bg-slate-800 sticky right-0 shadow-[-4px_0_8px_-2px_rgba(0,0,0,0.06)] dark:shadow-[-4px_0_8px_-2px_rgba(0,0,0,0.25)]"
+                  >
+                    View
+                  </th>
+                </tr>
+              </thead>
+
+              <tbody className="divide-y divide-border/40">
+                {docs.map((doc, rowIdx) => {
+                  const docId  = getDocId(doc)
+                  const isEven = rowIdx % 2 === 1
+
+                  return (
+                    <tr
+                      key={docId || rowIdx}
+                      className={cn(
+                        'transition-colors group',
+                        isEven
+                          ? 'bg-slate-50 dark:bg-slate-800/40 hover:bg-blue-50/80 dark:hover:bg-blue-900/20'
+                          : 'bg-white dark:bg-slate-950 hover:bg-blue-50/50 dark:hover:bg-blue-900/10',
+                      )}
+                    >
+                      {/* Row number */}
+                      <td className="px-2 py-2 text-muted-foreground/50 text-[10px] tabular-nums whitespace-nowrap">
+                        {(page - 1) * limit + rowIdx + 1}
+                      </td>
+
+                      {/* Data cells */}
+                      {columns.map((col) => {
+                        const val     = doc[col]
+                        const kind    = getValueKind(val)
+                        const display = renderValue(val)
+                        const cellKey = `${docId}-${col}`
+
+                        return (
+                          <td key={col} className="px-3 py-2 align-middle group/cell">
+                            <div className="flex items-center gap-1 min-w-0 max-w-[240px]">
+                              <span
+                                className={cn('truncate text-xs', kindClass[kind])}
+                                title={typeof display === 'string' ? display : undefined}
+                              >
+                                {display}
+                              </span>
+                              {val !== null && val !== undefined && (
+                                <button
+                                  className="opacity-0 group-hover/cell:opacity-100 transition-opacity shrink-0 p-0.5 rounded text-muted-foreground/40 hover:text-muted-foreground"
+                                  onClick={() => handleCopyCell(cellKey, display)}
+                                  title="Copy value"
+                                  aria-label={`Copy ${col} value`}
+                                >
+                                  {copiedCell === cellKey
+                                    ? <Check className="h-2.5 w-2.5 text-green-500" />
+                                    : <Copy className="h-2.5 w-2.5" />
+                                  }
+                                </button>
+                              )}
+                            </div>
+                          </td>
+                        )
+                      })}
+
+                      {/* View button — sticky right, solid bg mirrors row stripe */}
+                      <td
+                        className={cn(
+                          'px-2 py-2 text-center sticky right-0 transition-colors',
+                          'shadow-[-4px_0_8px_-2px_rgba(0,0,0,0.04)] dark:shadow-[-4px_0_8px_-2px_rgba(0,0,0,0.2)]',
+                          isEven
+                            ? 'bg-slate-50 dark:bg-slate-800/40 group-hover:bg-blue-50/80 dark:group-hover:bg-blue-900/20'
+                            : 'bg-white dark:bg-slate-950 group-hover:bg-blue-50/50 dark:group-hover:bg-blue-900/10',
+                        )}
+                      >
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-7 w-7 opacity-0 group-hover:opacity-100 transition-opacity"
+                          onClick={() => setViewDocId(docId)}
+                          disabled={!docId}
+                          aria-label="View document"
+                        >
+                          <Eye className="h-3.5 w-3.5" />
+                        </Button>
+                      </td>
+                    </tr>
+                  )
+                })}
+              </tbody>
+            </table>
+          )}
+        </div>
+
+        {/* ── Footer: record count + pagination (inside card, matches Logs page) */}
+        {meta && (meta.total ?? 0) > 0 && (
+          <div className="flex items-center justify-between border-t border-border/50 bg-muted/20 px-4 py-2 text-xs text-muted-foreground shrink-0">
+            <span>
+              {(meta.total_pages ?? 1) > 1
+                ? `${((meta.page ?? 1) - 1) * (meta.limit ?? 20) + 1}–${Math.min((meta.page ?? 1) * (meta.limit ?? 20), meta.total ?? 0)} of ${(meta.total ?? 0).toLocaleString()} documents`
+                : `${(meta.total ?? 0).toLocaleString()} document${(meta.total ?? 0) !== 1 ? 's' : ''}`}
+            </span>
+            {(meta.total_pages ?? 1) > 1 && (
+              <div className="flex items-center gap-1">
+                <Button variant="outline" size="icon" className="h-7 w-7 border-border/60"
+                  disabled={page <= 1} onClick={() => setPage(1)}>
+                  <ChevronLeft className="h-3 w-3" /><ChevronLeft className="h-3 w-3 -ml-1.5" />
+                </Button>
+                <Button variant="outline" size="icon" className="h-7 w-7 border-border/60"
+                  disabled={page <= 1} onClick={() => setPage(p => p - 1)}>
+                  <ChevronLeft className="h-3.5 w-3.5" />
+                </Button>
+                {/* Page window (up to 5 pages) */}
+                {Array.from({ length: Math.min(5, meta.total_pages ?? 1) }, (_, i) => {
+                  const start = Math.max(1, Math.min(page - 2, (meta.total_pages ?? 1) - 4))
+                  const p = start + i
+                  if (p > (meta.total_pages ?? 1)) return null
+                  return (
+                    <Button
+                      key={p}
+                      variant={p === page ? 'default' : 'outline'}
+                      size="icon"
+                      className="h-7 w-7 text-xs border-border/60"
+                      onClick={() => setPage(p)}
+                    >
+                      {p}
+                    </Button>
+                  )
+                })}
+                <Button variant="outline" size="icon" className="h-7 w-7 border-border/60"
+                  disabled={page >= (meta.total_pages ?? 1)} onClick={() => setPage(p => p + 1)}>
+                  <ChevronRight className="h-3.5 w-3.5" />
+                </Button>
+                <Button variant="outline" size="icon" className="h-7 w-7 border-border/60"
+                  disabled={page >= (meta.total_pages ?? 1)} onClick={() => setPage(meta.total_pages ?? 1)}>
+                  <ChevronRight className="h-3 w-3" /><ChevronRight className="h-3 w-3 -ml-1.5" />
+                </Button>
+              </div>
             )}
           </div>
-        ) : (
-          <table className="min-w-max w-full text-xs border-collapse">
-            <thead className="sticky top-0 z-10">
-              <tr className="bg-slate-100 dark:bg-slate-800 border-b">
-                <th className="w-8 px-2 py-2.5 text-left text-slate-500 font-medium whitespace-nowrap">#</th>
-                {columns.map((col) => (
-                  <th
-                    key={col}
-                    className="px-3 py-2.5 text-left text-slate-600 dark:text-slate-300 font-medium whitespace-nowrap cursor-pointer hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors select-none min-w-[120px]"
-                    onClick={() => handleSort(col)}
-                  >
-                    <div className="flex items-center gap-1">
-                      <span>{col}</span>
-                      {sortBy === col ? (
-                        sortDir === 'asc'
-                          ? <ChevronUp className="h-3 w-3 text-blue-600" />
-                          : <ChevronDown className="h-3 w-3 text-blue-600" />
-                      ) : (
-                        <ChevronsUpDown className="h-3 w-3 text-slate-300" />
-                      )}
-                    </div>
-                  </th>
-                ))}
-                <th className="w-16 px-2 py-2.5 text-center text-slate-500 font-medium whitespace-nowrap sticky right-0 bg-slate-100 dark:bg-slate-800 shadow-[-4px_0_6px_-2px_rgba(0,0,0,0.06)]">View</th>
-              </tr>
-            </thead>
-            <tbody>
-              {docs.map((doc, rowIdx) => {
-                const docId = getDocId(doc)
-                return (
-                  <tr
-                    key={docId || rowIdx}
-                    className="border-b hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors group"
-                  >
-                    <td className="px-2 py-2.5 text-slate-300 text-[10px] whitespace-nowrap">
-                      {(page - 1) * limit + rowIdx + 1}
-                    </td>
-                    {columns.map((col) => {
-                      const val = doc[col]
-                      const kind = getValueKind(val)
-                      const display = renderValue(val)
-                      const cellKey = `${docId}-${col}`
-                      return (
-                        <td
-                          key={col}
-                          className="px-3 py-2.5 group/cell min-w-[120px] max-w-[260px]"
-                        >
-                          <div className="flex items-center gap-1 min-w-0">
-                            <span className={cn('truncate block max-w-[220px]', kindClass[kind])}>
-                              {display}
-                            </span>
-                            {val !== null && val !== undefined && (
-                              <button
-                                className="opacity-0 group-hover/cell:opacity-100 transition-opacity shrink-0 text-slate-300 hover:text-slate-600"
-                                onClick={() => handleCopyCell(cellKey, display)}
-                                title="Copy value"
-                              >
-                                {copiedCell === cellKey
-                                  ? <Check className="h-2.5 w-2.5 text-green-500" />
-                                  : <Copy className="h-2.5 w-2.5" />
-                                }
-                              </button>
-                            )}
-                          </div>
-                        </td>
-                      )
-                    })}
-                    <td className="px-2 py-2.5 text-center sticky right-0 bg-white dark:bg-slate-950 group-hover:bg-slate-50 dark:group-hover:bg-slate-800/50 shadow-[-4px_0_6px_-2px_rgba(0,0,0,0.06)] transition-colors">
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-7 w-7 opacity-0 group-hover:opacity-100 transition-opacity"
-                        onClick={() => setViewDocId(docId)}
-                        disabled={!docId}
-                      >
-                        <Eye className="h-3.5 w-3.5" />
-                      </Button>
-                    </td>
-                  </tr>
-                )
-              })}
-            </tbody>
-          </table>
         )}
       </div>
-
-      {/* Pagination */}
-      {meta && meta.total_pages > 1 && (
-        <div className="flex items-center justify-between px-4 py-2.5 border-t bg-white dark:bg-slate-950 shrink-0">
-          <p className="text-xs text-slate-500">
-            Showing {((meta.page ?? 1) - 1) * (meta.limit ?? 20) + 1}–{Math.min((meta.page ?? 1) * (meta.limit ?? 20), meta.total ?? 0)} of {(meta.total ?? 0).toLocaleString()} documents
-          </p>
-          <div className="flex items-center gap-1">
-            <Button
-              variant="outline"
-              size="sm"
-              className="h-7 text-xs px-2"
-              disabled={page <= 1}
-              onClick={() => setPage(1)}
-            >«</Button>
-            <Button
-              variant="outline"
-              size="sm"
-              className="h-7 text-xs px-2"
-              disabled={page <= 1}
-              onClick={() => setPage(p => p - 1)}
-            >‹</Button>
-            {/* Page window */}
-            {Array.from({ length: Math.min(5, meta.total_pages) }, (_, i) => {
-              const start = Math.max(1, Math.min(page - 2, meta.total_pages - 4))
-              const p = start + i
-              if (p > meta.total_pages) return null
-              return (
-                <Button
-                  key={p}
-                  variant={p === page ? 'default' : 'outline'}
-                  size="sm"
-                  className="h-7 w-7 text-xs p-0"
-                  onClick={() => setPage(p)}
-                >
-                  {p}
-                </Button>
-              )
-            })}
-            <Button
-              variant="outline"
-              size="sm"
-              className="h-7 text-xs px-2"
-              disabled={page >= meta.total_pages}
-              onClick={() => setPage(p => p + 1)}
-            >›</Button>
-            <Button
-              variant="outline"
-              size="sm"
-              className="h-7 text-xs px-2"
-              disabled={page >= meta.total_pages}
-              onClick={() => setPage(meta.total_pages)}
-            >»</Button>
-          </div>
-        </div>
-      )}
 
       {/* Document viewer modal */}
       {viewDocId && (
@@ -1093,86 +1193,357 @@ function DocumentsTable({ collection }: DocumentsTableProps) {
   )
 }
 
+// ── Mobile collection picker ───────────────────────────────────────────────────
+// Shown on < md screens instead of the sidebar. Renders collections as a
+// tappable card grid so users can pick one without a cramped sidebar column.
+
+interface MobileCollectionPickerProps {
+  collections: import('@/api/admin').CollectionInfo[]
+  activeCollection: string
+  onSelect: (name: string) => void
+  onDump: () => void
+}
+
+function MobileCollectionPicker({
+  collections,
+  activeCollection,
+  onSelect,
+  onDump,
+}: MobileCollectionPickerProps) {
+  const [search, setSearch] = useState('')
+  const { isFetching, refetch } = useCollections()
+
+  const filtered = useMemo(() => {
+    const q = search.trim().toLowerCase()
+    return q ? collections.filter((c) => c.name.toLowerCase().includes(q)) : collections
+  }, [collections, search])
+
+  return (
+    <div className="flex flex-col h-full min-h-0">
+      {/* Mobile picker header */}
+      <div className="flex items-center gap-2 px-4 py-2.5 border-b shrink-0">
+        <div className="relative flex-1">
+          <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-slate-400 pointer-events-none" />
+          <Input
+            placeholder="Search collections…"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            className="pl-8 h-8 text-xs"
+          />
+          {search && (
+            <button
+              className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
+              onClick={() => setSearch('')}
+            >
+              <X className="h-3 w-3" />
+            </button>
+          )}
+        </div>
+        <Button variant="ghost" size="icon" className="h-8 w-8 shrink-0"
+          onClick={() => refetch()} disabled={isFetching}>
+          <RefreshCw className={cn('h-3.5 w-3.5', isFetching && 'animate-spin')} />
+        </Button>
+        <Button variant="outline" size="sm" className="h-8 gap-1.5 text-xs shrink-0"
+          onClick={onDump}>
+          <Download className="h-3.5 w-3.5" />
+          <span className="hidden xs:inline">Export</span>
+        </Button>
+      </div>
+
+      {/* Collection cards grid — explicit max-h so only this area scrolls */}
+      <div className="overflow-y-auto max-h-[calc(100dvh-160px)] p-3">
+        {filtered.length === 0 ? (
+          <div className="flex flex-col items-center justify-center h-40 text-slate-400 gap-2">
+            <Database className="h-6 w-6 opacity-40" />
+            <p className="text-sm">{search ? 'No matches' : 'No collections'}</p>
+          </div>
+        ) : (
+          <div className="grid grid-cols-2 gap-2.5">
+            {filtered.map((col) => (
+              <button
+                key={col.name}
+                onClick={() => onSelect(col.name)}
+                className={cn(
+                  'flex flex-col gap-2 rounded-xl border p-3 text-left transition-all',
+                  'hover:border-blue-400 hover:shadow-sm active:scale-[0.98]',
+                  activeCollection === col.name
+                    ? 'border-blue-500 bg-blue-50 dark:bg-blue-950/30 shadow-sm'
+                    : 'border-border bg-card',
+                )}
+              >
+                {/* Status dot + name */}
+                <div className="flex items-start gap-2">
+                  <div className={cn(
+                    'mt-0.5 h-2 w-2 rounded-full shrink-0',
+                    col.count > 0 ? 'bg-emerald-500' : 'bg-slate-300',
+                  )} />
+                  <p className={cn(
+                    'text-xs font-semibold leading-tight break-all',
+                    activeCollection === col.name
+                      ? 'text-blue-700 dark:text-blue-300'
+                      : 'text-slate-800 dark:text-slate-200',
+                  )}>
+                    {col.name}
+                  </p>
+                </div>
+                {/* Stats */}
+                <div className="flex flex-col gap-0.5 pl-4">
+                  <span className="text-[11px] font-medium text-slate-700 dark:text-slate-300">
+                    {col.count.toLocaleString()} docs
+                  </span>
+                  {col.size_bytes > 0 && (
+                    <span className="text-[10px] text-slate-400">{fmtBytes(col.size_bytes)}</span>
+                  )}
+                </div>
+                {/* Tap hint */}
+                {activeCollection === col.name && (
+                  <div className="flex items-center gap-1 pl-4">
+                    <span className="text-[10px] text-blue-600 font-medium">Tap to view →</span>
+                  </div>
+                )}
+              </button>
+            ))}
+          </div>
+        )}
+      </div>
+    </div>
+  )
+}
+
 // ── Page ──────────────────────────────────────────────────────────────────────
+//
+// RESPONSIVE LAYOUT
+// ─────────────────
+//  Mobile  (< md / 768px):
+//    • mobileView = 'collections' → full-screen MobileCollectionPicker grid
+//    • mobileView = 'documents'   → full-screen DocumentsTable with ← back button
+//    • Sidebar hidden; Export Dump accessible from collection picker header
+//
+//  Tablet  (md – lg / 768–1024px):
+//    • Collapsible sidebar (240px) toggleable via ☰ button in header
+//    • Overlay (backdrop) closes sidebar on outside click
+//    • DocumentsTable fills remaining width
+//
+//  Desktop (≥ lg / 1024px):
+//    • Permanent 240px sidebar always visible on the left
+//    • Full two-panel split layout
 
 export default function DatabaseExplorerPage() {
   const [activeCollection, setActiveCollection] = useState('')
-  const [dumpOpen, setDumpOpen] = useState(false)
-  const { data: collections = [] } = useCollections()
+  const [dumpOpen, setDumpOpen]               = useState(false)
+  // Tablet: sidebar overlay open/closed
+  const [tabletSidebarOpen, setTabletSidebarOpen] = useState(false)
+  // Mobile: which "screen" is active
+  const [mobileView, setMobileView] = useState<'collections' | 'documents'>('collections')
 
+  const { data: collections = [] } = useCollections()
   const collectionNames = useMemo(() => collections.map((c) => c.name), [collections])
+
+  const handleSelectCollection = useCallback((name: string) => {
+    setActiveCollection(name)
+    setTabletSidebarOpen(false)   // close tablet overlay
+    setMobileView('documents')    // switch mobile to document view
+  }, [])
+
+  const handleBackToCollections = useCallback(() => {
+    setMobileView('collections')
+  }, [])
+
+  // Desktop empty-state quick-select
+  const EmptyDocPanel = (
+    <div className="flex flex-col items-center justify-center h-full text-slate-400 gap-5 p-6">
+      <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-slate-100 dark:bg-slate-800">
+        <Database className="h-8 w-8 text-blue-500 opacity-80" />
+      </div>
+      <div className="text-center max-w-xs">
+        <p className="text-base font-semibold text-slate-600 dark:text-slate-300">
+          Select a collection
+        </p>
+        <p className="text-sm text-slate-400 mt-1">
+          Choose a collection from the sidebar to browse and inspect documents.
+        </p>
+      </div>
+      {collections.length > 0 && (
+        <div className="flex flex-wrap justify-center gap-2 max-w-sm mt-1">
+          {collections.slice(0, 9).map((c) => (
+            <button
+              key={c.name}
+              onClick={() => handleSelectCollection(c.name)}
+              className="px-3 py-1.5 rounded-full border text-xs font-medium text-slate-600 dark:text-slate-300 hover:border-blue-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
+            >
+              {c.name}
+              <span className="ml-1.5 text-slate-400">{c.count.toLocaleString()}</span>
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  )
 
   return (
     <TooltipProvider>
-      <div className="flex flex-col h-full min-h-0 gap-0 -mx-4 -mt-4">
-        {/* ── Sticky header ── */}
-        <div className="sticky top-0 z-20 bg-white dark:bg-slate-950 border-b px-6 py-3 flex items-center justify-between shrink-0">
-          <PageHeader
-            title="Database Explorer"
-            description="Browse MongoDB collections and documents. All sensitive fields are masked."
-          />
-          <div className="flex items-center gap-2 shrink-0 ml-4">
-            <Badge
-              variant="outline"
-              className="text-xs gap-1 text-amber-700 border-amber-300 bg-amber-50 dark:bg-amber-950/30"
-            >
-              <Shield className="h-3 w-3" />
-              Read-only · Sensitive fields masked
-            </Badge>
-            <Button
-              variant="outline"
-              size="sm"
-              className="gap-1.5"
-              onClick={() => setDumpOpen(true)}
-            >
-              <Download className="h-4 w-4" />
-              Export Dump
-            </Button>
-          </div>
-        </div>
+      <div className="flex flex-col min-h-0 gap-0">
 
-        {/* ── Two-panel layout ── */}
-        <div className="flex flex-1 min-h-0 overflow-hidden">
-          {/* Left: Collections sidebar */}
-          <aside className="w-60 shrink-0 border-r flex flex-col min-h-0 bg-white dark:bg-slate-950">
+        {/* ── Page header ──────────────────────────────────────────────────────
+            Mobile:  back button (in docs view) + title + [Export icon]
+            Tablet:  sidebar toggle + title + badge + [Export]
+            Desktop: title + badge + [Export Dump button]              */}
+        <header className="sticky top-0 z-20 bg-white dark:bg-slate-950 border-b shrink-0">
+          <div className="flex items-center gap-2 px-3 sm:px-4 lg:px-6 py-3">
+
+            {/* Mobile: ← back button when in document view */}
+            <button
+              onClick={handleBackToCollections}
+              className={cn(
+                'md:hidden flex items-center justify-center h-8 w-8 rounded-lg text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors shrink-0',
+                mobileView === 'documents' ? 'flex' : 'hidden',
+              )}
+              aria-label="Back to collections"
+            >
+              <ArrowLeft className="h-4 w-4" />
+            </button>
+
+            {/* Tablet: sidebar toggle button */}
+            <button
+              onClick={() => setTabletSidebarOpen((o) => !o)}
+              className="hidden md:flex lg:hidden items-center justify-center h-8 w-8 rounded-lg text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors shrink-0"
+              aria-label={tabletSidebarOpen ? 'Close sidebar' : 'Open sidebar'}
+              aria-expanded={tabletSidebarOpen}
+            >
+              <Menu className="h-4 w-4" />
+            </button>
+
+            {/* Title block */}
+            <div className="flex-1 min-w-0">
+              {/* Mobile docs view: show collection name as subtitle */}
+              {mobileView === 'documents' && activeCollection ? (
+                <div className="md:hidden">
+                  <p className="text-xs text-slate-400 font-medium">Database Explorer</p>
+                  <p className="text-sm font-semibold text-slate-800 dark:text-slate-100 truncate flex items-center gap-1.5">
+                    <Database className="h-3.5 w-3.5 text-blue-600 shrink-0" />
+                    {activeCollection}
+                  </p>
+                </div>
+              ) : null}
+              <div className={cn(mobileView === 'documents' && activeCollection ? 'hidden md:block' : 'block')}>
+                <PageHeader
+                  title="Database Explorer"
+                  description="Browse MongoDB collections and documents."
+                />
+              </div>
+            </div>
+
+            {/* Right actions */}
+            <div className="flex items-center gap-2 shrink-0">
+              {/* Security badge — hidden on mobile */}
+              <Badge
+                variant="outline"
+                className="hidden sm:flex text-xs gap-1.5 text-amber-700 border-amber-300 bg-amber-50 dark:bg-amber-950/30 dark:text-amber-400 dark:border-amber-700"
+              >
+                <Shield className="h-3 w-3" />
+                <span className="hidden lg:inline">Read-only · </span>Sensitive fields masked
+              </Badge>
+
+              {/* Export Dump button */}
+              <Button
+                variant="outline"
+                size="sm"
+                className="gap-1.5 h-8"
+                onClick={() => setDumpOpen(true)}
+              >
+                <Download className="h-3.5 w-3.5" />
+                <span className="hidden sm:inline">Export Dump</span>
+              </Button>
+            </div>
+          </div>
+
+          {/* Tablet/Mobile: active collection breadcrumb shown below header bar */}
+          {activeCollection && mobileView === 'documents' && (
+            <div className="md:hidden flex items-center gap-1.5 px-4 pb-2 -mt-1">
+              <button
+                onClick={handleBackToCollections}
+                className="flex items-center gap-1 text-[11px] text-slate-400 hover:text-blue-600 transition-colors"
+              >
+                <LayoutGrid className="h-3 w-3" />
+                All collections
+              </button>
+              <ChevronRight className="h-3 w-3 text-slate-300" />
+              <span className="text-[11px] font-medium text-slate-700 dark:text-slate-300 truncate">
+                {activeCollection}
+              </span>
+            </div>
+          )}
+        </header>
+
+        {/* ── Content area ─────────────────────────────────────────────────── */}
+        {/* Explicit min-h so the split panel has a bounded height without relying
+            on flex-1/h-full chains that don't work inside AppShell's ScrollArea */}
+        <div className="flex overflow-hidden relative min-h-[calc(100dvh-220px)]">
+
+          {/* ── Tablet: backdrop overlay for sidebar ──── */}
+          {tabletSidebarOpen && (
+            <div
+              className="hidden md:block lg:hidden absolute inset-0 bg-black/20 dark:bg-black/40 z-10 backdrop-blur-[1px]"
+              onClick={() => setTabletSidebarOpen(false)}
+              aria-hidden="true"
+            />
+          )}
+
+          {/* ── Sidebar: desktop (permanent) + tablet (overlay) ── */}
+
+          {/* Desktop: always visible, fixed width */}
+          <aside className="hidden lg:flex w-60 shrink-0 border-r flex-col min-h-0 bg-white dark:bg-slate-950 z-0">
             <CollectionsSidebar
               activeCollection={activeCollection}
-              onSelect={(name) => setActiveCollection(name)}
+              onSelect={handleSelectCollection}
             />
           </aside>
 
-          {/* Right: Documents panel */}
-          <main className="flex-1 flex flex-col min-h-0 min-w-0 overflow-hidden bg-white dark:bg-slate-950">
+          {/* Tablet: slide-in overlay panel */}
+          <aside
+            className={cn(
+              'hidden md:flex lg:hidden flex-col min-h-0 bg-white dark:bg-slate-950',
+              'absolute left-0 top-0 bottom-0 z-20 w-64 border-r shadow-2xl',
+              'transition-transform duration-200 ease-in-out',
+              tabletSidebarOpen ? 'translate-x-0' : '-translate-x-full',
+            )}
+          >
+            <CollectionsSidebar
+              activeCollection={activeCollection}
+              onSelect={handleSelectCollection}
+            />
+          </aside>
+
+          {/* ── Mobile: full-screen collection picker ─────── */}
+          <div
+            className={cn(
+              'md:hidden flex-1 flex flex-col min-h-0 bg-white dark:bg-slate-950',
+              mobileView === 'collections' ? 'flex' : 'hidden',
+            )}
+          >
+            <MobileCollectionPicker
+              collections={collections}
+              activeCollection={activeCollection}
+              onSelect={handleSelectCollection}
+              onDump={() => setDumpOpen(true)}
+            />
+          </div>
+
+          {/* ── Document panel ──────────────────────────────
+              Mobile  : visible only when mobileView = 'documents'
+              Tablet+ : always visible (sidebar is an overlay above it)  */}
+          <main
+            className={cn(
+              'flex-1 flex flex-col min-h-0 min-w-0 overflow-hidden bg-white dark:bg-slate-950',
+              // mobile
+              'hidden md:flex',
+              mobileView === 'documents' && 'flex',
+            )}
+          >
             {activeCollection ? (
               <DocumentsTable collection={activeCollection} />
             ) : (
-              <div className="flex flex-col items-center justify-center h-full text-slate-400 gap-4">
-                <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-slate-100 dark:bg-slate-800">
-                  <Database className="h-8 w-8 text-blue-500 opacity-80" />
-                </div>
-                <div className="text-center">
-                  <p className="text-base font-medium text-slate-600 dark:text-slate-300">
-                    Select a collection
-                  </p>
-                  <p className="text-sm text-slate-400 mt-1">
-                    Choose a collection from the sidebar to explore documents
-                  </p>
-                </div>
-                {collections.length > 0 && (
-                  <div className="flex flex-wrap justify-center gap-2 max-w-md mt-2">
-                    {collections.slice(0, 8).map((c) => (
-                      <button
-                        key={c.name}
-                        onClick={() => setActiveCollection(c.name)}
-                        className="px-3 py-1.5 rounded-full border text-xs font-medium text-slate-600 hover:border-blue-400 hover:text-blue-600 transition-colors"
-                      >
-                        {c.name}
-                        <span className="ml-1.5 text-slate-400">{c.count.toLocaleString()}</span>
-                      </button>
-                    ))}
-                  </div>
-                )}
-              </div>
+              EmptyDocPanel
             )}
           </main>
         </div>

@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useRef, useCallback } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import {
   Download, Activity, RefreshCw, AlertCircle,
@@ -154,6 +154,13 @@ export default function LogsPage() {
     }
   }
 
+  // Scroll-shadow for sticky log table header
+  const logScrollRef = useRef<HTMLDivElement>(null)
+  const [logHeadShadow, setLogHeadShadow] = useState(false)
+  const handleLogScroll = useCallback(() => {
+    setLogHeadShadow((logScrollRef.current?.scrollTop ?? 0) > 2)
+  }, [])
+
   const handleExport = async (format: 'csv' | 'json') => {
     setExporting(true)
     try {
@@ -196,7 +203,7 @@ export default function LogsPage() {
     const active = sortKey === sk
     return (
       <th
-        className="group cursor-pointer select-none whitespace-nowrap px-3 py-2 text-left text-[11px] font-semibold uppercase tracking-wider text-muted-foreground hover:text-foreground transition-colors"
+        className="group cursor-pointer select-none whitespace-nowrap px-3 py-2 text-left text-[11px] font-semibold uppercase tracking-wider text-muted-foreground hover:text-foreground transition-colors bg-muted/40"
         onClick={() => handleSort(sk)}
       >
         <span className="inline-flex items-center gap-1">
@@ -264,13 +271,25 @@ export default function LogsPage() {
 
       {/* Log table */}
       <div className="rounded-xl border border-border/70 bg-card shadow-sm overflow-hidden">
-        {/* Scrollable container — horizontal + vertical */}
-        <div className="overflow-x-auto overflow-y-auto max-h-[calc(100vh-370px)] min-h-[320px]">
-          <table className="w-full min-w-[900px] border-collapse text-xs">
-            {/* Sticky header */}
-            <thead className="sticky top-0 z-10 bg-muted/80 backdrop-blur-sm border-b border-border/60">
-              <tr>
-                <th className="w-[160px] whitespace-nowrap px-3 py-2 text-left text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+        {/* Single overflow-auto scroll container — handles both horizontal and vertical axes.
+            Sticky thead is positioned relative to this element, so it stays pinned while
+            rows scroll vertically and moves with horizontal scroll to keep aligned. */}
+        <div
+          ref={logScrollRef}
+          onScroll={handleLogScroll}
+          className="overflow-auto max-h-[calc(100vh-370px)] min-h-[320px]"
+        >
+          <table className="min-w-full border-collapse text-xs" style={{ minWidth: '900px' }}>
+            {/* Sticky header — solid bg required for correct rendering; no backdrop-blur */}
+            <thead
+              className={`sticky top-0 z-10 border-b border-border/60 transition-shadow duration-150 ${
+                logHeadShadow
+                  ? 'shadow-[0_2px_8px_0_rgba(0,0,0,0.08)] dark:shadow-[0_2px_8px_0_rgba(0,0,0,0.3)]'
+                  : ''
+              }`}
+            >
+              <tr className="bg-muted/40">
+                <th className="w-[160px] whitespace-nowrap px-3 py-2 text-left text-[11px] font-semibold uppercase tracking-wider text-muted-foreground bg-muted/40">
                   <span className="inline-flex items-center gap-1 cursor-pointer select-none hover:text-foreground" onClick={() => handleSort('time')}>
                     Timestamp
                     <SortIcon active={sortKey === 'time'} dir={sortDir} />
@@ -280,15 +299,15 @@ export default function LogsPage() {
                 <ColHead label="Method"  sk="method" />
                 <ColHead label="Code"    sk="status_code" />
                 <ColHead label="Module"  sk="module" />
-                <th className="whitespace-nowrap px-3 py-2 text-left text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+                <th className="whitespace-nowrap px-3 py-2 text-left text-[11px] font-semibold uppercase tracking-wider text-muted-foreground bg-muted/40">
                   Path / Message
                 </th>
                 <ColHead label="Latency" sk="latency" />
                 <ColHead label="Status"  sk="status" />
-                <th className="whitespace-nowrap px-3 py-2 text-left text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+                <th className="whitespace-nowrap px-3 py-2 text-left text-[11px] font-semibold uppercase tracking-wider text-muted-foreground bg-muted/40">
                   Trace ID
                 </th>
-                <th className="w-[90px]" />
+                <th className="w-[90px] bg-muted/40" />
               </tr>
             </thead>
 

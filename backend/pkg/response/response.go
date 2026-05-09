@@ -14,11 +14,13 @@ import (
 )
 
 // Meta carries pagination and context metadata for list responses.
+// Note: omitempty is intentionally omitted so zero values (e.g. total=0
+// for empty collections) are always serialised in the JSON response.
 type Meta struct {
-	Page       int   `json:"page,omitempty"`
-	Limit      int   `json:"limit,omitempty"`
-	Total      int64 `json:"total,omitempty"`
-	TotalPages int   `json:"total_pages,omitempty"`
+	Page       int   `json:"page"`
+	Limit      int   `json:"limit"`
+	Total      int64 `json:"total"`
+	TotalPages int   `json:"total_pages"`
 }
 
 // envelope is the internal structure used for all responses.

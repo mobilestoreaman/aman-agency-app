@@ -2,6 +2,7 @@ package repository
 
 import (
 	"context"
+	"strconv"
 	"strings"
 	"time"
 
@@ -267,10 +268,20 @@ func (r *adminRepository) buildDocumentFilter(f dto.DocumentFilter) bson.M {
 	query := bson.M{}
 
 	// Field = value filter
+	// Try ObjectID → boolean → integer → float → string regex.
+	// Using $regex on non-string MongoDB fields causes a query error, so we
+	// attempt typed coercions before falling back to case-insensitive regex.
 	if f.Field != "" && f.Value != "" {
-		// Try ObjectID, then boolean, then numeric, then string
 		if oid, err := primitive.ObjectIDFromHex(f.Value); err == nil {
 			query[f.Field] = oid
+		} else if strings.EqualFold(f.Value, "true") {
+			query[f.Field] = true
+		} else if strings.EqualFold(f.Value, "false") {
+			query[f.Field] = false
+		} else if i, err := strconv.ParseInt(f.Value, 10, 64); err == nil {
+			query[f.Field] = i
+		} else if fl, err := strconv.ParseFloat(f.Value, 64); err == nil {
+			query[f.Field] = fl
 		} else {
 			query[f.Field] = bson.M{"$regex": primitive.Regex{Pattern: f.Value, Options: "i"}}
 		}
