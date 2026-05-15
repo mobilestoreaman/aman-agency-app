@@ -34,8 +34,10 @@ export default defineConfig({
             src: 'pwa-512x512.png',
             sizes: '512x512',
             type: 'image/png',
-            purpose: 'any maskable',
+            purpose: 'any',
           },
+          // TODO: create pwa-512x512-maskable.png (content within 80% safe zone)
+          // then add: { src: 'pwa-512x512-maskable.png', sizes: '512x512', type: 'image/png', purpose: 'maskable' }
         ],
       },
       workbox: {
@@ -46,11 +48,28 @@ export default defineConfig({
         globPatterns: ['**/*.{js,css,html,ico,png,svg,woff2}'],
         runtimeCaching: [
           {
-            urlPattern: /^https:\/\/.*\/api\/v1\/.*/i,
+            // Static reference data — safe to cache, low cardinality.
+            urlPattern: /\/api\/v1\/(collections|products|brands|settings|vendors|customers)[^?]*$/i,
             handler: 'NetworkFirst',
             options: {
-              cacheName: 'api-cache',
-              expiration: { maxEntries: 200, maxAgeSeconds: 60 * 60 },
+              cacheName: 'api-reference',
+              expiration: { maxEntries: 50, maxAgeSeconds: 60 * 60 },
+              networkTimeoutSeconds: 10,
+            },
+          },
+          {
+            // High-cardinality paginated endpoints — skip cache to avoid
+            // evicting reference data and to always show fresh data.
+            urlPattern: /\/api\/v1\/(sales|purchases|bills|logs|expenses|payment-promises|admin)/i,
+            handler: 'NetworkOnly',
+          },
+          {
+            // Dashboard + reports aggregations — short TTL.
+            urlPattern: /\/api\/v1\/(dashboard|reports|finance)/i,
+            handler: 'NetworkFirst',
+            options: {
+              cacheName: 'api-analytics',
+              expiration: { maxEntries: 20, maxAgeSeconds: 5 * 60 },
               networkTimeoutSeconds: 10,
             },
           },

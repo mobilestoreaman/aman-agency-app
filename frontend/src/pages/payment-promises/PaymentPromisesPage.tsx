@@ -290,18 +290,20 @@ export default function PaymentPromisesPage() {
     {
       key:    'amount',
       header: 'Amount',
+      shrink: true,
       cell:   (p) => (
-        <span className="font-mono text-sm font-semibold">{formatCurrency(p.amount_promised)}</span>
+        <span className="font-mono text-sm font-semibold whitespace-nowrap">{formatCurrency(p.amount_promised)}</span>
       ),
       sortValue: (p) => p.amount_promised,
     },
     {
       key:    'date',
       header: 'Promised Date',
+      shrink: true,
       cell:   (p) => {
         const { text, urgent } = dateLabel(p.promised_date)
         return (
-          <div className="flex items-center gap-1.5">
+          <div className="flex items-center gap-1.5 whitespace-nowrap">
             {urgent && <AlertTriangle className="h-3.5 w-3.5 text-destructive shrink-0" />}
             <span className={cn('text-sm', urgent ? 'text-destructive font-medium' : 'text-foreground')}>
               {text}
@@ -312,13 +314,14 @@ export default function PaymentPromisesPage() {
       sortValue: (p) => p.promised_date,
     },
     {
-      key:    'invoice',
-      header: 'Sale',
-      cell:   (p) => p.invoice_number && p.sale_id
+      key:      'invoice',
+      header:   'Sale',
+      shrink:   true,
+      cell:     (p) => p.invoice_number && p.sale_id
         ? (
           <Link
             to={`/sales?sale_id=${p.sale_id}`}
-            className="inline-flex items-center gap-1 rounded bg-muted px-1.5 py-0.5 font-mono text-xs hover:underline"
+            className="inline-flex items-center gap-1 rounded bg-muted px-1.5 py-0.5 font-mono text-xs hover:underline whitespace-nowrap"
             title="View sale"
           >
             {p.invoice_number}
@@ -333,6 +336,7 @@ export default function PaymentPromisesPage() {
     {
       key:    'status',
       header: 'Status',
+      shrink: true,
       cell:   (p) => (
         <Badge variant={STATUS_VARIANT[p.status]}>{STATUS_LABELS[p.status]}</Badge>
       ),
@@ -341,6 +345,7 @@ export default function PaymentPromisesPage() {
     {
       key:    'actions',
       header: '',
+      shrink: true,
       cell:   (p) => {
         if (p.status !== 'pending') return null
         return (
@@ -384,7 +389,7 @@ export default function PaymentPromisesPage() {
           </div>
         )
       },
-      className: 'w-auto whitespace-nowrap',
+      className: 'whitespace-nowrap',
     },
   ]
 

@@ -60,11 +60,36 @@ type adminService struct {
 
 // NewAdminService constructs an AdminService.
 func NewAdminService(repo repository.AdminRepository) AdminService {
-	// Ensure dump directory exists.
 	if err := os.MkdirAll(dumpDir, 0700); err != nil {
 		log.Warn().Err(err).Str("dir", dumpDir).Msg("could not create dump directory")
 	}
+	cleanupExpiredDumps()
 	return &adminService{repo: repo}
+}
+
+// cleanupExpiredDumps removes dump files older than dumpTTL left by a
+// previous process (in-memory history is lost on restart, files are not).
+func cleanupExpiredDumps() {
+	entries, err := os.ReadDir(dumpDir)
+	if err != nil {
+		return
+	}
+	cutoff := time.Now().Add(-dumpTTL)
+	for _, e := range entries {
+		if e.IsDir() {
+			continue
+		}
+		info, err := e.Info()
+		if err != nil {
+			continue
+		}
+		if info.ModTime().Before(cutoff) {
+			path := filepath.Join(dumpDir, e.Name())
+			if removeErr := os.Remove(path); removeErr == nil {
+				log.Info().Str("file", e.Name()).Msg("removed expired dump file")
+			}
+		}
+	}
 }
 
 // ── Collections ───────────────────────────────────────────────────────────────

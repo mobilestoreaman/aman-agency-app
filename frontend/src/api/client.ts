@@ -1,5 +1,6 @@
 import axios, { type AxiosError, type InternalAxiosRequestConfig } from 'axios'
 import { useAuthStore } from '@/store/authStore'
+import { router } from '@/router'
 
 const BASE_URL = import.meta.env.VITE_API_BASE_URL ?? '/api/v1'
 
@@ -55,7 +56,7 @@ apiClient.interceptors.response.use(
         processQueue(error, null)
         isRefreshing = false
         clearAuth()
-        window.location.href = '/login'
+        router.navigate('/login', { replace: true })
         return Promise.reject(error)
       }
 
@@ -79,7 +80,7 @@ apiClient.interceptors.response.use(
         // that means the session is no longer valid.
         if (axios.isAxiosError(refreshError) && refreshError.response) {
           clearAuth()
-          window.location.href = '/login'
+          router.navigate('/login', { replace: true })
         }
         return Promise.reject(refreshError)
       } finally {

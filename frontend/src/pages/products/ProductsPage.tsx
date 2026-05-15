@@ -216,7 +216,8 @@ export default function ProductsPage() {
           )}
         </div>
       ),
-      className: 'w-20 whitespace-nowrap',
+      className: 'whitespace-nowrap',
+      shrink: true,
     },
   ]
 

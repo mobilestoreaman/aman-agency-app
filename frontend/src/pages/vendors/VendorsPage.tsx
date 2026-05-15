@@ -138,6 +138,7 @@ export default function VendorsPage() {
           ? <span className="font-mono text-sm font-semibold text-destructive">{formatCurrency(v.payable_balance)}</span>
           : <span className="text-sm text-muted-foreground">Nil</span>
       ),
+      shrink: true,
     },
     {
       key:    'since',
@@ -145,6 +146,7 @@ export default function VendorsPage() {
       sortValue: (v) => v.created_at,
       cell:   (v) => <span className="text-sm text-muted-foreground">{formatDate(v.created_at)}</span>,
       className: 'hidden md:table-cell',
+      shrink: true,
     },
     {
       key:    'actions',
@@ -197,6 +199,7 @@ export default function VendorsPage() {
         </div>
       ),
       className: 'whitespace-nowrap',
+      shrink: true,
     },
   ]
 

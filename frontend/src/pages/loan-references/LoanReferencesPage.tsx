@@ -159,6 +159,7 @@ export default function LoanReferencesPage() {
         )
       },
       sortValue: (r) => r.status,
+      shrink: true,
     },
     {
       key:    'disbursed',
@@ -210,7 +211,8 @@ export default function LoanReferencesPage() {
             </Button>
           </div>
         ) : null,
-      className: 'w-40 whitespace-nowrap',
+      className: 'whitespace-nowrap',
+      shrink: true,
     },
   ]
 

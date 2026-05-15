@@ -212,7 +212,9 @@ func (ctrl *AdminController) DownloadDump(c *fiber.Ctx) error {
 		},
 	)
 
-	c.Set("Content-Disposition", `attachment; filename="`+record.FileName+`"`)
+	// mime.FormatMediaType safely encodes the filename, preventing CRLF injection.
+	cd := mime.FormatMediaType("attachment", map[string]string{"filename": record.FileName})
+	c.Set("Content-Disposition", cd)
 	c.Set("Content-Type", mimeType)
 	c.Set("X-Content-Type-Options", "nosniff")
 

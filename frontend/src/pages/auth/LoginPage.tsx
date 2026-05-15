@@ -31,7 +31,6 @@ type LoginFormValues = z.infer<typeof loginSchema>
 // ── Component ─────────────────────────────────────────────────
 export default function LoginPage() {
   const [showPassword, setShowPassword] = useState(false)
-  const login = useLogin()
 
   const form = useForm<LoginFormValues>({
     resolver: zodResolver(loginSchema),
@@ -39,7 +38,10 @@ export default function LoginPage() {
     mode: 'onBlur',
   })
 
+  const login = useLogin((msg) => form.setError('root', { message: msg }))
+
   const onSubmit = (values: LoginFormValues) => {
+    form.clearErrors('root')
     login.mutate(values)
   }
 
@@ -135,6 +137,13 @@ export default function LoginPage() {
                   </FormItem>
                 )}
               />
+
+              {/* Server-side error (persists until next submission) */}
+              {form.formState.errors.root && (
+                <p role="alert" className="text-sm font-medium text-destructive text-red-400">
+                  {form.formState.errors.root.message}
+                </p>
+              )}
 
               {/* Submit */}
               <Button

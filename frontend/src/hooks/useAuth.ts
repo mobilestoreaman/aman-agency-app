@@ -7,7 +7,9 @@ import { getApiError } from '@/api/client'
 import type { LoginRequest } from '@/types'
 
 // ── Login ─────────────────────────────────────────────────────
-export function useLogin() {
+export function useLogin(
+  setFormError?: (msg: string) => void,
+) {
   const { setAuth } = useAuthStore()
   const navigate = useNavigate()
 
@@ -20,7 +22,9 @@ export function useLogin() {
       navigate('/', { replace: true })
     },
     onError: (error) => {
-      toast.error(getApiError(error))
+      const msg = getApiError(error)
+      setFormError?.(msg)
+      toast.error(msg)
     },
   })
 }

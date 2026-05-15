@@ -119,6 +119,7 @@ export default function CustomersPage() {
       header: 'Outstanding',
       sortValue: (c) => c.credit_balance,
       cell:   (c) => <CreditBadge balance={c.credit_balance} />,
+      shrink: true,
     },
     {
       key:    'since',
@@ -126,6 +127,7 @@ export default function CustomersPage() {
       sortValue: (c) => c.created_at,
       cell:   (c) => <span className="text-sm text-muted-foreground">{formatDate(c.created_at)}</span>,
       className: 'hidden md:table-cell',
+      shrink: true,
     },
     {
       key:    'actions',
@@ -176,7 +178,8 @@ export default function CustomersPage() {
           )}
         </div>
       ),
-      className: 'w-auto whitespace-nowrap',
+      className: 'whitespace-nowrap',
+      shrink: true,
     },
   ]
 

@@ -158,6 +158,7 @@ export default function BrandsPage() {
         <span className="text-sm text-muted-foreground">{formatDate(b.created_at)}</span>
       ),
       className: 'hidden lg:table-cell',
+      shrink: true,
     },
     {
       key: 'actions',
@@ -185,7 +186,8 @@ export default function BrandsPage() {
           )}
         </div>
       ),
-      className: 'w-20 whitespace-nowrap',
+      className: 'whitespace-nowrap',
+      shrink: true,
     },
   ]
 

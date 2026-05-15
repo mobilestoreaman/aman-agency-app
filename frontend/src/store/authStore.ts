@@ -16,10 +16,10 @@ interface AuthState {
   clearAuth: () => void
 }
 
-// Tokens are stored in localStorage via zustand's persist middleware (keyed
-// under 'aman-auth'). This is the standard SPA approach; the trade-off is that
-// localStorage is accessible to JS. Mitigate by keeping dependencies minimal and
-// ensuring the backend returns short-lived access tokens (< 15 min).
+// accessToken is intentionally NOT persisted to localStorage — it lives in
+// memory only so XSS cannot exfiltrate a usable token. refreshToken and user
+// are persisted so the session survives a page reload; the access token is
+// silently recovered via the /auth/refresh flow on the first API call.
 export const useAuthStore = create<AuthState>()(
   persist(
     (set) => ({
@@ -29,7 +29,6 @@ export const useAuthStore = create<AuthState>()(
       isAuthenticated: false,
 
       setAuth: (user, accessToken, refreshToken) => {
-        // zustand persist writes to localStorage automatically on set().
         set({ user, accessToken, refreshToken, isAuthenticated: true })
       },
 
@@ -47,9 +46,10 @@ export const useAuthStore = create<AuthState>()(
     }),
     {
       name: 'aman-auth',
+      // Persist only what is needed to restore the session — never the
+      // short-lived access token (reduces XSS blast radius).
       partialize: (state) => ({
         user: state.user,
-        accessToken: state.accessToken,
         refreshToken: state.refreshToken,
         isAuthenticated: state.isAuthenticated,
       }),

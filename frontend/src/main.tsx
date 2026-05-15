@@ -6,6 +6,7 @@ import { Toaster } from 'sonner'
 import { router } from '@/router'
 import { registerServiceWorker } from '@/pwa/register'
 import RootLayout from '@/components/shared/RootLayout'
+import ErrorBoundary from '@/components/shared/ErrorBoundary'
 import './index.css'
 
 const queryClient = new QueryClient({
@@ -36,16 +37,20 @@ window.addEventListener('vite:preloadError', (event) => {
 
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
-    <RootLayout>
-      <QueryClientProvider client={queryClient}>
-        <RouterProvider router={router} />
-        <Toaster
-          position="top-center"
-          richColors
-          closeButton
-          duration={4000}
-        />
-      </QueryClientProvider>
-    </RootLayout>
+    <ErrorBoundary>
+      <RootLayout>
+        <QueryClientProvider client={queryClient}>
+          <ErrorBoundary>
+            <RouterProvider router={router} />
+          </ErrorBoundary>
+          <Toaster
+            position="top-center"
+            richColors
+            closeButton
+            duration={4000}
+          />
+        </QueryClientProvider>
+      </RootLayout>
+    </ErrorBoundary>
   </React.StrictMode>,
 )

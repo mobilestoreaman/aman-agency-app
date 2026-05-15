@@ -78,6 +78,7 @@ export default function CustomerDetailPage() {
         </div>
       ),
       sortValue: (s) => s.total_amount,
+      shrink: true,
     },
     {
       key:    'status',
@@ -88,12 +89,14 @@ export default function CustomerDetailPage() {
         </Badge>
       ),
       sortValue: (s) => s.status,
+      shrink: true,
     },
     {
       key:    'date',
       header: 'Date',
       cell:   (s) => <span className="text-sm text-muted-foreground">{formatDate(s.sold_at)}</span>,
       sortValue: (s) => s.sold_at,
+      shrink: true,
     },
     {
       key:    'actions',
@@ -105,7 +108,8 @@ export default function CustomerDetailPage() {
           </Link>
         </Button>
       ),
-      className: 'w-12 whitespace-nowrap',
+      className: 'whitespace-nowrap',
+      shrink: true,
     },
   ]
 
@@ -125,6 +129,7 @@ export default function CustomerDetailPage() {
         </div>
       ),
       sortValue: (e) => e.type,
+      shrink: true,
     },
     {
       key:    'amount',
@@ -137,6 +142,7 @@ export default function CustomerDetailPage() {
         </span>
       ),
       sortValue: (e) => e.amount,
+      shrink: true,
     },
     {
       key:    'balance',
@@ -148,6 +154,7 @@ export default function CustomerDetailPage() {
         </span>
       ),
       sortValue: (e) => e.balance_after,
+      shrink: true,
     },
     {
       key:    'notes',
@@ -166,6 +173,7 @@ export default function CustomerDetailPage() {
         </span>
       ),
       sortValue: (e) => e.created_at,
+      shrink: true,
     },
   ]
 

@@ -203,7 +203,7 @@ export default function LogsPage() {
     const active = sortKey === sk
     return (
       <th
-        className="group cursor-pointer select-none whitespace-nowrap px-3 py-2 text-left text-[11px] font-semibold uppercase tracking-wider text-muted-foreground hover:text-foreground transition-colors bg-muted/40"
+        className="group cursor-pointer select-none whitespace-nowrap px-3 py-2 text-left text-[11px] font-semibold uppercase tracking-wider text-muted-foreground hover:text-foreground transition-colors bg-muted"
         onClick={() => handleSort(sk)}
       >
         <span className="inline-flex items-center gap-1">
@@ -288,8 +288,8 @@ export default function LogsPage() {
                   : ''
               }`}
             >
-              <tr className="bg-muted/40">
-                <th className="w-[160px] whitespace-nowrap px-3 py-2 text-left text-[11px] font-semibold uppercase tracking-wider text-muted-foreground bg-muted/40">
+              <tr className="bg-muted">
+                <th className="w-[160px] whitespace-nowrap px-3 py-2 text-left text-[11px] font-semibold uppercase tracking-wider text-muted-foreground bg-muted">
                   <span className="inline-flex items-center gap-1 cursor-pointer select-none hover:text-foreground" onClick={() => handleSort('time')}>
                     Timestamp
                     <SortIcon active={sortKey === 'time'} dir={sortDir} />
@@ -299,15 +299,15 @@ export default function LogsPage() {
                 <ColHead label="Method"  sk="method" />
                 <ColHead label="Code"    sk="status_code" />
                 <ColHead label="Module"  sk="module" />
-                <th className="whitespace-nowrap px-3 py-2 text-left text-[11px] font-semibold uppercase tracking-wider text-muted-foreground bg-muted/40">
+                <th className="whitespace-nowrap px-3 py-2 text-left text-[11px] font-semibold uppercase tracking-wider text-muted-foreground bg-muted">
                   Path / Message
                 </th>
                 <ColHead label="Latency" sk="latency" />
                 <ColHead label="Status"  sk="status" />
-                <th className="whitespace-nowrap px-3 py-2 text-left text-[11px] font-semibold uppercase tracking-wider text-muted-foreground bg-muted/40">
+                <th className="whitespace-nowrap px-3 py-2 text-left text-[11px] font-semibold uppercase tracking-wider text-muted-foreground bg-muted">
                   Trace ID
                 </th>
-                <th className="w-[90px] bg-muted/40" />
+                <th className="w-[90px] bg-muted" />
               </tr>
             </thead>
 

@@ -130,6 +130,7 @@ export default function BorrowLendsPage() {
     {
       key:    'status',
       header: 'Status',
+      shrink: true,
       cell:   (e) => {
         const Icon = STATUS_ICON[e.status]
         return (
@@ -157,10 +158,11 @@ export default function BorrowLendsPage() {
       sortValue: (e) => e.status,
     },
     {
-      key:    'dates',
-      header: 'Dates',
-      cell:   (e) => (
-        <div className="text-xs text-muted-foreground space-y-0.5">
+      key:      'dates',
+      header:   'Dates',
+      shrink:   true,
+      cell:     (e) => (
+        <div className="text-xs text-muted-foreground space-y-0.5 whitespace-nowrap">
           <p>{e.type === 'lend' ? 'Lent:' : 'Borrowed:'} {formatDate(e.borrow_date)}</p>
           {e.expected_return_date && (
             <p>Due: {formatDate(e.expected_return_date)}</p>
@@ -218,7 +220,8 @@ export default function BorrowLendsPage() {
           )}
         </div>
       ),
-      className: 'w-44 whitespace-nowrap',
+      className: 'whitespace-nowrap',
+      shrink:    true,
     },
   ]
 

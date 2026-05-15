@@ -1,5 +1,6 @@
 import { useEffect, useRef, useCallback } from 'react'
 import { useAuthStore } from '@/store/authStore'
+import { router } from '@/router'
 
 /**
  * Decode a JWT payload without verifying the signature (client-side only).
@@ -41,7 +42,7 @@ export function useTokenExpiry() {
 
   const forceLogout = useCallback(() => {
     clearAuth()
-    window.location.href = '/login'
+    router.navigate('/login', { replace: true })
   }, [clearAuth])
 
   // ── Strategy 1: schedule a timer at the exact expiry moment ────────────

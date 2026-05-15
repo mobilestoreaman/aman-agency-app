@@ -96,6 +96,14 @@ export interface Column<T> {
    * take effect — or the column's natural width will bound it.
    */
   truncate?: boolean
+  /**
+   * When true, the column is set to `width: 1%` so it shrinks to its
+   * minimum content width, ceding all extra horizontal space to the
+   * other non-shrink columns. Ideal for action button columns, badge
+   * columns, or any column whose content should never stretch.
+   * Combine with `whitespace-nowrap` in className to prevent wrapping.
+   */
+  shrink?: boolean
 }
 
 // ── Internal sort state ───────────────────────────────────────────────────────
@@ -433,12 +441,12 @@ export function DataTable<T>({
                       key={col.key}
                       scope="col"
                       className={cn(
-                        // Base styles
-                        'bg-muted/40 px-4 py-2.5 h-10',
+                        // Base styles — fully opaque so body rows don't bleed through sticky header
+                        'bg-muted px-4 py-2.5 h-10',
                         'text-xs font-semibold uppercase tracking-wide text-muted-foreground',
                         'whitespace-nowrap',
                         // Sortable affordance
-                        isSortable && 'cursor-pointer select-none hover:bg-muted/70 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring',
+                        isSortable && 'cursor-pointer select-none hover:bg-muted/80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring',
                         // Active sort column tint
                         isActive && 'text-primary bg-primary/5',
                         // Alignment
@@ -446,7 +454,12 @@ export function DataTable<T>({
                         // Consumer className (visibility, overrides)
                         col.className,
                       )}
-                      style={col.minWidth ? { minWidth: col.minWidth } : undefined}
+                      style={{
+                        ...(col.minWidth ? { minWidth: col.minWidth } : {}),
+                        // width:1% = shrink this column to its minimum content width,
+                        // pushing all extra horizontal space to the non-shrink columns.
+                        ...(col.shrink ? { width: '1%' } : {}),
+                      }}
                       onClick={isSortable ? () => handleSort(col) : undefined}
                       onKeyDown={isSortable ? (e) => handleSortKeyDown(e, col) : undefined}
                       tabIndex={isSortable ? 0 : undefined}
@@ -480,7 +493,10 @@ export function DataTable<T>({
                       <td
                         key={col.key}
                         className={cn('px-4 py-3', col.className)}
-                        style={col.minWidth ? { minWidth: col.minWidth } : undefined}
+                        style={{
+                          ...(col.minWidth ? { minWidth: col.minWidth } : {}),
+                          ...(col.shrink   ? { width: '1%' }            : {}),
+                        }}
                       >
                         <Skeleton className="h-4 w-full max-w-[140px] rounded" />
                       </td>
@@ -530,7 +546,10 @@ export function DataTable<T>({
                             alignClass(col),
                             col.className,
                           )}
-                          style={col.minWidth ? { minWidth: col.minWidth } : undefined}
+                          style={{
+                            ...(col.minWidth ? { minWidth: col.minWidth } : {}),
+                            ...(col.shrink   ? { width: '1%' }            : {}),
+                          }}
                           title={titleAttr}
                         >
                           {content}

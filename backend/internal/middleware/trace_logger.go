@@ -133,7 +133,10 @@ func TraceLogger(repo repository.TraceLogRepository, cfg *config.Config) fiber.H
 		}
 
 		// Insert asynchronously (fire-and-forget).
-		// The recover() prevents a driver panic from crashing the whole process.
+		// IMPORTANT: do NOT use c.Context() here. Fiber recycles *fiber.Ctx objects
+		// back to a sync.Pool once the middleware chain returns, so c is invalid by
+		// the time this goroutine runs — accessing it causes a nil-pointer panic.
+		// context.Background() is correct for a fire-and-forget database write.
 		go func() {
 			defer func() {
 				if r := recover(); r != nil {
@@ -143,7 +146,7 @@ func TraceLogger(repo repository.TraceLogRepository, cfg *config.Config) fiber.H
 						Msg("panic in trace log goroutine")
 				}
 			}()
-			insertCtx, cancel := context.WithTimeout(c.Context(), 5*time.Second)
+			insertCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 			defer cancel()
 			if insertErr := repo.Insert(insertCtx, entry); insertErr != nil {
 				log.Error().

@@ -23,6 +23,7 @@ import {
 } from '@/hooks/useAdminDb'
 import { getDumpDownloadUrl } from '@/api/admin'
 import { cn } from '@/lib/utils'
+import { toast } from 'sonner'
 
 import {
   Database,
@@ -89,6 +90,7 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog'
 import PageHeader from '@/components/shared/PageHeader'
+import { usePageTitle } from '@/hooks/usePageTitle'
 
 // ── helpers ───────────────────────────────────────────────────────────────────
 
@@ -600,7 +602,7 @@ function DownloadButton({ dumpId, fileName }: { dumpId: string; fileName: string
       link.click()
       URL.revokeObjectURL(link.href)
     } catch {
-      alert('Download failed. The dump may have expired.')
+      toast.error('Download failed. The dump may have expired.')
     }
   }, [url, token, fileName])
 
@@ -940,14 +942,14 @@ function DocumentsTable({ collection }: DocumentsTableProps) {
              pinned vertically while moving horizontally with the table body.  */}
       {/* min-w-0 is critical: without it the card expands to fit table content,
           the scroll container expands with it, and horizontal scroll never fires */}
-      <div className="m-3 min-w-0 flex flex-col rounded-xl border border-border/70 bg-card shadow-sm overflow-hidden">
+      <div className="m-3 rounded-xl border border-border/70 bg-card shadow-sm overflow-hidden">
 
         {/* w-full ensures the scroll container is exactly as wide as the card,
             not wider (which would also prevent the horizontal scroll) */}
         <div
           ref={tableScrollRef}
           onScroll={handleTableScroll}
-          className="w-full overflow-auto min-h-[180px] max-h-[calc(100dvh-320px)]"
+          className="overflow-auto min-h-[180px] max-h-[calc(100dvh-320px)]"
         >
           {isLoading ? (
             /* ── Skeleton ────────────────────────────────────────────────── */
@@ -1329,6 +1331,7 @@ function MobileCollectionPicker({
 //    • Full two-panel split layout
 
 export default function DatabaseExplorerPage() {
+  usePageTitle('Database Explorer')
   const [activeCollection, setActiveCollection] = useState('')
   const [dumpOpen, setDumpOpen]               = useState(false)
   // Tablet: sidebar overlay open/closed

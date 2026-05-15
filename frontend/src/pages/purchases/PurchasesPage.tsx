@@ -169,6 +169,7 @@ export default function PurchasesPage() {
       header: 'Status',
       cell:   (p) => <StatusBadge status={p.status} />,
       sortValue: (p) => p.status,
+      shrink: true,
     },
     {
       key:    'total',
@@ -226,7 +227,8 @@ export default function PurchasesPage() {
             </Button>
           </div>
         ) : null,
-      className: 'w-auto whitespace-nowrap',
+      className: 'whitespace-nowrap',
+      shrink: true,
     },
   ]
 

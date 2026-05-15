@@ -86,7 +86,7 @@ export const router = createBrowserRouter([
           { path: 'customers',       element: withSuspense(<CustomersPage />) },
           { path: 'customers/:id',   element: withSuspense(<CustomerDetail />) },
           { path: 'sales',           element: withSuspense(<SalesPage />) },
-          { path: 'sales/new',       element: <Navigate to="/sales?new=1" replace /> },
+          { path: 'sales/new',       element: <Navigate to="/sales" state={{ openCreate: true }} replace /> },
           { path: 'sales/:id',       element: withSuspense(<SaleDetailPage />) },
           { path: 'loan-references', element: withSuspense(<LoanRefsPage />) },
           { path: 'borrow-lends',    element: withSuspense(<BorrowLendsPage />) },

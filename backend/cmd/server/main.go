@@ -88,6 +88,10 @@ func main() {
 		BodyLimit:         10 * 1024 * 1024, // 10 MB (for base64 invoice payloads)
 		EnablePrintRoutes: cfg.IsDevelopment(),
 		ErrorHandler:      middleware.ErrorHandler,
+		// Trust X-Real-IP set by the nginx reverse proxy so c.IP() returns
+		// the real client IP and per-IP rate limiting works correctly.
+		ProxyHeader:    "X-Real-Ip",
+		TrustedProxies: []string{"127.0.0.1", "10.0.0.0/8", "172.16.0.0/12"},
 	})
 
 	// ── 6. Register routes ───────────────────────────────────────────

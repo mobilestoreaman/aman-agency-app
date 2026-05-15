@@ -3,7 +3,6 @@ package config
 import (
 	"fmt"
 	"os"
-	"strconv"
 	"time"
 
 	"github.com/joho/godotenv"
@@ -153,18 +152,6 @@ func mustGetEnv(key string) string {
 	return v
 }
 
-func parseInt(key string, fallback int) int {
-	v := os.Getenv(key)
-	if v == "" {
-		return fallback
-	}
-	n, err := strconv.Atoi(v)
-	if err != nil {
-		return fallback
-	}
-	return n
-}
-
 func parseDuration(key, fallback string) (time.Duration, error) {
 	raw := getEnv(key, fallback)
 	d, err := time.ParseDuration(raw)
@@ -174,5 +161,3 @@ func parseDuration(key, fallback string) (time.Duration, error) {
 	return d, nil
 }
 
-// Ensure parseInt is referenced (avoids unused-import lint errors until used)
-var _ = parseInt

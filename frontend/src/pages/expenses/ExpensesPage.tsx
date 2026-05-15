@@ -259,6 +259,7 @@ export default function ExpensesPage() {
         </span>
       ),
       sortValue: (e) => e.category,
+      shrink: true,
     },
     {
       key:    'amount',
@@ -267,6 +268,7 @@ export default function ExpensesPage() {
         <span className="font-mono font-semibold text-sm">{formatCurrency(e.amount)}</span>
       ),
       sortValue: (e) => e.amount,
+      shrink: true,
     },
     {
       key:    'date',
@@ -276,6 +278,7 @@ export default function ExpensesPage() {
       ),
       className: 'hidden md:table-cell',
       sortValue: (e) => e.date,
+      shrink: true,
     },
     {
       key:    'actions',
@@ -301,7 +304,8 @@ export default function ExpensesPage() {
           )}
         </div>
       ),
-      className: 'w-20 whitespace-nowrap',
+      className: 'whitespace-nowrap',
+      shrink: true,
     },
   ]
 

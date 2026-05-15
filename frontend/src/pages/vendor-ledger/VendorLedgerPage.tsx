@@ -155,6 +155,7 @@ export default function VendorLedgerPage() {
       cell:      (e) => <span className="text-sm text-muted-foreground">{formatDate(e.created_at)}</span>,
       className: 'hidden sm:table-cell',
       sortValue: (e) => e.created_at,
+      shrink: true,
     },
     {
       key:       'vendor',
@@ -167,6 +168,7 @@ export default function VendorLedgerPage() {
       header:    'Type',
       cell:      (e) => <EntryTypeBadge entry={e} />,
       sortValue: (e) => e.type,
+      shrink: true,
     },
     {
       key:       'amount',
@@ -180,6 +182,7 @@ export default function VendorLedgerPage() {
         )
       },
       sortValue: (e) => e.amount,
+      shrink: true,
     },
     // Running balance — only visible when a single vendor is filtered
     {
@@ -199,6 +202,7 @@ export default function VendorLedgerPage() {
       // Hide if multi-vendor view — the column is meaningless when rows jump between vendors
       className: showBalanceAfter ? 'hidden md:table-cell' : 'hidden',
       sortValue: (e) => e.balance_after,
+      shrink: true,
     },
     {
       key:       'ref',

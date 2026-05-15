@@ -9,7 +9,7 @@ func SecurityHeaders() fiber.Handler {
 		c.Set("X-Frame-Options", "DENY")
 		c.Set("X-XSS-Protection", "1; mode=block")
 		c.Set("Referrer-Policy", "strict-origin-when-cross-origin")
-		c.Set("Permissions-Policy", "geolocation=(), microphone=(), camera=()")
+		c.Set("Permissions-Policy", "geolocation=(), microphone=(), camera=(self)")
 		return c.Next()
 	}
 }

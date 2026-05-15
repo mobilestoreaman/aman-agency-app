@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { useSearchParams } from 'react-router-dom'
+import { useSearchParams, useLocation } from 'react-router-dom'
 import { Plus, Search, TrendingUp, Download } from 'lucide-react'
 import { BillQrLookupDialog } from '@/components/shared/BillQrLookupDialog'
 import { Button } from '@/components/ui/button'
@@ -35,6 +35,7 @@ const STATUS_VARIANT: Record<SaleStatus, 'success' | 'destructive'> = {
 export default function SalesPage() {
   const isAdmin = useIsAdmin()
   const [searchParams, setSearchParams] = useSearchParams()
+  const location = useLocation()
 
   // Filters
   const [page, setPage]           = useState(1)
@@ -55,14 +56,18 @@ export default function SalesPage() {
     if (cid) setCustomer(cid)
   }, [searchParams])
 
-  // Open the new-sale modal when navigated here with ?new=1
-  // (e.g. from the Dashboard Quick Actions tile)
+  // Open the new-sale modal when navigated here via router state (sales/new)
+  // or legacy ?new=1 query param (Dashboard Quick Actions tile).
   useEffect(() => {
-    if (searchParams.get('new') === '1') {
+    const fromState = (location.state as { openCreate?: boolean } | null)?.openCreate
+    if (fromState || searchParams.get('new') === '1') {
       setFormOpen(true)
-      setSearchParams((p) => { p.delete('new'); return p }, { replace: true })
+      if (searchParams.get('new') === '1') {
+        setSearchParams((p) => { p.delete('new'); return p }, { replace: true })
+      }
     }
-  }, [searchParams, setSearchParams])
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   // Open a specific sale detail modal when navigated here with ?sale_id=<id>
   // (e.g. clicking an invoice link from the Credit Ledger)
@@ -181,8 +186,9 @@ export default function SalesPage() {
     {
       key:    'total',
       header: 'Amount',
+      shrink: true,
       cell:   (s) => (
-        <div className="text-sm">
+        <div className="text-sm whitespace-nowrap">
           <span className="font-semibold">{formatCurrency(s.total_amount)}</span>
           {s.balance > 0 && (
             <span className="ml-1.5 text-xs text-amber-600">bal: {formatCurrency(s.balance)}</span>
@@ -194,6 +200,7 @@ export default function SalesPage() {
     {
       key:    'status',
       header: 'Status',
+      shrink: true,
       cell:   (s) => (
         <Badge variant={STATUS_VARIANT[s.status]} className="text-xs">
           {SALE_STATUS_LABELS[s.status]}
@@ -202,15 +209,17 @@ export default function SalesPage() {
       sortValue: (s) => s.status,
     },
     {
-      key:    'date',
-      header: 'Date',
-      cell:   (s) => <span className="text-sm text-muted-foreground">{formatDate(s.sold_at)}</span>,
+      key:      'date',
+      header:   'Date',
+      shrink:   true,
+      cell:     (s) => <span className="text-sm text-muted-foreground whitespace-nowrap">{formatDate(s.sold_at)}</span>,
       className: 'hidden md:table-cell',
       sortValue: (s) => s.sold_at,
     },
     {
       key:    'actions',
       header: '',
+      shrink: true,
       cell:   (s) => (
         <Button
           variant="ghost" size="sm" className="h-7 px-2 text-xs"
@@ -219,7 +228,7 @@ export default function SalesPage() {
           View
         </Button>
       ),
-      className: 'w-16 whitespace-nowrap',
+      className: 'whitespace-nowrap',
     },
   ]
 

@@ -43,9 +43,10 @@ func Setup(app *fiber.App, db *database.Client, cfg *config.Config) {
 	// the local storage directory at the /static/ URL prefix.
 	app.Static("/static", cfg.Upload.StoragePath)
 
-	// ── Swagger UI (unauthenticated, development-friendly) ──────────
-	// Available at /api/swagger/index.html
-	app.Get("/api/swagger/*", fiberswagger.HandlerDefault)
+	// ── Swagger UI — development only ────────────────────────────────
+	if cfg.IsDevelopment() {
+		app.Get("/api/swagger/*", fiberswagger.HandlerDefault)
+	}
 
 	// ── Health check (unauthenticated) ───────────────────────────────
 	healthCtrl := controller.NewHealthController(&cfg.App, db)

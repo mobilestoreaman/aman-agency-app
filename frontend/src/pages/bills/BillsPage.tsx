@@ -379,14 +379,16 @@ export default function BillsPage() {
     {
       key:    'amount',
       header: 'Amount',
+      shrink: true,
       cell:   (b) => (
-        <span className="font-mono font-semibold text-sm">{formatCurrency(b.total_amount)}</span>
+        <span className="font-mono font-semibold text-sm whitespace-nowrap">{formatCurrency(b.total_amount)}</span>
       ),
       sortValue: (b) => b.total_amount,
     },
     {
       key:    'status',
       header: 'Status',
+      shrink: true,
       cell:   (b) => {
         const Icon = STATUS_ICON[b.status]
         return (
@@ -399,10 +401,11 @@ export default function BillsPage() {
       sortValue: (b) => b.status,
     },
     {
-      key:    'date',
-      header: 'Created',
-      cell:   (b) => (
-        <span className="text-xs text-muted-foreground">{formatDate(b.created_at)}</span>
+      key:      'date',
+      header:   'Created',
+      shrink:   true,
+      cell:     (b) => (
+        <span className="text-xs text-muted-foreground whitespace-nowrap">{formatDate(b.created_at)}</span>
       ),
       className: 'hidden md:table-cell',
       sortValue: (b) => b.created_at,
@@ -410,6 +413,7 @@ export default function BillsPage() {
     {
       key:    'actions',
       header: '',
+      shrink: true,
       cell:   (b) => (
         <Button
           variant="ghost" size="sm" className="h-7 gap-1 px-2 text-xs"
@@ -418,7 +422,7 @@ export default function BillsPage() {
           <Eye className="h-3 w-3" /> View
         </Button>
       ),
-      className: 'w-20 whitespace-nowrap',
+      className: 'whitespace-nowrap',
     },
   ]
 

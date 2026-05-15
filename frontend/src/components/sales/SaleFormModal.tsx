@@ -529,8 +529,7 @@ export default function SaleFormModal({ open, onClose }: Props) {
         qc.invalidateQueries({ queryKey: ['bills'] })
         billId = bill.id
       } catch (billErr) {
-        // Bill creation failure should not block the sale success
-        console.warn('Bill generation failed:', billErr)
+        if (import.meta.env.DEV) console.warn('Bill generation failed:', billErr)
         toast.warning('Sale recorded, but bill generation failed. You can print it from Sale Details.')
       }
 
@@ -549,8 +548,7 @@ export default function SaleFormModal({ open, onClose }: Props) {
           })
           qc.invalidateQueries({ queryKey: ['payment-promises'] })
         } catch (e) {
-          // Non-blocking — the sale is already recorded
-          console.warn('Promise creation failed:', e)
+          if (import.meta.env.DEV) console.warn('Promise creation failed:', e)
         }
       }
 

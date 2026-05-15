@@ -125,6 +125,7 @@ export default function CreditLedgerPage() {
       cell:   (e) => <span className="text-sm text-muted-foreground">{formatDate(e.created_at)}</span>,
       className: 'hidden sm:table-cell',
       sortValue: (e) => e.created_at,
+      shrink: true,
     },
     {
       key:    'customer',
@@ -137,6 +138,7 @@ export default function CreditLedgerPage() {
       header: 'Type',
       cell:   (e) => <EntryTypeBadge entry={e} />,
       sortValue: (e) => e.type,
+      shrink: true,
     },
     {
       key:    'amount',
@@ -150,6 +152,7 @@ export default function CreditLedgerPage() {
         )
       },
       sortValue: (e) => e.amount,
+      shrink: true,
     },
     {
       key:    'balance_after',
@@ -167,6 +170,7 @@ export default function CreditLedgerPage() {
       },
       className: 'hidden md:table-cell',
       sortValue: (e) => e.balance_after,
+      shrink: true,
     },
     {
       key:    'ref',
