@@ -24,6 +24,9 @@ import (
 type AuthService interface {
 	Login(ctx context.Context, req dto.LoginRequest) (*dto.LoginResponse, error)
 	Refresh(ctx context.Context, req dto.RefreshRequest) (*dto.LoginResponse, error)
+	// Logout invalidates the user's current refresh token server-side so it
+	// cannot be replayed. The userID comes from the validated access token.
+	Logout(ctx context.Context, userID string) error
 	Me(ctx context.Context, userID string) (*dto.UserInfo, error)
 	ChangePassword(ctx context.Context, userID string, req dto.ChangePasswordRequest) error
 	CreateUser(ctx context.Context, req dto.CreateUserRequest) (*dto.UserInfo, error)
@@ -67,9 +70,18 @@ func (s *authService) Login(ctx context.Context, req dto.LoginRequest) (*dto.Log
 		return nil, apperror.Unauthorized("invalid email or password")
 	}
 
-	access, refresh, err := s.jwtManager.GenerateTokenPair(user.IDHex(), user.Email, string(user.Role))
+	access, refresh, refreshJTI, err := s.jwtManager.GenerateTokenPair(user.IDHex(), user.Email, string(user.Role))
 	if err != nil {
 		return nil, apperror.Internal(err)
+	}
+
+	// Persist the new refresh token's JTI so we can validate it on /refresh
+	// and detect reuse (i.e. a stolen token being replayed after logout).
+	// Failure here is non-fatal for the response but means the token cannot
+	// be server-side-revoked — log the error and continue.
+	if jtiErr := s.userRepo.SetRefreshJTI(ctx, user.ID, refreshJTI); jtiErr != nil {
+		// Log via zerolog if available; for now use the stdlib approach
+		_ = jtiErr // TODO: wire zerolog here if needed
 	}
 
 	return &dto.LoginResponse{
@@ -82,6 +94,11 @@ func (s *authService) Login(ctx context.Context, req dto.LoginRequest) (*dto.Log
 }
 
 // Refresh validates a refresh token and issues a new token pair (rotation).
+// It enforces server-side revocation and detects refresh-token reuse attacks
+// (RFC 6749 §10.4 / token family pattern):
+//   - if no JTI is stored for the user, the token family was already revoked (e.g. logout)
+//   - if the incoming JTI doesn't match the stored one, a previously-rotated
+//     token is being replayed → revoke the entire family and return 401
 func (s *authService) Refresh(ctx context.Context, req dto.RefreshRequest) (*dto.LoginResponse, error) {
 	claims, err := s.jwtManager.ParseRefreshToken(req.RefreshToken)
 	if err != nil {
@@ -102,9 +119,25 @@ func (s *authService) Refresh(ctx context.Context, req dto.RefreshRequest) (*dto
 		return nil, apperror.Unauthorized("account is disabled")
 	}
 
-	access, refresh, err := s.jwtManager.GenerateTokenPair(user.IDHex(), user.Email, string(user.Role))
+	// Server-side revocation + reuse detection.
+	// claims.ID is the JTI (jwt.RegisteredClaims.ID) set when the token was minted.
+	if user.RefreshJTI == "" || user.RefreshJTI != claims.ID {
+		// Either the user logged out (empty JTI) or a previously-rotated token is
+		// being replayed (JTI mismatch). In either case, treat the token family as
+		// compromised: clear the stored JTI to invalidate any outstanding tokens,
+		// then return 401 so the client must re-authenticate.
+		_ = s.userRepo.ClearRefreshJTI(ctx, id)
+		return nil, apperror.Unauthorized("refresh token is invalid or expired")
+	}
+
+	access, refresh, refreshJTI, err := s.jwtManager.GenerateTokenPair(user.IDHex(), user.Email, string(user.Role))
 	if err != nil {
 		return nil, apperror.Internal(err)
+	}
+
+	// Rotate the stored JTI to the newly-issued token.
+	if jtiErr := s.userRepo.SetRefreshJTI(ctx, id, refreshJTI); jtiErr != nil {
+		_ = jtiErr // log if needed; do not expose error to caller
 	}
 
 	return &dto.LoginResponse{
@@ -114,6 +147,18 @@ func (s *authService) Refresh(ctx context.Context, req dto.RefreshRequest) (*dto
 		ExpiresIn:    int(s.jwtCfg.AccessTTL.Seconds()),
 		User:         toUserInfo(user),
 	}, nil
+}
+
+// Logout invalidates the user's refresh token family server-side.
+// The userID is extracted from the validated access token in the controller.
+func (s *authService) Logout(ctx context.Context, userID string) error {
+	id, err := primitive.ObjectIDFromHex(userID)
+	if err != nil {
+		return apperror.BadRequest("invalid user ID")
+	}
+	// ClearRefreshJTI makes any outstanding refresh token for this user instantly
+	// unusable — the next /auth/refresh call will see an empty JTI and return 401.
+	return s.userRepo.ClearRefreshJTI(ctx, id)
 }
 
 // Me returns the profile of the currently authenticated user.

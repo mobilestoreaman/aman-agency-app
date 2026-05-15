@@ -71,31 +71,37 @@ func (m *Manager) GenerateAccessToken(userID, email, role string) (string, error
 }
 
 // GenerateRefreshToken mints a signed refresh token carrying only the userID.
-func (m *Manager) GenerateRefreshToken(userID string) (string, error) {
+// It returns both the signed token string and the JTI (JWT ID) that uniquely
+// identifies this token — callers should persist the JTI for revocation checks.
+func (m *Manager) GenerateRefreshToken(userID string) (tokenString, jti string, err error) {
+	jti = uuid.NewString()
 	claims := RefreshClaims{
 		UserID:    userID,
 		TokenType: "refresh",
 		RegisteredClaims: gojwt.RegisteredClaims{
-			ID:        uuid.NewString(),
+			ID:        jti,
 			Issuer:    "aman-agency",
 			IssuedAt:  gojwt.NewNumericDate(time.Now()),
 			ExpiresAt: gojwt.NewNumericDate(time.Now().Add(m.refreshTTL)),
 		},
 	}
-	return gojwt.NewWithClaims(gojwt.SigningMethodHS256, claims).SignedString(m.secret)
+	tokenString, err = gojwt.NewWithClaims(gojwt.SigningMethodHS256, claims).SignedString(m.secret)
+	return tokenString, jti, err
 }
 
-// GenerateTokenPair returns a fresh (accessToken, refreshToken) pair.
-func (m *Manager) GenerateTokenPair(userID, email, role string) (access, refresh string, err error) {
+// GenerateTokenPair returns a fresh (accessToken, refreshToken, refreshJTI) triple.
+// refreshJTI is the JWT ID of the new refresh token; persist it in the user record
+// to enable server-side token revocation and refresh-token reuse detection.
+func (m *Manager) GenerateTokenPair(userID, email, role string) (access, refresh, refreshJTI string, err error) {
 	access, err = m.GenerateAccessToken(userID, email, role)
 	if err != nil {
-		return "", "", fmt.Errorf("generate access token: %w", err)
+		return "", "", "", fmt.Errorf("generate access token: %w", err)
 	}
-	refresh, err = m.GenerateRefreshToken(userID)
+	refresh, refreshJTI, err = m.GenerateRefreshToken(userID)
 	if err != nil {
-		return "", "", fmt.Errorf("generate refresh token: %w", err)
+		return "", "", "", fmt.Errorf("generate refresh token: %w", err)
 	}
-	return access, refresh, nil
+	return access, refresh, refreshJTI, nil
 }
 
 // ParseAccessToken validates and parses an access token string.
@@ -144,7 +150,11 @@ var (
 // ── private ───────────────────────────────────────────────────────────────────
 
 func (m *Manager) keyFunc(t *gojwt.Token) (interface{}, error) {
-	if _, ok := t.Method.(*gojwt.SigningMethodHMAC); !ok {
+	// Pin the algorithm to exactly HS256. Accepting any *gojwt.SigningMethodHMAC
+	// would allow HS384 and HS512 tokens — or "none" algorithm tokens in older
+	// library versions — to pass validation. Checking the concrete method pointer
+	// is the safest approach.
+	if t.Method != gojwt.SigningMethodHS256 {
 		return nil, fmt.Errorf("unexpected signing method: %v", t.Header["alg"])
 	}
 	return m.secret, nil

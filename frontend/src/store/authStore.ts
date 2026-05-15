@@ -16,10 +16,13 @@ interface AuthState {
   clearAuth: () => void
 }
 
-// accessToken is intentionally NOT persisted to localStorage — it lives in
-// memory only so XSS cannot exfiltrate a usable token. refreshToken and user
-// are persisted so the session survives a page reload; the access token is
-// silently recovered via the /auth/refresh flow on the first API call.
+// Neither accessToken nor refreshToken is persisted to localStorage.
+// Both live in memory only so XSS cannot exfiltrate usable tokens.
+// Only the lightweight user object and isAuthenticated flag are persisted
+// so that the UI can show the user's name/role on reload without a round-trip.
+// On page load the app immediately calls /auth/refresh (with the httpOnly
+// cookie or in-memory refresh token from the last active tab) to re-issue
+// the access token before any authenticated API call fires.
 export const useAuthStore = create<AuthState>()(
   persist(
     (set) => ({
@@ -46,11 +49,13 @@ export const useAuthStore = create<AuthState>()(
     }),
     {
       name: 'aman-auth',
-      // Persist only what is needed to restore the session — never the
-      // short-lived access token (reduces XSS blast radius).
+      // Persist only the user profile and auth flag — never tokens.
+      // Persisting a refresh token in localStorage exposes it to XSS; an
+      // attacker who injects a script can read it and mint fresh access tokens
+      // indefinitely. The memory-only refresh token is acceptable because it is
+      // cleared on tab/window close and cannot be read cross-origin.
       partialize: (state) => ({
         user: state.user,
-        refreshToken: state.refreshToken,
         isAuthenticated: state.isAuthenticated,
       }),
     },

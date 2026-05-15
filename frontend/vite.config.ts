@@ -48,6 +48,14 @@ export default defineConfig({
         globPatterns: ['**/*.{js,css,html,ico,png,svg,woff2}'],
         runtimeCaching: [
           {
+            // Auth endpoints must NEVER be cached.
+            // Caching /auth/refresh or /auth/login responses means a stale
+            // "logged in" response can be served after logout, leaking session
+            // data to the next user on a shared device or cached tab.
+            urlPattern: /\/api\/v1\/auth\//i,
+            handler: 'NetworkOnly',
+          },
+          {
             // Static reference data — safe to cache, low cardinality.
             urlPattern: /\/api\/v1\/(collections|products|brands|settings|vendors|customers)[^?]*$/i,
             handler: 'NetworkFirst',

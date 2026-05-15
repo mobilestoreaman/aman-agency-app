@@ -232,7 +232,7 @@ func Setup(app *fiber.App, db *database.Client, cfg *config.Config) {
 	vendorsPublic := v1.Group("/vendors", middleware.Authenticate(jwtManager), middleware.AnyStaff())
 	vendorsPublic.Get("", vendorCtrl.List)
 	vendorsPublic.Get("/:id/ledger", vendorLedgerCtrl.ListByVendor)
-	vendorsPublic.Post("/:id/payments", vendorLedgerCtrl.RecordPayment)
+	vendorsPublic.Post("/:id/payments", middleware.AdminOnly(), vendorLedgerCtrl.RecordPayment)
 	vendorsPublic.Post("/:id/adjustments", middleware.AdminOnly(), vendorLedgerCtrl.RecordAdjustment)
 	vendorsPublic.Post("/:id/opening_balance", middleware.AdminOnly(), vendorLedgerCtrl.RecordOpeningBalance)
 	vendorsPublic.Get("/:id", vendorCtrl.GetByID)

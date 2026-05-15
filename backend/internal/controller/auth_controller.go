@@ -76,16 +76,24 @@ func (ctrl *AuthController) Refresh(c *fiber.Ctx) error {
 }
 
 // Logout handles POST /api/v1/auth/logout  [protected]
-// Stateless JWT — we can't invalidate server-side. The client must discard tokens.
-// A 200 response signals the client to clear its storage.
+// Clears the server-side refresh token JTI so the user's refresh token cannot
+// be replayed. The client must also discard its own copy of the tokens.
 // @Summary      Logout
-// @Description  Stateless logout — client must discard tokens. Server returns 200.
+// @Description  Invalidates the server-side refresh token and signals the client to clear storage.
 // @Tags         auth
 // @Produce      json
 // @Security     BearerAuth
 // @Success      200  {object}  map[string]interface{}
 // @Router       /auth/logout [post]
 func (ctrl *AuthController) Logout(c *fiber.Ctx) error {
+	userID := middleware.GetUserID(c)
+	// Best-effort server-side revocation — the response is always 200 so the
+	// client always clears its local tokens regardless of DB errors.
+	if err := ctrl.authSvc.Logout(c.Context(), userID); err != nil {
+		// Non-fatal: log the error but do not expose it to the caller.
+		// The access token will still expire naturally via its TTL.
+		_ = err
+	}
 	return response.OK(c, fiber.Map{"message": "logged out successfully"})
 }
 

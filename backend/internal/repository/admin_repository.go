@@ -2,6 +2,8 @@ package repository
 
 import (
 	"context"
+	"fmt"
+	"regexp"
 	"strconv"
 	"strings"
 	"time"
@@ -14,6 +16,51 @@ import (
 	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
+// ErrInvalidCollection is returned when an unrecognised collection name is requested.
+var ErrInvalidCollection = fmt.Errorf("unknown or disallowed collection")
+
+// allowedCollections is the exhaustive set of collection names the DB Explorer
+// may query.  Any name not in this set is rejected before it reaches MongoDB to
+// prevent an attacker from enumerating or accessing unexpected collections.
+var allowedCollections = map[string]struct{}{
+	"users":             {},
+	"brands":            {},
+	"products":          {},
+	"devices":           {},
+	"vendors":           {},
+	"customers":         {},
+	"sales":             {},
+	"purchases":         {},
+	"bills":             {},
+	"expenses":          {},
+	"credit_ledger":     {},
+	"vendor_ledger":     {},
+	"loan_references":   {},
+	"borrow_lends":      {},
+	"payment_promises":  {},
+	"notifications":     {},
+	"settings":          {},
+	"audit_logs":        {},
+	"trace_logs":        {},
+}
+
+// isSafeFieldKey returns true if the key is safe to use as a MongoDB document
+// field name. Keys that start with '$' would be interpreted as query operators,
+// and keys containing '.' enable dot-notation traversal — both are attack vectors
+// for NoSQL injection when the key comes from user input.
+func isSafeFieldKey(key string) bool {
+	return key != "" && !strings.HasPrefix(key, "$") && !strings.Contains(key, ".")
+}
+
+// validateCollection returns an error if the given collection name is not in
+// the allowedCollections set.
+func validateCollection(name string) error {
+	if _, ok := allowedCollections[name]; !ok {
+		return ErrInvalidCollection
+	}
+	return nil
+}
+
 // sensitiveFields is the set of document field names that must be masked
 // before any document leaves the DB Explorer API.  Matching is
 // case-insensitive and covers both top-level and nested keys.
@@ -22,6 +69,7 @@ var sensitiveFields = map[string]struct{}{
 	"hashed_password":  {},
 	"password_hash":    {},
 	"refresh_token":    {},
+	"refresh_jti":      {}, // JWT ID used for server-side refresh token revocation
 	"access_token":     {},
 	"token":            {},
 	"secret":           {},
@@ -92,6 +140,9 @@ func (r *adminRepository) ListCollectionNames(ctx context.Context) ([]string, er
 // ── GetCollectionStats ────────────────────────────────────────────────────────
 
 func (r *adminRepository) GetCollectionStats(ctx context.Context, name string) (dto.CollectionInfo, error) {
+	if err := validateCollection(name); err != nil {
+		return dto.CollectionInfo{Name: name}, err
+	}
 	// collStats returns size, avgObjSize, count, nindexes, etc.
 	result := r.db.RunCommand(ctx, bson.D{{Key: "collStats", Value: name}})
 	if result.Err() != nil {
@@ -126,6 +177,10 @@ func (r *adminRepository) ListDocuments(
 	collection string,
 	f dto.DocumentFilter,
 ) ([]map[string]interface{}, int64, error) {
+
+	if err := validateCollection(collection); err != nil {
+		return nil, 0, err
+	}
 
 	col := r.db.Collection(collection)
 
@@ -212,6 +267,9 @@ func (r *adminRepository) ListDocuments(
 // ── GetDocument ───────────────────────────────────────────────────────────────
 
 func (r *adminRepository) GetDocument(ctx context.Context, collection, id string) (map[string]interface{}, error) {
+	if err := validateCollection(collection); err != nil {
+		return nil, err
+	}
 	col := r.db.Collection(collection)
 
 	// Try ObjectID first, fall back to string
@@ -237,6 +295,9 @@ func (r *adminRepository) GetDocument(ctx context.Context, collection, id string
 // ── ExportCollection ─────────────────────────────────────────────────────────
 
 func (r *adminRepository) ExportCollection(ctx context.Context, collection string) ([]map[string]interface{}, error) {
+	if err := validateCollection(collection); err != nil {
+		return nil, err
+	}
 	col := r.db.Collection(collection)
 
 	// Limit exports to 50 000 documents per collection to prevent OOM.
@@ -271,7 +332,10 @@ func (r *adminRepository) buildDocumentFilter(f dto.DocumentFilter) bson.M {
 	// Try ObjectID → boolean → integer → float → string regex.
 	// Using $regex on non-string MongoDB fields causes a query error, so we
 	// attempt typed coercions before falling back to case-insensitive regex.
-	if f.Field != "" && f.Value != "" {
+	//
+	// Security: f.Field is validated against isSafeFieldKey() to prevent
+	// NoSQL injection via $-operator keys or dot-notation traversal.
+	if f.Field != "" && f.Value != "" && isSafeFieldKey(f.Field) {
 		if oid, err := primitive.ObjectIDFromHex(f.Value); err == nil {
 			query[f.Field] = oid
 		} else if strings.EqualFold(f.Value, "true") {
@@ -283,14 +347,22 @@ func (r *adminRepository) buildDocumentFilter(f dto.DocumentFilter) bson.M {
 		} else if fl, err := strconv.ParseFloat(f.Value, 64); err == nil {
 			query[f.Field] = fl
 		} else {
-			query[f.Field] = bson.M{"$regex": primitive.Regex{Pattern: f.Value, Options: "i"}}
+			// Escape the value before using it as a regex pattern to prevent
+			// Regular Expression Denial of Service (ReDoS). User-supplied patterns
+			// with catastrophic backtracking (e.g. "(a+)+$") can lock the DB.
+			query[f.Field] = bson.M{"$regex": primitive.Regex{Pattern: regexp.QuoteMeta(f.Value), Options: "i"}}
 		}
 	}
 
-	// Free-text search: prefix-regex on _id string representation and common fields.
+	// Free-text search: literal-match regex on common fields.
 	// Full $text search would require a text index; we use $regex for flexibility.
+	//
+	// Security: f.Search is escaped with regexp.QuoteMeta() before use to prevent
+	// ReDoS — user-controlled regex patterns can cause catastrophic backtracking.
 	if f.Search != "" {
-		searchRegex := primitive.Regex{Pattern: f.Search, Options: "i"}
+		// Escape the search string so it is matched literally, not as a pattern.
+		safePattern := regexp.QuoteMeta(f.Search)
+		searchRegex := primitive.Regex{Pattern: safePattern, Options: "i"}
 		query["$or"] = bson.A{
 			bson.M{"invoice_number": bson.M{"$regex": searchRegex}},
 			bson.M{"name": bson.M{"$regex": searchRegex}},
@@ -302,9 +374,15 @@ func (r *adminRepository) buildDocumentFilter(f dto.DocumentFilter) bson.M {
 	}
 
 	// Date range filter
+	// Security: f.DateField is validated against isSafeFieldKey() to prevent
+	// NoSQL injection via $-operator keys or dot-notation traversal.
 	if f.From != "" || f.To != "" {
 		dateField := f.DateField
 		if dateField == "" {
+			dateField = "created_at"
+		}
+		// Reject unsafe field names; fall back to created_at
+		if !isSafeFieldKey(dateField) {
 			dateField = "created_at"
 		}
 		df := bson.M{}

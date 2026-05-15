@@ -25,6 +25,12 @@ type UserRepository interface {
 	Update(ctx context.Context, id primitive.ObjectID, fields bson.M) error
 	List(ctx context.Context) ([]*models.User, error)
 	ExistsAny(ctx context.Context) (bool, error)
+	// SetRefreshJTI persists the JTI of the user's current valid refresh token.
+	// Must be called after every successful login or token rotation.
+	SetRefreshJTI(ctx context.Context, id primitive.ObjectID, jti string) error
+	// ClearRefreshJTI removes the stored JTI, invalidating all outstanding
+	// refresh tokens for this user. Called on logout and on reuse detection.
+	ClearRefreshJTI(ctx context.Context, id primitive.ObjectID) error
 }
 
 // mongoUserRepository is the MongoDB implementation of UserRepository.
@@ -119,4 +125,38 @@ func (r *mongoUserRepository) ExistsAny(ctx context.Context) (bool, error) {
 		return false, apperror.Internal(err)
 	}
 	return count > 0, nil
+}
+
+// SetRefreshJTI stores the JTI of the user's active refresh token.
+// Replaces any previously stored JTI so only one refresh token is ever valid.
+func (r *mongoUserRepository) SetRefreshJTI(ctx context.Context, id primitive.ObjectID, jti string) error {
+	result, err := r.col.UpdateOne(
+		ctx,
+		bson.M{"_id": id},
+		bson.M{"$set": bson.M{"refresh_jti": jti, "updated_at": time.Now()}},
+	)
+	if err != nil {
+		return apperror.Internal(err)
+	}
+	if result.MatchedCount == 0 {
+		return apperror.NotFound("user")
+	}
+	return nil
+}
+
+// ClearRefreshJTI removes the stored JTI, invalidating all outstanding refresh
+// tokens for this user. Called on logout and on refresh-token reuse detection.
+func (r *mongoUserRepository) ClearRefreshJTI(ctx context.Context, id primitive.ObjectID) error {
+	result, err := r.col.UpdateOne(
+		ctx,
+		bson.M{"_id": id},
+		bson.M{"$unset": bson.M{"refresh_jti": ""}, "$set": bson.M{"updated_at": time.Now()}},
+	)
+	if err != nil {
+		return apperror.Internal(err)
+	}
+	if result.MatchedCount == 0 {
+		return apperror.NotFound("user")
+	}
+	return nil
 }

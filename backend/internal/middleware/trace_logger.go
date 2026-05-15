@@ -119,8 +119,10 @@ func TraceLogger(repo repository.TraceLogRepository, cfg *config.Config) fiber.H
 				}
 			}
 
-			// Capture response payload if available
-			if len(c.Response().Body()) > 0 {
+			// Capture response payload if available, but only for non-sensitive paths.
+			// Auth error responses (e.g. 401 on /auth/login) may echo back fields
+			// from the request body; skipping them prevents credential leakage in logs.
+			if !isSensitivePath(c.Path()) && len(c.Response().Body()) > 0 {
 				if raw := jsonToBSONRaw(c.Response().Body()); raw != nil {
 					entry.ResponsePayload = raw
 				}
