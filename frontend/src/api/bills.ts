@@ -2,7 +2,7 @@ import { apiClient } from './client'
 import type { ApiResponse, Bill, PaginatedResponse } from '@/types'
 
 export const billsApi = {
-  list: (params?: { page?: number; limit?: number; status?: string; search?: string; from_date?: string; to_date?: string }) =>
+  list: (params?: { page?: number; limit?: number; status?: string; search?: string; from_date?: string; to_date?: string; customer_phone?: string }) =>
     apiClient.get<PaginatedResponse<Bill>>('/bills', { params }),
 
   getById: (id: string) =>

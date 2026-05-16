@@ -48,6 +48,29 @@ type GlobalVendorLedgerFilter struct {
 	Limit    int    `query:"limit"`
 }
 
+// VendorAgingBucket represents outstanding payables aged into a time bucket.
+type VendorAgingBucket struct {
+	Label       string  `json:"label"`        // "0-30 days" | "31-60 days" | "60+ days"
+	VendorCount int64   `json:"vendor_count"`
+	TotalOwed   float64 `json:"total_owed"`
+}
+
+// VendorAgingEntry is one vendor's outstanding balance with its age bucket.
+type VendorAgingEntry struct {
+	VendorID   string  `json:"vendor_id"`
+	VendorName string  `json:"vendor_name"`
+	Balance    float64 `json:"balance"`
+	AgeDays    int64   `json:"age_days"`
+	Bucket     string  `json:"bucket"`
+}
+
+// VendorAgingResponse is the payload for GET /vendor-ledger/aging.
+type VendorAgingResponse struct {
+	AsOf    string              `json:"as_of"`
+	Buckets []VendorAgingBucket `json:"buckets"`
+	Vendors []VendorAgingEntry  `json:"vendors"`
+}
+
 // VendorLedgerResponse is the API representation of a single vendor ledger entry.
 type VendorLedgerResponse struct {
 	ID           string  `json:"id"`

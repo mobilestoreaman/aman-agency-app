@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import { format, parseISO, isToday, isPast } from 'date-fns'
 import {
@@ -24,6 +24,7 @@ import {
   useReschedulePromise,
   useMarkPromisePaid,
   useMarkPromiseBroken,
+  useBulkMarkPaid,
 } from '@/hooks/usePaymentPromises'
 import { useCustomers } from '@/hooks/useCustomers'
 import { useIsAdmin } from '@/store/authStore'
@@ -246,6 +247,7 @@ export default function PaymentPromisesPage() {
   const [rescheduling, setRescheduling]   = useState<PaymentPromise | null>(null)
   const [markingPaid, setMarkingPaid]     = useState<PaymentPromise | null>(null)
   const [breakingPromise, setBreakingPromise] = useState<PaymentPromise | null>(null)
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
 
   const q = useDebounce(search)
 
@@ -263,13 +265,39 @@ export default function PaymentPromisesPage() {
   const customers = customersData?.data ?? []
 
   const markBroken = useMarkPromiseBroken()
+  const bulkMarkPaid = useBulkMarkPaid()
 
   const promises = data?.data ?? []
+
+  // Clear selection when page or filters change
+  useEffect(() => {
+    setSelectedIds(new Set())
+  }, [page, search, customerId, fromDate, toDate, statusFilter])
 
   const clearFilters = () => { setSearch(''); setCustomerId(''); setFromDate(''); setToDate(''); setStatus('pending'); setPage(1) }
   const hasFilters   = !!search || !!customerId || !!fromDate || !!toDate || statusFilter !== 'pending'
 
   const columns: Column<PaymentPromise>[] = [
+    {
+      key:    'select',
+      header: '',
+      shrink: true,
+      cell:   (p) => (p.status === 'pending' || p.status === 'rescheduled') ? (
+        <input
+          type="checkbox"
+          className="h-4 w-4 cursor-pointer rounded border-border accent-primary"
+          checked={selectedIds.has(p.id)}
+          onChange={(e) => {
+            setSelectedIds(prev => {
+              const next = new Set(prev)
+              e.target.checked ? next.add(p.id) : next.delete(p.id)
+              return next
+            })
+          }}
+          onClick={(e) => e.stopPropagation()}
+        />
+      ) : <span className="block h-4 w-4" />,
+    },
     {
       key:    'customer',
       header: 'Customer',
@@ -479,6 +507,24 @@ export default function PaymentPromisesPage() {
               All payments are up to date. Promises are created automatically when a sale has an outstanding balance.
             </p>
           </div>
+        </div>
+      )}
+
+      {/* Bulk action bar */}
+      {selectedIds.size > 0 && isAdmin && (
+        <div className="flex items-center gap-3 rounded-lg border bg-muted/40 px-4 py-2.5 text-sm">
+          <span className="text-muted-foreground">{selectedIds.size} selected</span>
+          <Button
+            size="sm" className="h-7 gap-1.5 text-xs"
+            onClick={() => bulkMarkPaid.mutate([...selectedIds], {
+              onSuccess: () => setSelectedIds(new Set())
+            })}
+            disabled={bulkMarkPaid.isPending}
+          >
+            <CheckCircle2 className="h-3.5 w-3.5" /> Mark as Paid
+          </Button>
+          <Button size="sm" variant="ghost" className="h-7 text-xs ml-auto"
+            onClick={() => setSelectedIds(new Set())}>Clear</Button>
         </div>
       )}
 

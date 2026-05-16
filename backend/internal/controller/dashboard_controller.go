@@ -1,6 +1,7 @@
 package controller
 
 import (
+	"aman-agency/backend/internal/middleware"
 	"aman-agency/backend/internal/service"
 	"aman-agency/backend/pkg/response"
 
@@ -32,4 +33,24 @@ func (ctrl *DashboardController) Get(c *fiber.Ctx) error {
 		return err
 	}
 	return response.OK(c, data)
+}
+
+// DailyClosing handles GET /dashboard/closing
+func (ctrl *DashboardController) DailyClosing(c *fiber.Ctx) error {
+	resp, err := ctrl.svc.DailyClosing(c.Context())
+	if err != nil {
+		return err
+	}
+	return response.OK(c, resp)
+}
+
+// StaffPerformance handles GET /dashboard/my-performance
+func (ctrl *DashboardController) StaffPerformance(c *fiber.Ctx) error {
+	userID := middleware.GetUserID(c)
+	staffName := middleware.GetUserEmail(c)
+	resp, err := ctrl.svc.StaffPerformance(c.Context(), userID, staffName)
+	if err != nil {
+		return err
+	}
+	return response.OK(c, resp)
 }

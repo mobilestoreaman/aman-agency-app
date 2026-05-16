@@ -327,22 +327,24 @@ export default function BillsPage() {
   const [search, setSearch]       = useState('')
   const [fromDate, setFromDate]   = useState('')
   const [toDate, setToDate]       = useState('')
+  const [phoneFilter, setPhoneFilter] = useState('')
   const [viewId, setViewId]       = useState<string | null>(null)
 
   const q = useDebounce(search)
 
   const { data, isLoading } = useBills({
     page,
-    limit:     15,
-    status:    (statusFilter as BillStatus) || undefined,
-    search:    q           || undefined,
-    from_date: toApiDate(fromDate),
-    to_date:   toApiDate(toDate),
+    limit:          15,
+    status:         (statusFilter as BillStatus) || undefined,
+    search:         q              || undefined,
+    from_date:      toApiDate(fromDate),
+    to_date:        toApiDate(toDate),
+    customer_phone: phoneFilter    || undefined,
   })
 
   const bills = data?.data ?? []
-  const hasFilters = !!search || !!statusFilter || !!fromDate || !!toDate
-  const clearFilters = () => { setSearch(''); setStatus(''); setFromDate(''); setToDate(''); setPage(1) }
+  const hasFilters = !!search || !!statusFilter || !!fromDate || !!toDate || !!phoneFilter
+  const clearFilters = () => { setSearch(''); setStatus(''); setFromDate(''); setToDate(''); setPhoneFilter(''); setPage(1) }
 
   const columns: Column<Bill>[] = [
     {
@@ -445,6 +447,15 @@ export default function BillsPage() {
             className="pl-9"
           />
         </div>
+
+        {/* Phone number filter */}
+        <Input
+          type="tel"
+          placeholder="Phone number…"
+          value={phoneFilter}
+          onChange={(e) => { setPhoneFilter(e.target.value); setPage(1) }}
+          className="w-full sm:w-[150px]"
+        />
 
         {/* QR lookup */}
         <BillQrLookupDialog

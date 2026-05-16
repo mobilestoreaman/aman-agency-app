@@ -30,6 +30,8 @@ type VendorLedgerService interface {
 	// RecordPurchase is called internally by the purchase service when a purchase
 	// is marked as received. Creates a debit entry for the total cost.
 	RecordPurchase(ctx context.Context, vendorID, vendorName, purchaseID, reference, staffName string, amount float64) error
+	// Aging returns outstanding payables bucketed by age.
+	Aging(ctx context.Context) (*dto.VendorAgingResponse, error)
 }
 
 type vendorLedgerService struct {
@@ -444,4 +446,11 @@ func (s *vendorLedgerService) RecordPurchase(
 	}
 
 	return nil
+}
+
+// ── Aging ─────────────────────────────────────────────────────────────────────
+
+// Aging returns outstanding payables grouped into age buckets.
+func (s *vendorLedgerService) Aging(ctx context.Context) (*dto.VendorAgingResponse, error) {
+	return s.ledgerRepo.Aging(ctx)
 }

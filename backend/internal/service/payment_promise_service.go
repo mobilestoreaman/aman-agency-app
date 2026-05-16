@@ -39,6 +39,9 @@ type PaymentPromiseService interface {
 	// NotifyDueToday checks for promises due today and creates reminder notifications.
 	// Safe to call repeatedly — only fires once per promise via the Notified flag.
 	NotifyDueToday(ctx context.Context)
+
+	// BulkMarkPaid marks multiple promises as paid in a single operation.
+	BulkMarkPaid(ctx context.Context, req dto.BulkMarkPaidRequest) (*dto.BulkMarkPaidResponse, error)
 }
 
 type paymentPromiseService struct {
@@ -316,6 +319,38 @@ func (s *paymentPromiseService) NotifyDueToday(ctx context.Context) {
 				Msg("failed to mark promise as notified — will re-fire next hour")
 		}
 	}
+}
+
+// ── BulkMarkPaid ──────────────────────────────────────────────────────────────
+
+// BulkMarkPaid converts string IDs to ObjectIDs and marks valid pending/rescheduled
+// promises as paid in one UpdateMany call. Invalid IDs are collected as failures.
+func (s *paymentPromiseService) BulkMarkPaid(ctx context.Context, req dto.BulkMarkPaidRequest) (*dto.BulkMarkPaidResponse, error) {
+	var validIDs []primitive.ObjectID
+	var failed []string
+
+	for _, idStr := range req.IDs {
+		oid, err := primitive.ObjectIDFromHex(idStr)
+		if err != nil {
+			failed = append(failed, idStr)
+			continue
+		}
+		validIDs = append(validIDs, oid)
+	}
+
+	var updated int64
+	if len(validIDs) > 0 {
+		var err error
+		updated, err = s.repo.BulkMarkPaid(ctx, validIDs)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	return &dto.BulkMarkPaidResponse{
+		Updated: updated,
+		Failed:  failed,
+	}, nil
 }
 
 // ── Helpers ───────────────────────────────────────────────────────────────────

@@ -7,6 +7,8 @@ import (
 
 	"aman-agency/backend/internal/dto"
 	"aman-agency/backend/internal/repository"
+
+	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 
 // DashboardService assembles the PWA home-screen payload from multiple
@@ -14,6 +16,8 @@ import (
 // threshold-based sub-queries (low stock, credit ceiling).
 type DashboardService interface {
 	Get(ctx context.Context) (*dto.DashboardResponse, error)
+	DailyClosing(ctx context.Context) (*dto.DailyClosingResponse, error)
+	StaffPerformance(ctx context.Context, staffID, staffName string) (*dto.StaffPerformanceResponse, error)
 }
 
 type dashboardService struct {
@@ -174,4 +178,40 @@ func (s *dashboardService) getStockSummary(ctx context.Context) (*dto.StockDashb
 	s.stockExpiry = now.Add(5 * time.Minute)
 
 	return stock, nil
+}
+
+// DailyClosing returns the end-of-day cash summary for the current IST day.
+func (s *dashboardService) DailyClosing(ctx context.Context) (*dto.DailyClosingResponse, error) {
+	now := time.Now().In(ist)
+	dayStart := time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, ist)
+	dayEnd := time.Date(now.Year(), now.Month(), now.Day(), 23, 59, 59, 999999999, ist)
+
+	resp, err := s.repo.DailyClosing(ctx, dayStart, dayEnd)
+	if err != nil {
+		return nil, err
+	}
+	resp.Date = dayStart.Format("02 Jan 2006")
+	return resp, nil
+}
+
+// StaffPerformance returns sales performance metrics for the given staff member.
+func (s *dashboardService) StaffPerformance(ctx context.Context, staffID, staffName string) (*dto.StaffPerformanceResponse, error) {
+	oid, err := primitive.ObjectIDFromHex(staffID)
+	if err != nil {
+		return nil, err
+	}
+
+	now := time.Now().In(ist)
+	dayStart := time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, ist)
+	dayEnd := time.Date(now.Year(), now.Month(), now.Day(), 23, 59, 59, 999999999, ist)
+	weekStart := time.Date(now.Year(), now.Month(), now.Day()-6, 0, 0, 0, 0, ist)
+	monthStart := time.Date(now.Year(), now.Month(), 1, 0, 0, 0, 0, ist)
+
+	resp, err := s.repo.StaffPerformance(ctx, oid, dayStart, dayEnd, weekStart, monthStart)
+	if err != nil {
+		return nil, err
+	}
+	resp.StaffID = staffID
+	resp.StaffName = staffName
+	return resp, nil
 }

@@ -29,6 +29,17 @@ type PaymentPromiseFilter struct {
 	Limit      int    `query:"limit"`
 }
 
+// BulkMarkPaidRequest marks multiple promises as paid in one call.
+type BulkMarkPaidRequest struct {
+	IDs []string `json:"ids" validate:"required,min=1,max=50,dive,len=24"`
+}
+
+// BulkMarkPaidResponse summarises the bulk operation result.
+type BulkMarkPaidResponse struct {
+	Updated int64    `json:"updated"`
+	Failed  []string `json:"failed,omitempty"`
+}
+
 // PaymentPromiseResponse is the JSON shape returned on every payment-promise endpoint.
 type PaymentPromiseResponse struct {
 	ID             string  `json:"id"`

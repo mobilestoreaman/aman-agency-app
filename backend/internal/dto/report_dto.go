@@ -13,16 +13,25 @@ type ReportDateFilter struct {
 
 // ─── Revenue summary ─────────────────────────────────────────────────────────
 
+// PaymentModeBreakdown holds aggregated totals for one payment mode.
+type PaymentModeBreakdown struct {
+	Mode      string  `json:"mode"`       // "cash" | "credit" | "emi" | "other"
+	Count     int64   `json:"count"`
+	Revenue   float64 `json:"revenue"`
+	Collected float64 `json:"collected"`
+}
+
 // RevenueSummaryResponse aggregates completed sales in a date range.
 type RevenueSummaryResponse struct {
-	From             time.Time `json:"from"`
-	To               time.Time `json:"to"`
-	TotalSales       int64     `json:"total_sales"`        // non-cancelled
-	TotalRevenue     float64   `json:"total_revenue"`      // sum of total_amount
-	TotalCollected   float64   `json:"total_collected"`    // sum of amount_paid
-	TotalOutstanding float64   `json:"total_outstanding"`  // sum of balance
-	AvgSaleValue     float64   `json:"avg_sale_value"`
-	CancelledCount   int64     `json:"cancelled_count"`
+	From             time.Time              `json:"from"`
+	To               time.Time              `json:"to"`
+	TotalSales       int64                  `json:"total_sales"`        // non-cancelled
+	TotalRevenue     float64                `json:"total_revenue"`      // sum of total_amount
+	TotalCollected   float64                `json:"total_collected"`    // sum of amount_paid
+	TotalOutstanding float64                `json:"total_outstanding"`  // sum of balance
+	AvgSaleValue     float64                `json:"avg_sale_value"`
+	CancelledCount   int64                  `json:"cancelled_count"`
+	ByPaymentMode    []PaymentModeBreakdown `json:"by_payment_mode"`
 }
 
 // ─── Stock valuation ─────────────────────────────────────────────────────────
@@ -72,10 +81,11 @@ type SalesByPeriodFilter struct {
 
 // SalesByPeriodEntry holds aggregated data for one time bucket.
 type SalesByPeriodEntry struct {
-	Period    string  `json:"period"`     // formatted label, e.g. "2024-01" for monthly
-	SaleCount int64   `json:"sale_count"` // non-cancelled sales
-	Revenue   float64 `json:"revenue"`
-	Collected float64 `json:"collected"`
+	Period        string                 `json:"period"`     // formatted label, e.g. "2024-01" for monthly
+	SaleCount     int64                  `json:"sale_count"` // non-cancelled sales
+	Revenue       float64                `json:"revenue"`
+	Collected     float64                `json:"collected"`
+	ByPaymentMode []PaymentModeBreakdown `json:"by_payment_mode,omitempty"`
 }
 
 // ─── Profit & Loss (P&L) Report ──────────────────────────────────────────

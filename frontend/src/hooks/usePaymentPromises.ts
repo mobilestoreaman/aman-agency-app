@@ -3,6 +3,7 @@ import { toast } from 'sonner'
 import { paymentPromisesApi, type CreatePaymentPromisePayload, type ReschedulePayload } from '@/api/paymentPromises'
 import { getApiError } from '@/api/client'
 
+
 export const promiseKeys = {
   all:    ['payment-promises'] as const,
   list:   (p?: object) => [...promiseKeys.all, 'list', p] as const,
@@ -72,5 +73,17 @@ export function useMarkPromiseBroken() {
       toast.success('Promise marked as broken.')
     },
     onError: (e) => toast.error(getApiError(e)),
+  })
+}
+
+export function useBulkMarkPaid() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: (ids: string[]) => paymentPromisesApi.bulkMarkPaid(ids).then(r => r.data.data),
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: promiseKeys.all })
+      toast.success(`${data.updated} promise${data.updated !== 1 ? 's' : ''} marked as paid`)
+    },
+    onError: () => toast.error('Bulk update failed'),
   })
 }

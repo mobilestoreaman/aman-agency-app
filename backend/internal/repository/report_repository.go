@@ -97,6 +97,48 @@ func (r *reportRepository) RevenueSummary(ctx context.Context, from, to time.Tim
 	}
 	resp.CancelledCount = cancelledCount
 
+	// Aggregate non-cancelled sales by payment_mode
+	modePipeline := mongo.Pipeline{
+		{{Key: "$match", Value: bson.M{
+			"created_at": bson.M{"$gte": from, "$lte": to},
+			"status":     bson.M{"$ne": "cancelled"},
+		}}},
+		{{Key: "$group", Value: bson.M{
+			"_id":       bson.M{"$ifNull": bson.A{"$payment_mode", "other"}},
+			"count":     bson.M{"$sum": 1},
+			"revenue":   bson.M{"$sum": "$total_amount"},
+			"collected": bson.M{"$sum": "$amount_paid"},
+		}}},
+		{{Key: "$sort", Value: bson.D{{Key: "_id", Value: 1}}}},
+	}
+
+	modeCur, err := col.Aggregate(ctx, modePipeline, options.Aggregate().SetAllowDiskUse(true))
+	if err != nil {
+		return nil, err
+	}
+	defer modeCur.Close(ctx)
+
+	for modeCur.Next(ctx) {
+		var row struct {
+			Mode      string  `bson:"_id"`
+			Count     int64   `bson:"count"`
+			Revenue   float64 `bson:"revenue"`
+			Collected float64 `bson:"collected"`
+		}
+		if err := modeCur.Decode(&row); err != nil {
+			return nil, err
+		}
+		resp.ByPaymentMode = append(resp.ByPaymentMode, dto.PaymentModeBreakdown{
+			Mode:      row.Mode,
+			Count:     row.Count,
+			Revenue:   row.Revenue,
+			Collected: row.Collected,
+		})
+	}
+	if resp.ByPaymentMode == nil {
+		resp.ByPaymentMode = []dto.PaymentModeBreakdown{}
+	}
+
 	return resp, nil
 }
 

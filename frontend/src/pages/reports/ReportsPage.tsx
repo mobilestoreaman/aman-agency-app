@@ -142,6 +142,33 @@ export default function ReportsPage() {
         ) : null}
       </div>
 
+      {/* Payment mode breakdown */}
+      {revenue?.by_payment_mode && revenue.by_payment_mode.length > 0 && (() => {
+        const MODE_LABELS: Record<string, string> = { cash: 'Cash', credit: 'Credit', emi: 'EMI', other: 'Other' }
+        const MODE_CLASSES: Record<string, string> = {
+          cash:   'bg-emerald-50 dark:bg-emerald-950/20 text-emerald-700 dark:text-emerald-400',
+          credit: 'bg-amber-50 dark:bg-amber-950/20 text-amber-700 dark:text-amber-400',
+          emi:    'bg-blue-50 dark:bg-blue-950/20 text-blue-700 dark:text-blue-400',
+          other:  'bg-muted text-muted-foreground',
+        }
+        return (
+          <div className="flex flex-wrap gap-2">
+            {revenue.by_payment_mode.map((m) => (
+              <div
+                key={m.mode}
+                className={`flex items-center gap-2 rounded-full px-3 py-1.5 text-xs font-medium ${MODE_CLASSES[m.mode] ?? MODE_CLASSES.other}`}
+              >
+                <span>{MODE_LABELS[m.mode] ?? m.mode}</span>
+                <span className="opacity-60">|</span>
+                <span className="font-mono">{formatCurrency(m.revenue)}</span>
+                <span className="opacity-60">|</span>
+                <span>{m.count} sale{m.count !== 1 ? 's' : ''}</span>
+              </div>
+            ))}
+          </div>
+        )
+      })()}
+
       {/* Sales by period chart */}
       <Card>
         <CardHeader className="flex-row items-center justify-between pb-3">

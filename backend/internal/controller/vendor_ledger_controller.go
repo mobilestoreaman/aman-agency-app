@@ -158,6 +158,15 @@ func (ctrl *VendorLedgerController) RecordOpeningBalance(c *fiber.Ctx) error {
 	return response.Created(c, entry)
 }
 
+// Aging handles GET /api/v1/vendor-ledger/aging
+func (ctrl *VendorLedgerController) Aging(c *fiber.Ctx) error {
+	resp, err := ctrl.svc.Aging(c.Context())
+	if err != nil {
+		return err
+	}
+	return response.OK(c, resp)
+}
+
 // RecordAdjustment handles POST /api/v1/vendors/:id/adjustments  [admin only]
 // @Summary      Manual vendor balance adjustment
 // @Description  Admin only. Applies a manual debit (positive) or credit (negative)

@@ -374,6 +374,13 @@ export interface Bill {
 }
 
 // ── Reports ──────────────────────────────────────────────────
+export interface PaymentModeBreakdown {
+  mode: string  // "cash" | "credit" | "emi" | "other"
+  count: number
+  revenue: number
+  collected: number
+}
+
 export interface RevenueSummary {
   from: string
   to: string
@@ -383,6 +390,7 @@ export interface RevenueSummary {
   total_outstanding: number
   avg_sale_value: number
   cancelled_count: number
+  by_payment_mode?: PaymentModeBreakdown[]
 }
 
 export interface StockValuation {
@@ -481,6 +489,29 @@ export interface ExpenseSummary {
 }
 
 // ── Dashboard ────────────────────────────────────────────────
+export interface DailyClosingResponse {
+  date: string
+  cash_received: number
+  credit_issued: number
+  expenses_paid: number
+  net_cash: number
+  total_sales: number
+  cancelled_sales: number
+}
+
+export interface StaffPerformanceResponse {
+  staff_id: string
+  staff_name: string
+  today_sales: number
+  today_revenue: number
+  week_sales: number
+  week_revenue: number
+  month_sales: number
+  month_revenue: number
+  customers_with_dues: number
+  total_dues_amount: number
+}
+
 export interface RecentSaleEntry {
   sale_id:        string
   invoice_number: string
@@ -634,6 +665,31 @@ export interface CashFlowEntry {
   expense_cost: number
   money_out: number
   net_cash_flow: number
+}
+
+// ── Vendor Ledger Aging ───────────────────────────────────────
+export interface VendorAgingBucket {
+  label: string
+  vendor_count: number
+  total_owed: number
+}
+export interface VendorAgingEntry {
+  vendor_id: string
+  vendor_name: string
+  balance: number
+  age_days: number
+  bucket: string
+}
+export interface VendorAgingResponse {
+  as_of: string
+  buckets: VendorAgingBucket[]
+  vendors: VendorAgingEntry[]
+}
+
+// ── Payment Promises ──────────────────────────────────────────
+export interface BulkMarkPaidResponse {
+  updated: number
+  failed?: string[]
 }
 
 // ── Vendor Ledger ─────────────────────────────────────────────

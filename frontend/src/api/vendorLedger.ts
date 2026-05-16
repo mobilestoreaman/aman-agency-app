@@ -1,5 +1,5 @@
 import { apiClient } from './client'
-import type { ApiResponse, PaginatedResponse, VendorLedgerEntry } from '@/types'
+import type { ApiResponse, PaginatedResponse, VendorAgingResponse, VendorLedgerEntry } from '@/types'
 
 export const vendorLedgerApi = {
   // ── Global listing ─────────────────────────────────────────────────────────
@@ -51,4 +51,7 @@ export const vendorLedgerApi = {
       { amount: body.amount, notes: body.notes || 'Manual adjustment' },
     )
   },
+
+  aging: () =>
+    apiClient.get<ApiResponse<VendorAgingResponse>>('/vendor-ledger/aging'),
 }

@@ -242,6 +242,13 @@ func Setup(app *fiber.App, db *database.Client, cfg *config.Config) {
 	vendorsAdmin.Put("/:id", vendorCtrl.Update)
 	vendorsAdmin.Delete("/:id", vendorCtrl.Delete)
 
+	// Vendor ledger aging — must be BEFORE /vendor-ledger to avoid shadowing
+	v1.Get("/vendor-ledger/aging",
+		middleware.Authenticate(jwtManager),
+		middleware.AdminOnly(),
+		vendorLedgerCtrl.Aging,
+	)
+
 	// Global vendor ledger listing (any staff can read across all vendors)
 	v1.Get("/vendor-ledger",
 		middleware.Authenticate(jwtManager),
@@ -479,6 +486,16 @@ func Setup(app *fiber.App, db *database.Client, cfg *config.Config) {
 		middleware.AnyStaff(),
 		dashboardCtrl.Get,
 	)
+	v1.Get("/dashboard/closing",
+		middleware.Authenticate(jwtManager),
+		middleware.AdminOnly(),
+		dashboardCtrl.DailyClosing,
+	)
+	v1.Get("/dashboard/my-performance",
+		middleware.Authenticate(jwtManager),
+		middleware.AnyStaff(),
+		dashboardCtrl.StaffPerformance,
+	)
 
 	searchSvc := service.NewSearchService(db.DB)
 	searchCtrl := controller.NewSearchController(searchSvc)
@@ -501,6 +518,7 @@ func Setup(app *fiber.App, db *database.Client, cfg *config.Config) {
 	promisesAny := v1.Group("/payment-promises", middleware.Authenticate(jwtManager), middleware.AnyStaff())
 	promisesAny.Get("", promiseCtrl.List)
 	promisesAny.Post("", promiseCtrl.Create)
+	promisesAny.Post("/bulk-paid", promiseCtrl.BulkMarkPaid)
 	promisesAny.Patch("/:id/reschedule", promiseCtrl.Reschedule)
 	promisesAny.Patch("/:id/paid", promiseCtrl.MarkPaid)
 

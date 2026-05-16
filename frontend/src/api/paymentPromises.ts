@@ -1,5 +1,5 @@
 import { apiClient } from './client'
-import type { ApiResponse, PaginatedResponse, PaymentPromise } from '@/types'
+import type { ApiResponse, BulkMarkPaidResponse, PaginatedResponse, PaymentPromise } from '@/types'
 
 export interface CreatePaymentPromisePayload {
   customer_id:     string
@@ -38,4 +38,7 @@ export const paymentPromisesApi = {
 
   markBroken: (id: string) =>
     apiClient.patch<ApiResponse<PaymentPromise>>(`/payment-promises/${id}/broken`),
+
+  bulkMarkPaid: (ids: string[]) =>
+    apiClient.post<ApiResponse<BulkMarkPaidResponse>>('/payment-promises/bulk-paid', { ids }),
 }

@@ -27,14 +27,15 @@ type VoidBillRequest struct {
 
 // BillFilter controls the GET /bills list query.
 type BillFilter struct {
-	CustomerID string `query:"customer_id"`
-	SaleID     string `query:"sale_id"`
-	Status     string `query:"status"`    // draft|issued|voided
-	Search     string `query:"search"`    // regex on bill_number, customer_name, customer_phone
-	FromDate   string `query:"from_date"` // DD-MM-YYYY filter on created_at
-	ToDate     string `query:"to_date"`   // DD-MM-YYYY filter on created_at
-	Page       int    `query:"page"`
-	Limit      int    `query:"limit"`
+	CustomerID    string `query:"customer_id"`
+	SaleID        string `query:"sale_id"`
+	Status        string `query:"status"`         // draft|issued|voided
+	Search        string `query:"search"`         // regex on bill_number, customer_name, customer_phone
+	CustomerPhone string `query:"customer_phone"` // partial phone match
+	FromDate      string `query:"from_date"`      // DD-MM-YYYY filter on created_at
+	ToDate        string `query:"to_date"`        // DD-MM-YYYY filter on created_at
+	Page          int    `query:"page"`
+	Limit         int    `query:"limit"`
 }
 
 // BillItemResponse is a single line item on the bill.

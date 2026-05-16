@@ -10,8 +10,9 @@ import {
 } from '@/components/ui/select'
 import { ResponsiveTable, type Column } from '@/components/shared/ResponsiveTable'
 import PageHeader from '@/components/shared/PageHeader'
-import { useVendorLedger } from '@/hooks/useVendorLedger'
+import { useVendorLedger, useVendorLedgerAging } from '@/hooks/useVendorLedger'
 import { useVendors } from '@/hooks/useVendors'
+import { useIsAdmin } from '@/store/authStore'
 import { useDebounce } from '@/hooks/useDebounce'
 import { formatCurrency } from '@/utils/currency'
 import { formatDate, toApiDate } from '@/utils/date'
@@ -89,6 +90,7 @@ function RefBadge({ entry }: { entry: VendorLedgerEntry }) {
 
 export default function VendorLedgerPage() {
   const [searchParams] = useSearchParams()
+  const isAdmin = useIsAdmin()
 
   const [page, setPage]                     = useState(1)
   const [vendorId, setVendorId]             = useState(() => searchParams.get('vendor') ?? '')
@@ -98,6 +100,8 @@ export default function VendorLedgerPage() {
   const [search, setSearch]                 = useState('')
 
   const q = useDebounce(search)
+
+  const { data: agingData } = useVendorLedgerAging()
 
   const { data, isLoading } = useVendorLedger({
     page,
@@ -227,12 +231,76 @@ export default function VendorLedgerPage() {
     },
   ]
 
+  // Aging bucket color classes
+  const AGING_BUCKET_CLASSES: Record<string, string> = {
+    '0-30 days':  'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300',
+    '31-60 days': 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300',
+    '60+ days':   'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-300',
+  }
+  const BUCKET_CHIP_CLASSES: Record<string, string> = {
+    '0-30 days':  'bg-emerald-50 dark:bg-emerald-950/20 text-emerald-700 dark:text-emerald-400 border-emerald-200 dark:border-emerald-800',
+    '31-60 days': 'bg-amber-50 dark:bg-amber-950/20 text-amber-700 dark:text-amber-400 border-amber-200 dark:border-amber-800',
+    '60+ days':   'bg-red-50 dark:bg-red-950/20 text-red-700 dark:text-red-400 border-red-200 dark:border-red-800',
+  }
+
   return (
     <div className="flex flex-col gap-6">
       <PageHeader
         title="Vendor Ledger"
         description="Track all purchases on credit from vendors and payments made against those balances."
       />
+
+      {/* Vendor aging section — admin only */}
+      {isAdmin && agingData && (
+        <div className="flex flex-col gap-3">
+          {/* Bucket summary chips */}
+          <div className="flex flex-wrap gap-2">
+            {agingData.buckets.map((b) => (
+              <div
+                key={b.label}
+                className={`flex items-center gap-2 rounded-lg border px-3 py-2 text-sm ${BUCKET_CHIP_CLASSES[b.label] ?? 'bg-muted text-muted-foreground border-border'}`}
+              >
+                <span className="font-semibold">{b.label}</span>
+                <span className="opacity-60">·</span>
+                <span>{b.vendor_count} vendor{b.vendor_count !== 1 ? 's' : ''}</span>
+                <span className="opacity-60">·</span>
+                <span className="font-mono">{formatCurrency(b.total_owed)}</span>
+              </div>
+            ))}
+          </div>
+
+          {/* Aging vendor table */}
+          {agingData.vendors.length > 0 && (
+            <div className="rounded-lg border">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="border-b bg-muted/40">
+                    <th className="px-3 py-2 text-left text-xs font-semibold text-muted-foreground">Vendor</th>
+                    <th className="px-3 py-2 text-right text-xs font-semibold text-muted-foreground">Balance</th>
+                    <th className="px-3 py-2 text-right text-xs font-semibold text-muted-foreground hidden sm:table-cell">Days</th>
+                    <th className="px-3 py-2 text-left text-xs font-semibold text-muted-foreground">Bucket</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y">
+                  {agingData.vendors.map((v) => (
+                    <tr key={v.vendor_id}>
+                      <td className="px-3 py-2 font-medium">{v.vendor_name}</td>
+                      <td className="px-3 py-2 text-right font-mono text-destructive">{formatCurrency(v.balance)}</td>
+                      <td className="px-3 py-2 text-right text-muted-foreground hidden sm:table-cell">{v.age_days}d</td>
+                      <td className="px-3 py-2">
+                        <span className={`rounded px-1.5 py-0.5 text-xs font-medium ${AGING_BUCKET_CLASSES[v.bucket] ?? 'bg-muted text-muted-foreground'}`}>
+                          {v.bucket}
+                        </span>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+              <p className="px-3 py-1.5 text-[11px] text-muted-foreground border-t">As of {agingData.as_of}</p>
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Outstanding balance summary — sourced from live vendor balances */}
       {vendors.length > 0 && (

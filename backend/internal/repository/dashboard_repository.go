@@ -8,6 +8,7 @@ import (
 	"aman-agency/backend/internal/dto"
 
 	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 )
@@ -24,6 +25,8 @@ type DashboardRepository interface {
 	MonthExpenses(ctx context.Context, monthStart, monthEnd time.Time) (float64, error)
 	RecentSales(ctx context.Context, limit int) ([]dto.RecentSaleEntry, error)
 	LowStockAlerts(ctx context.Context, threshold int) ([]dto.LowStockAlert, error)
+	DailyClosing(ctx context.Context, dayStart, dayEnd time.Time) (*dto.DailyClosingResponse, error)
+	StaffPerformance(ctx context.Context, staffID primitive.ObjectID, dayStart, dayEnd, weekStart, monthStart time.Time) (*dto.StaffPerformanceResponse, error)
 }
 
 type dashboardRepository struct {
@@ -257,6 +260,234 @@ func (r *dashboardRepository) RecentSales(ctx context.Context, limit int) ([]dto
 		})
 	}
 	return results, nil
+}
+
+// ─── DailyClosing ────────────────────────────────────────────────────────────
+
+func (r *dashboardRepository) DailyClosing(ctx context.Context, dayStart, dayEnd time.Time) (*dto.DailyClosingResponse, error) {
+	salesCol := r.db.Collection("sales")
+	expensesCol := r.db.Collection("expenses")
+
+	type salesResult struct {
+		CashReceived float64
+		CreditIssued float64
+		TotalSales   int64
+	}
+
+	var (
+		salesRes       salesResult
+		cancelledCount int64
+		expensesTotal  float64
+
+		wg          sync.WaitGroup
+		salesErr    error
+		cancelErr   error
+		expensesErr error
+	)
+
+	wg.Add(3)
+
+	// Sales aggregation
+	go func() {
+		defer wg.Done()
+		pipeline := mongo.Pipeline{
+			{{Key: "$match", Value: bson.M{
+				"created_at": bson.M{"$gte": dayStart, "$lte": dayEnd},
+				"status":     bson.M{"$ne": "cancelled"},
+			}}},
+			{{Key: "$group", Value: bson.M{
+				"_id":          nil,
+				"cash_received": bson.M{"$sum": "$amount_paid"},
+				"credit_issued": bson.M{"$sum": "$balance"},
+				"total_sales":  bson.M{"$sum": 1},
+			}}},
+		}
+		cur, err := salesCol.Aggregate(ctx, pipeline)
+		if err != nil {
+			salesErr = err
+			return
+		}
+		defer cur.Close(ctx)
+		if cur.Next(ctx) {
+			var row struct {
+				CashReceived float64 `bson:"cash_received"`
+				CreditIssued float64 `bson:"credit_issued"`
+				TotalSales   int64   `bson:"total_sales"`
+			}
+			if err := cur.Decode(&row); err != nil {
+				salesErr = err
+				return
+			}
+			salesRes.CashReceived = row.CashReceived
+			salesRes.CreditIssued = row.CreditIssued
+			salesRes.TotalSales = row.TotalSales
+		}
+	}()
+
+	// Cancelled count
+	go func() {
+		defer wg.Done()
+		var err error
+		cancelledCount, err = salesCol.CountDocuments(ctx, bson.M{
+			"status":     "cancelled",
+			"created_at": bson.M{"$gte": dayStart, "$lte": dayEnd},
+		})
+		if err != nil {
+			cancelErr = err
+		}
+	}()
+
+	// Expenses aggregation (expenses use the "date" field, not "created_at")
+	go func() {
+		defer wg.Done()
+		pipeline := mongo.Pipeline{
+			{{Key: "$match", Value: bson.M{
+				"date": bson.M{"$gte": dayStart, "$lte": dayEnd},
+			}}},
+			{{Key: "$group", Value: bson.M{
+				"_id":   nil,
+				"total": bson.M{"$sum": "$amount"},
+			}}},
+		}
+		cur, err := expensesCol.Aggregate(ctx, pipeline)
+		if err != nil {
+			expensesErr = err
+			return
+		}
+		defer cur.Close(ctx)
+		if cur.Next(ctx) {
+			var row struct {
+				Total float64 `bson:"total"`
+			}
+			if err := cur.Decode(&row); err != nil {
+				expensesErr = err
+				return
+			}
+			expensesTotal = row.Total
+		}
+	}()
+
+	wg.Wait()
+
+	if salesErr != nil {
+		return nil, salesErr
+	}
+	if cancelErr != nil {
+		return nil, cancelErr
+	}
+	if expensesErr != nil {
+		return nil, expensesErr
+	}
+
+	return &dto.DailyClosingResponse{
+		CashReceived:   salesRes.CashReceived,
+		CreditIssued:   salesRes.CreditIssued,
+		ExpensesPaid:   expensesTotal,
+		NetCash:        salesRes.CashReceived - expensesTotal,
+		TotalSales:     salesRes.TotalSales,
+		CancelledSales: cancelledCount,
+	}, nil
+}
+
+// ─── StaffPerformance ────────────────────────────────────────────────────────
+
+func (r *dashboardRepository) StaffPerformance(
+	ctx context.Context,
+	staffID primitive.ObjectID,
+	dayStart, dayEnd, weekStart, monthStart time.Time,
+) (*dto.StaffPerformanceResponse, error) {
+	salesCol := r.db.Collection("sales")
+
+	pipeline := mongo.Pipeline{
+		{{Key: "$match", Value: bson.M{
+			"staff_id": staffID,
+			"status":   bson.M{"$ne": "cancelled"},
+		}}},
+		{{Key: "$facet", Value: bson.M{
+			"today": bson.A{
+				bson.M{"$match": bson.M{"created_at": bson.M{"$gte": dayStart, "$lte": dayEnd}}},
+				bson.M{"$group": bson.M{"_id": nil, "count": bson.M{"$sum": 1}, "revenue": bson.M{"$sum": "$total_amount"}}},
+			},
+			"week": bson.A{
+				bson.M{"$match": bson.M{"created_at": bson.M{"$gte": weekStart, "$lte": dayEnd}}},
+				bson.M{"$group": bson.M{"_id": nil, "count": bson.M{"$sum": 1}, "revenue": bson.M{"$sum": "$total_amount"}}},
+			},
+			"month": bson.A{
+				bson.M{"$match": bson.M{"created_at": bson.M{"$gte": monthStart, "$lte": dayEnd}}},
+				bson.M{"$group": bson.M{"_id": nil, "count": bson.M{"$sum": 1}, "revenue": bson.M{"$sum": "$total_amount"}}},
+			},
+		}}},
+	}
+
+	cur, err := salesCol.Aggregate(ctx, pipeline, options.Aggregate().SetAllowDiskUse(true))
+	if err != nil {
+		return nil, err
+	}
+	defer cur.Close(ctx)
+
+	resp := &dto.StaffPerformanceResponse{}
+
+	if cur.Next(ctx) {
+		var facet struct {
+			Today []struct {
+				Count   int64   `bson:"count"`
+				Revenue float64 `bson:"revenue"`
+			} `bson:"today"`
+			Week []struct {
+				Count   int64   `bson:"count"`
+				Revenue float64 `bson:"revenue"`
+			} `bson:"week"`
+			Month []struct {
+				Count   int64   `bson:"count"`
+				Revenue float64 `bson:"revenue"`
+			} `bson:"month"`
+		}
+		if err := cur.Decode(&facet); err != nil {
+			return nil, err
+		}
+		if len(facet.Today) > 0 {
+			resp.TodaySales = facet.Today[0].Count
+			resp.TodayRevenue = facet.Today[0].Revenue
+		}
+		if len(facet.Week) > 0 {
+			resp.WeekSales = facet.Week[0].Count
+			resp.WeekRevenue = facet.Week[0].Revenue
+		}
+		if len(facet.Month) > 0 {
+			resp.MonthSales = facet.Month[0].Count
+			resp.MonthRevenue = facet.Month[0].Revenue
+		}
+	}
+
+	// Dues aggregation
+	duePipeline := mongo.Pipeline{
+		{{Key: "$match", Value: bson.M{"staff_id": staffID, "status": bson.M{"$ne": "cancelled"}, "balance": bson.M{"$gt": 0}}}},
+		{{Key: "$group", Value: bson.M{
+			"_id":            nil,
+			"customer_count": bson.M{"$sum": 1},
+			"total_dues":     bson.M{"$sum": "$balance"},
+		}}},
+	}
+
+	dueCur, err := salesCol.Aggregate(ctx, duePipeline)
+	if err != nil {
+		return nil, err
+	}
+	defer dueCur.Close(ctx)
+
+	if dueCur.Next(ctx) {
+		var dueRow struct {
+			CustomerCount int64   `bson:"customer_count"`
+			TotalDues     float64 `bson:"total_dues"`
+		}
+		if err := dueCur.Decode(&dueRow); err != nil {
+			return nil, err
+		}
+		resp.CustomersWithDues = dueRow.CustomerCount
+		resp.TotalDuesAmount = dueRow.TotalDues
+	}
+
+	return resp, nil
 }
 
 // ─── LowStockAlerts ──────────────────────────────────────────────────────────

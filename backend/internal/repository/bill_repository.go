@@ -102,6 +102,9 @@ func (r *billRepository) List(ctx context.Context, f dto.BillFilter) ([]*models.
 			bson.M{"customer_phone": bson.M{"$regex": regex}},
 		}
 	}
+	if f.CustomerPhone != "" {
+		filter["customer_phone"] = bson.M{"$regex": primitive.Regex{Pattern: regexutil.Escape(f.CustomerPhone), Options: "i"}}
+	}
 	// Date range filter on created_at using the app-wide DD-MM-YYYY IST format.
 	from, errFrom := dateutil.ParseDDMMYYYY(f.FromDate)
 	to, errTo := dateutil.ParseDDMMYYYY(f.ToDate)

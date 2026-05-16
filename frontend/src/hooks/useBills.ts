@@ -17,12 +17,13 @@ export const BILL_STATUS_LABELS: Record<BillStatus, string> = {
 }
 
 interface BillParams {
-  page?:      number
-  limit?:     number
-  status?:    BillStatus | ''
-  search?:    string
-  from_date?: string
-  to_date?:   string
+  page?:           number
+  limit?:          number
+  status?:         BillStatus | ''
+  search?:         string
+  from_date?:      string
+  to_date?:        string
+  customer_phone?: string
 }
 
 export function useBills(params?: BillParams) {

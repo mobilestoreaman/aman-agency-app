@@ -6,6 +6,7 @@ import (
 	"sync"
 	"time"
 
+	"aman-agency/backend/internal/dto"
 	"aman-agency/backend/internal/models"
 	"aman-agency/backend/pkg/pagination"
 	"aman-agency/backend/pkg/regexutil"
@@ -28,15 +29,18 @@ type VendorLedgerRepository interface {
 	Delete(ctx context.Context, id primitive.ObjectID) error
 	// HasEntriesByVendor returns true if the vendor has any ledger entries.
 	HasEntriesByVendor(ctx context.Context, vendorID primitive.ObjectID) (bool, error)
+	// Aging returns outstanding payables bucketed by age.
+	Aging(ctx context.Context) (*dto.VendorAgingResponse, error)
 }
 
 type vendorLedgerRepository struct {
 	col *mongo.Collection
+	db  *mongo.Database
 }
 
 // NewVendorLedgerRepository constructs a repository backed by the "vendor_ledgers" collection.
 func NewVendorLedgerRepository(db *mongo.Database) VendorLedgerRepository {
-	return &vendorLedgerRepository{col: db.Collection("vendor_ledgers")}
+	return &vendorLedgerRepository{col: db.Collection("vendor_ledgers"), db: db}
 }
 
 func (r *vendorLedgerRepository) Create(ctx context.Context, entry *models.VendorLedger) error {
@@ -231,4 +235,99 @@ func (r *vendorLedgerRepository) HasEntriesByVendor(ctx context.Context, vendorI
 		return false, err
 	}
 	return n > 0, nil
+}
+
+// Aging returns outstanding payables bucketed by age (0-30, 31-60, 60+ days).
+func (r *vendorLedgerRepository) Aging(ctx context.Context) (*dto.VendorAgingResponse, error) {
+	pipeline := mongo.Pipeline{
+		// Group by vendor to get running balance and oldest entry date
+		{{Key: "$group", Value: bson.M{
+			"_id":         "$vendor_id",
+			"balance":     bson.M{"$sum": "$amount"},
+			"oldest_date": bson.M{"$min": "$created_at"},
+		}}},
+		// Only vendors with outstanding (positive) balance
+		{{Key: "$match", Value: bson.M{"balance": bson.M{"$gt": 0}}}},
+		// Join vendor name
+		{{Key: "$lookup", Value: bson.M{
+			"from": "vendors", "localField": "_id",
+			"foreignField": "_id", "as": "vendor",
+		}}},
+		{{Key: "$unwind", Value: bson.M{"path": "$vendor", "preserveNullAndEmptyArrays": true}}},
+		{{Key: "$sort", Value: bson.D{{Key: "balance", Value: -1}}}},
+	}
+
+	cur, err := r.col.Aggregate(ctx, pipeline, options.Aggregate().SetAllowDiskUse(true))
+	if err != nil {
+		return nil, err
+	}
+	defer cur.Close(ctx)
+
+	type agingRow struct {
+		ID          interface{} `bson:"_id"`
+		Balance     float64     `bson:"balance"`
+		OldestDate  time.Time   `bson:"oldest_date"`
+		Vendor      struct {
+			Name string `bson:"name"`
+		} `bson:"vendor"`
+	}
+
+	bucketMap := map[string]*dto.VendorAgingBucket{
+		"0-30 days":  {Label: "0-30 days"},
+		"31-60 days": {Label: "31-60 days"},
+		"60+ days":   {Label: "60+ days"},
+	}
+
+	var vendors []dto.VendorAgingEntry
+
+	for cur.Next(ctx) {
+		var row agingRow
+		if err := cur.Decode(&row); err != nil {
+			return nil, err
+		}
+
+		vendorID := ""
+		if oid, ok := row.ID.(interface{ Hex() string }); ok {
+			vendorID = oid.Hex()
+		}
+
+		ageDays := int64(time.Since(row.OldestDate).Hours() / 24)
+		var bucket string
+		switch {
+		case ageDays <= 30:
+			bucket = "0-30 days"
+		case ageDays <= 60:
+			bucket = "31-60 days"
+		default:
+			bucket = "60+ days"
+		}
+
+		vendors = append(vendors, dto.VendorAgingEntry{
+			VendorID:   vendorID,
+			VendorName: row.Vendor.Name,
+			Balance:    row.Balance,
+			AgeDays:    ageDays,
+			Bucket:     bucket,
+		})
+
+		b := bucketMap[bucket]
+		b.VendorCount++
+		b.TotalOwed += row.Balance
+	}
+
+	buckets := []dto.VendorAgingBucket{
+		*bucketMap["0-30 days"],
+		*bucketMap["31-60 days"],
+		*bucketMap["60+ days"],
+	}
+
+	if vendors == nil {
+		vendors = []dto.VendorAgingEntry{}
+	}
+
+	return &dto.VendorAgingResponse{
+		AsOf:    time.Now().Format("02 Jan 2006"),
+		Buckets: buckets,
+		Vendors: vendors,
+	}, nil
 }

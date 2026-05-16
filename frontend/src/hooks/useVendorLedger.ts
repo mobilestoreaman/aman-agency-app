@@ -2,11 +2,13 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { toast } from 'sonner'
 import { vendorLedgerApi } from '@/api/vendorLedger'
 import { getApiError } from '@/utils/error'
+import { useIsAdmin } from '@/store/authStore'
 
 export const vendorLedgerKeys = {
   all:        ['vendor-ledger'] as const,
   list:       (p?: object) => [...vendorLedgerKeys.all, 'list', p] as const,
   byVendor:   (vendorId: string, p?: object) => [...vendorLedgerKeys.all, 'vendor', vendorId, p] as const,
+  aging:      () => [...vendorLedgerKeys.all, 'aging'] as const,
 }
 
 // Form-level entry type (maps to different API endpoints):
@@ -54,6 +56,16 @@ export interface AddVendorEntryPayload {
   amount:       number
   notes?:       string
   purchase_id?: string
+}
+
+export function useVendorLedgerAging() {
+  const isAdmin = useIsAdmin()
+  return useQuery({
+    queryKey: vendorLedgerKeys.aging(),
+    queryFn: () => vendorLedgerApi.aging().then(r => r.data.data),
+    enabled: isAdmin,
+    staleTime: 10 * 60 * 1000,
+  })
 }
 
 export function useAddVendorEntry() {

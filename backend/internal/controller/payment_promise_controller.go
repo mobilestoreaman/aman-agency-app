@@ -98,3 +98,19 @@ func (ctrl *PaymentPromiseController) MarkBroken(c *fiber.Ctx) error {
 	}
 	return response.OK(c, p)
 }
+
+// BulkMarkPaid handles POST /api/v1/payment-promises/bulk-paid
+func (ctrl *PaymentPromiseController) BulkMarkPaid(c *fiber.Ctx) error {
+	var req dto.BulkMarkPaidRequest
+	if err := c.BodyParser(&req); err != nil {
+		return apperror.BadRequest("invalid request body")
+	}
+	if err := appvalidator.Struct(req); err != nil {
+		return err
+	}
+	resp, err := ctrl.svc.BulkMarkPaid(c.Context(), req)
+	if err != nil {
+		return err
+	}
+	return response.OK(c, resp)
+}

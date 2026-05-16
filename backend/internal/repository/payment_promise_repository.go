@@ -27,6 +27,8 @@ type PaymentPromiseRepository interface {
 	// FindDueTodayUnnotified returns pending promises whose promised_date falls on
 	// today (in UTC) and for which a reminder notification has not yet been sent.
 	FindDueTodayUnnotified(ctx context.Context) ([]*models.PaymentPromise, error)
+	// BulkMarkPaid marks multiple pending/rescheduled promises as paid in one operation.
+	BulkMarkPaid(ctx context.Context, ids []primitive.ObjectID) (int64, error)
 }
 
 type paymentPromiseRepository struct {
@@ -178,6 +180,19 @@ func (r *paymentPromiseRepository) List(
 		promises = []*models.PaymentPromise{}
 	}
 	return promises, total, nil
+}
+
+// BulkMarkPaid marks multiple pending or rescheduled promises as paid.
+func (r *paymentPromiseRepository) BulkMarkPaid(ctx context.Context, ids []primitive.ObjectID) (int64, error) {
+	now := time.Now().UTC()
+	result, err := r.col.UpdateMany(ctx,
+		bson.M{"_id": bson.M{"$in": ids}, "status": bson.M{"$in": bson.A{"pending", "rescheduled"}}},
+		bson.M{"$set": bson.M{"status": "paid", "updated_at": now}},
+	)
+	if err != nil {
+		return 0, err
+	}
+	return result.ModifiedCount, nil
 }
 
 // FindDueTodayUnnotified returns pending promises whose promised_date is today (UTC)

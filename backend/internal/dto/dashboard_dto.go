@@ -2,6 +2,31 @@ package dto
 
 import "time"
 
+// DailyClosingResponse is the end-of-day cash summary.
+type DailyClosingResponse struct {
+	Date           string  `json:"date"`            // "02 Jan 2006"
+	CashReceived   float64 `json:"cash_received"`   // sum of amount_paid on today's non-cancelled sales
+	CreditIssued   float64 `json:"credit_issued"`   // sum of balance on today's non-cancelled sales
+	ExpensesPaid   float64 `json:"expenses_paid"`   // today's expenses total
+	NetCash        float64 `json:"net_cash"`         // cash_received - expenses_paid
+	TotalSales     int64   `json:"total_sales"`
+	CancelledSales int64   `json:"cancelled_sales"`
+}
+
+// StaffPerformanceResponse is the self-performance view for authenticated staff.
+type StaffPerformanceResponse struct {
+	StaffID           string  `json:"staff_id"`
+	StaffName         string  `json:"staff_name"`
+	TodaySales        int64   `json:"today_sales"`
+	TodayRevenue      float64 `json:"today_revenue"`
+	WeekSales         int64   `json:"week_sales"`
+	WeekRevenue       float64 `json:"week_revenue"`
+	MonthSales        int64   `json:"month_sales"`
+	MonthRevenue      float64 `json:"month_revenue"`
+	CustomersWithDues int64   `json:"customers_with_dues"`
+	TotalDuesAmount   float64 `json:"total_dues_amount"`
+}
+
 // ─── Dashboard ────────────────────────────────────────────────────────────────
 
 // TodaySalesSummary holds today's revenue snapshot in IST.
