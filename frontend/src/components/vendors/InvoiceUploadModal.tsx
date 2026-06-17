@@ -162,9 +162,6 @@ export default function InvoiceUploadModal({ open, onClose, onUploaded }: Props)
               <Badge variant="secondary" className="text-xs py-0">
                 {selectedOption?.label ?? mode}
               </Badge>
-              {mode === 'both' && (
-                <span className="text-amber-600">(takes ~30 s)</span>
-              )}
             </div>
           )}
         </div>
