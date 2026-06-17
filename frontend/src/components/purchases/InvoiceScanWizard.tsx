@@ -11,7 +11,7 @@ import { useState, useCallback, useRef, useEffect } from 'react'
 import {
   Upload, FileText, X, CheckCircle2, AlertCircle, Loader2,
   ChevronRight, ChevronLeft, Building2, ShoppingCart, ScanText,
-  Plus, Trash2, Search, UserPlus,
+  Plus, Trash2, Search, UserPlus, Camera, RotateCcw,
 } from 'lucide-react'
 import { Button }       from '@/components/ui/button'
 import { Badge }        from '@/components/ui/badge'
@@ -83,12 +83,79 @@ function StepIndicator({ current }: { current: WizardStep }) {
 
 // ─── Step 1: Upload ───────────────────────────────────────────────────────────
 
-function UploadStep({ onUploaded }: { onUploaded: (inv: VendorInvoice) => void }) {
-  const [file, setFile]         = useState<File | null>(null)
-  const [dragOver, setDragOver] = useState(false)
-  const inputRef                = useRef<HTMLInputElement>(null)
-  const upload                  = useUploadVendorInvoice('auto')
+type InputMode = 'file' | 'camera'
 
+function UploadStep({ onUploaded }: { onUploaded: (inv: VendorInvoice) => void }) {
+  const [inputMode, setInputMode]   = useState<InputMode>('file')
+  const [file, setFile]             = useState<File | null>(null)
+  const [dragOver, setDragOver]     = useState(false)
+  const [cameraError, setCameraError] = useState<string | null>(null)
+  const [streaming, setStreaming]   = useState(false)
+
+  const inputRef   = useRef<HTMLInputElement>(null)
+  const videoRef   = useRef<HTMLVideoElement>(null)
+  const streamRef  = useRef<MediaStream | null>(null)
+  const upload     = useUploadVendorInvoice('auto')
+
+  // ── Camera lifecycle ──────────────────────────────────────────
+  const startCamera = useCallback(async () => {
+    setCameraError(null)
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: { facingMode: 'environment', width: { ideal: 1920 }, height: { ideal: 1080 } },
+      })
+      streamRef.current = stream
+      if (videoRef.current) {
+        videoRef.current.srcObject = stream
+        videoRef.current.play()
+      }
+      setStreaming(true)
+    } catch {
+      setCameraError('Camera access denied or not available on this device.')
+    }
+  }, [])
+
+  const stopCamera = useCallback(() => {
+    streamRef.current?.getTracks().forEach((t) => t.stop())
+    streamRef.current = null
+    setStreaming(false)
+  }, [])
+
+  // Start/stop camera when tab switches
+  useEffect(() => {
+    if (inputMode === 'camera') {
+      startCamera()
+    } else {
+      stopCamera()
+    }
+    return () => stopCamera()
+  }, [inputMode])
+
+  // Stop camera as soon as a file is chosen (either mode)
+  useEffect(() => {
+    if (file) stopCamera()
+  }, [file])
+
+  const capturePhoto = () => {
+    const video = videoRef.current
+    if (!video) return
+    const canvas = document.createElement('canvas')
+    canvas.width  = video.videoWidth
+    canvas.height = video.videoHeight
+    canvas.getContext('2d')!.drawImage(video, 0, 0)
+    canvas.toBlob(
+      (blob) => {
+        if (!blob) return
+        const captured = new File([blob], `invoice-${Date.now()}.jpg`, { type: 'image/jpeg' })
+        setFile(captured)
+        stopCamera()
+      },
+      'image/jpeg',
+      0.92,
+    )
+  }
+
+  // ── File upload helpers ───────────────────────────────────────
   const handleFile = (f: File) => {
     if (f.size > MAX_MB * 1024 * 1024) { alert(`File exceeds ${MAX_MB} MB`); return }
     setFile(f)
@@ -103,16 +170,55 @@ function UploadStep({ onUploaded }: { onUploaded: (inv: VendorInvoice) => void }
     upload.mutate(file, { onSuccess: onUploaded })
   }
 
+  const resetFile = () => {
+    setFile(null)
+    upload.reset()
+    // Restart camera if still in camera mode
+    if (inputMode === 'camera') startCamera()
+  }
+
+  // ── Render ────────────────────────────────────────────────────
   return (
-    <div className="space-y-5">
+    <div className="space-y-4">
       <div className="space-y-1">
-        <h3 className="font-semibold text-base">Upload Invoice</h3>
+        <h3 className="font-semibold text-base">Add Invoice</h3>
         <p className="text-sm text-muted-foreground">
-          Upload a PDF, JPEG, or PNG of the vendor invoice. OCR will extract vendor details and line items.
+          Take a photo of the invoice or upload a file (PDF, JPEG, PNG).
         </p>
       </div>
 
-      {!file ? (
+      {/* Mode tabs */}
+      {!file && (
+        <div className="flex rounded-lg border p-1 bg-muted/40 gap-1">
+          <button
+            type="button"
+            onClick={() => setInputMode('file')}
+            className={[
+              'flex-1 flex items-center justify-center gap-2 rounded-md py-1.5 text-sm font-medium transition-colors',
+              inputMode === 'file'
+                ? 'bg-background shadow-sm text-foreground'
+                : 'text-muted-foreground hover:text-foreground',
+            ].join(' ')}
+          >
+            <Upload className="h-4 w-4" /> Upload File
+          </button>
+          <button
+            type="button"
+            onClick={() => setInputMode('camera')}
+            className={[
+              'flex-1 flex items-center justify-center gap-2 rounded-md py-1.5 text-sm font-medium transition-colors',
+              inputMode === 'camera'
+                ? 'bg-background shadow-sm text-foreground'
+                : 'text-muted-foreground hover:text-foreground',
+            ].join(' ')}
+          >
+            <Camera className="h-4 w-4" /> Take Photo
+          </button>
+        </div>
+      )}
+
+      {/* ── File upload panel ── */}
+      {inputMode === 'file' && !file && (
         <div
           className={[
             'flex flex-col items-center justify-center rounded-lg border-2 border-dashed',
@@ -132,18 +238,67 @@ function UploadStep({ onUploaded }: { onUploaded: (inv: VendorInvoice) => void }
           <input ref={inputRef} type="file" accept={ACCEPTED} className="hidden"
             onChange={(e) => { const f = e.target.files?.[0]; if (f) handleFile(f); e.target.value = '' }} />
         </div>
-      ) : (
-        <div className="flex items-center gap-3 rounded-lg border bg-muted/40 p-3">
-          <FileText className="h-8 w-8 shrink-0 text-primary" />
-          <div className="min-w-0 flex-1">
-            <p className="truncate text-sm font-medium">{file.name}</p>
-            <p className="text-xs text-muted-foreground">
-              {(file.size / 1024 / 1024).toFixed(2)} MB
-            </p>
+      )}
+
+      {/* ── Camera panel ── */}
+      {inputMode === 'camera' && !file && (
+        <div className="space-y-3">
+          {cameraError ? (
+            <div className="flex flex-col items-center gap-3 rounded-lg border border-red-200 bg-red-50 dark:bg-red-950/20 py-10 px-4 text-center">
+              <AlertCircle className="h-8 w-8 text-red-500" />
+              <p className="text-sm text-red-700 dark:text-red-400">{cameraError}</p>
+              <Button variant="outline" size="sm" onClick={startCamera}>
+                <RotateCcw className="mr-2 h-4 w-4" /> Retry
+              </Button>
+            </div>
+          ) : (
+            <div className="relative rounded-lg overflow-hidden bg-black aspect-video">
+              {/* eslint-disable-next-line jsx-a11y/media-has-caption */}
+              <video
+                ref={videoRef}
+                autoPlay
+                playsInline
+                muted
+                className="w-full h-full object-cover"
+              />
+              {!streaming && (
+                <div className="absolute inset-0 flex items-center justify-center">
+                  <Loader2 className="h-8 w-8 animate-spin text-white/70" />
+                </div>
+              )}
+              {/* Viewfinder overlay */}
+              <div className="absolute inset-0 pointer-events-none">
+                <div className="absolute inset-[12%] border-2 border-white/40 rounded-md" />
+              </div>
+            </div>
+          )}
+
+          {streaming && (
+            <Button className="w-full gap-2" onClick={capturePhoto}>
+              <Camera className="h-4 w-4" /> Capture Invoice
+            </Button>
+          )}
+        </div>
+      )}
+
+      {/* ── Selected / captured file preview ── */}
+      {file && (
+        <div className="space-y-3">
+          <div className="flex items-center gap-3 rounded-lg border bg-muted/40 p-3">
+            <FileText className="h-8 w-8 shrink-0 text-primary" />
+            <div className="min-w-0 flex-1">
+              <p className="truncate text-sm font-medium">{file.name}</p>
+              <p className="text-xs text-muted-foreground">
+                {(file.size / 1024 / 1024).toFixed(2)} MB
+                {file.name.startsWith('invoice-') && file.type === 'image/jpeg'
+                  ? ' · captured from camera'
+                  : ''}
+              </p>
+            </div>
+            <Button variant="ghost" size="icon" className="h-7 w-7 shrink-0" onClick={resetFile}>
+              <X className="h-4 w-4" />
+            </Button>
           </div>
-          <Button variant="ghost" size="icon" className="h-7 w-7 shrink-0" onClick={() => setFile(null)}>
-            <X className="h-4 w-4" />
-          </Button>
         </div>
       )}
 
@@ -156,7 +311,9 @@ function UploadStep({ onUploaded }: { onUploaded: (inv: VendorInvoice) => void }
 
       <div className="flex justify-end">
         <Button onClick={handleSubmit} disabled={!file || upload.isPending}>
-          {upload.isPending ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" />Uploading…</> : <>Upload &amp; Scan <ChevronRight className="ml-1 h-4 w-4" /></>}
+          {upload.isPending
+            ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" />Uploading…</>
+            : <>Scan Invoice <ChevronRight className="ml-1 h-4 w-4" /></>}
         </Button>
       </div>
     </div>
