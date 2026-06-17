@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Plus, Pencil, Trash2, Search, TrendingDown, PackageCheck, Download } from 'lucide-react'
+import { Plus, Pencil, Trash2, Search, TrendingDown, PackageCheck, Download, ScanText } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
@@ -12,7 +12,8 @@ import {
 import { ResponsiveTable, type Column } from '@/components/shared/ResponsiveTable'
 import PageHeader from '@/components/shared/PageHeader'
 import ConfirmDialog from '@/components/shared/ConfirmDialog'
-import PurchaseFormModal from '@/components/purchases/PurchaseFormModal'
+import PurchaseFormModal     from '@/components/purchases/PurchaseFormModal'
+import InvoiceScanWizard    from '@/components/purchases/InvoiceScanWizard'
 import { usePurchases, useDeletePurchase, useReceivePurchase } from '@/hooks/usePurchases'
 import { useVendors } from '@/hooks/useVendors'
 import { useIsAdmin } from '@/store/authStore'
@@ -46,6 +47,7 @@ export default function PurchasesPage() {
   const [fromDate, setFromDate]         = useState('')
   const [toDate, setToDate]             = useState('')
   const [formOpen, setFormOpen]         = useState(false)
+  const [scanOpen, setScanOpen]         = useState(false)
   const [editing, setEditing]           = useState<Purchase | null>(null)
   const [deleting, setDeleting]         = useState<Purchase | null>(null)
   const [receiving, setReceiving]       = useState<Purchase | null>(null)
@@ -256,9 +258,14 @@ export default function PurchasesPage() {
               </DropdownMenuContent>
             </DropdownMenu>
             {isAdmin && (
-              <Button onClick={openCreate} className="gap-1.5">
-                <Plus className="h-4 w-4" /> Record Purchase
-              </Button>
+              <>
+                <Button variant="outline" onClick={() => setScanOpen(true)} className="gap-1.5">
+                  <ScanText className="h-4 w-4" /> Scan Invoice
+                </Button>
+                <Button onClick={openCreate} className="gap-1.5">
+                  <Plus className="h-4 w-4" /> Record Purchase
+                </Button>
+              </>
             )}
           </div>
         }
@@ -379,6 +386,13 @@ export default function PurchasesPage() {
             : ''
         }
         confirmLabel="Delete purchase"
+      />
+
+      {/* Invoice scan wizard — opens from "Scan Invoice" button */}
+      <InvoiceScanWizard
+        open={scanOpen}
+        onClose={() => setScanOpen(false)}
+        onPurchaseCreated={() => setScanOpen(false)}
       />
     </div>
   )

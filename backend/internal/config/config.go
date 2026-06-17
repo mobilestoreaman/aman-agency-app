@@ -3,6 +3,8 @@ package config
 import (
 	"fmt"
 	"os"
+	"strconv"
+	"strings"
 	"time"
 
 	"github.com/joho/godotenv"
@@ -20,6 +22,23 @@ type Config struct {
 	PDF      PDFConfig
 	Upload   UploadConfig
 	CORS     CORSConfig
+	OCR      OCRConfig
+}
+
+// OCRConfig controls the invoice OCR pipeline.
+//
+// The engine is Tesseract — fully standalone, open-source, runs inside the
+// container with no internet access, subscriptions, or microservices needed.
+// Ensure the container has: tesseract-ocr tesseract-ocr-eng poppler-utils imagemagick
+type OCRConfig struct {
+	// TesseractLang is the Tesseract language code(s), e.g. "eng" or "eng+hin".
+	// Multiple languages are joined with "+". Default: "eng".
+	TesseractLang string // OCR_TESSERACT_LANG (default: eng)
+
+	// ── Quality thresholds ────────────────────────────────────────────────
+	AutoRetryThreshold  float64 // OCR_AUTO_RETRY_THRESHOLD  (default: 0.75)
+	AutoMergeThreshold  float64 // OCR_AUTO_MERGE_THRESHOLD  (default: 0.15)
+	ConfidenceThreshold float64 // OCR_CONFIDENCE_THRESHOLD  (default: 0.70)
 }
 
 type AppConfig struct {
@@ -125,6 +144,12 @@ func Load() (*Config, error) {
 	// ── CORS ─────────────────────────────────────────────────────────
 	cfg.CORS.AllowedOrigins = getEnv("CORS_ALLOWED_ORIGINS", "http://localhost")
 
+	// ── OCR (Tesseract — standalone, no subscriptions required) ─────────
+	cfg.OCR.TesseractLang = getEnv("OCR_TESSERACT_LANG", "eng")
+	cfg.OCR.AutoRetryThreshold = getEnvFloat("OCR_AUTO_RETRY_THRESHOLD", 0.75)
+	cfg.OCR.AutoMergeThreshold = getEnvFloat("OCR_AUTO_MERGE_THRESHOLD", 0.15)
+	cfg.OCR.ConfidenceThreshold = getEnvFloat("OCR_CONFIDENCE_THRESHOLD", 0.70)
+
 	return cfg, nil
 }
 
@@ -152,6 +177,30 @@ func mustGetEnv(key string) string {
 	return v
 }
 
+func getEnvFloat(key string, def float64) float64 {
+	v := os.Getenv(key)
+	if v == "" {
+		return def
+	}
+	f, err := strconv.ParseFloat(v, 64)
+	if err != nil {
+		return def
+	}
+	return f
+}
+
+func getEnvBool(key string, def bool) bool {
+	v := strings.ToLower(os.Getenv(key))
+	switch v {
+	case "1", "true", "yes":
+		return true
+	case "0", "false", "no":
+		return false
+	default:
+		return def
+	}
+}
+
 func parseDuration(key, fallback string) (time.Duration, error) {
 	raw := getEnv(key, fallback)
 	d, err := time.ParseDuration(raw)
@@ -160,4 +209,3 @@ func parseDuration(key, fallback string) (time.Duration, error) {
 	}
 	return d, nil
 }
-

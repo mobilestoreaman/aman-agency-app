@@ -4,10 +4,16 @@
 
 FROM golang:1.22
 
-# Install system utilities.
-# curl is required by the Air install script below.
+# Install system utilities and the standalone OCR stack.
+# tesseract-ocr      : open-source OCR engine — no API key or subscription needed.
+# tesseract-ocr-eng  : English language data (add -hin, -osd etc. for other languages).
+# poppler-utils      : pdftoppm converts PDF pages to JPEG at 300 DPI for OCR input.
+# imagemagick        : optional image enhancement (deskew, denoise, contrast boost).
 RUN apt-get update && apt-get install -y --no-install-recommends \
       curl git ca-certificates tzdata \
+      tesseract-ocr tesseract-ocr-eng \
+      poppler-utils \
+      imagemagick \
     && rm -rf /var/lib/apt/lists/*
 
 # Install Air using the official install script.

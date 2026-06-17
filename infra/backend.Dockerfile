@@ -40,7 +40,16 @@ FROM alpine:3.19
 RUN addgroup -S appgroup && adduser -S appuser -G appgroup
 
 # TLS certs + timezone data (needed for HTTPS outbound + time ops)
-RUN apk add --no-cache ca-certificates tzdata
+# Standalone OCR stack — no external API calls or subscriptions required:
+#   tesseract-ocr    : OCR engine binary + runtime libraries
+#   tesseract-ocr-eng: English language tessdata
+#   poppler-utils    : pdftoppm — converts PDF pages to JPEG for Tesseract
+#   imagemagick      : optional image enhancement (deskew, contrast, denoise)
+RUN apk add --no-cache \
+      ca-certificates tzdata \
+      tesseract-ocr tesseract-ocr-data-eng \
+      poppler-utils \
+      imagemagick
 
 WORKDIR /app
 

@@ -32,12 +32,11 @@ export default function VendorsPage() {
 
   const [page, setPage]       = useState(1)
   const [search, setSearch]   = useState('')
-  const [pendingOnly, setPendingOnly]   = useState(false)
-  const [formOpen, setFormOpen]         = useState(false)
-  const [editing, setEditing]           = useState<Vendor | null>(null)
-  const [deleting, setDeleting]         = useState<Vendor | null>(null)
-  const [activeVendor, setActiveVendor] = useState<ActiveVendor | null>(null)
-
+  const [pendingOnly, setPendingOnly]       = useState(false)
+  const [formOpen, setFormOpen]             = useState(false)
+  const [editing, setEditing]               = useState<Vendor | null>(null)
+  const [deleting, setDeleting]             = useState<Vendor | null>(null)
+  const [activeVendor, setActiveVendor]     = useState<ActiveVendor | null>(null)
   const q = useDebounce(search)
 
   const { data, isLoading } = useVendors({ page, limit: 15, search: q || undefined })
@@ -209,11 +208,13 @@ export default function VendorsPage() {
         title="Vendors"
         description="Manage suppliers you procure devices and accessories from."
         action={
-          isAdmin && (
-            <Button onClick={openCreate} className="gap-1.5">
-              <Plus className="h-4 w-4" /> Add Vendor
-            </Button>
-          )
+          <div className="flex items-center gap-2">
+            {isAdmin && (
+              <Button onClick={openCreate} className="gap-1.5">
+                <Plus className="h-4 w-4" /> Add Vendor
+              </Button>
+            )}
+          </div>
         }
       />
 
@@ -298,6 +299,7 @@ export default function VendorsPage() {
       />
 
       <VendorFormModal open={formOpen} onClose={() => setFormOpen(false)} vendor={editing} />
+
 
       <VendorLedgerEntryModal
         open={!!activeVendor}

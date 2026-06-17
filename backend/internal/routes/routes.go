@@ -13,6 +13,7 @@ import (
 	"aman-agency/backend/internal/service"
 	appjwt "aman-agency/backend/pkg/jwt"
 	"aman-agency/backend/platform/database"
+	"aman-agency/backend/platform/ocr"
 	"aman-agency/backend/platform/whatsapp"
 
 	"github.com/gofiber/fiber/v2"
@@ -621,6 +622,39 @@ func Setup(app *fiber.App, db *database.Client, cfg *config.Config) {
 		notifyCancel()
 		return nil
 	})
+
+	// ── Step 22: Vendor Invoices (OCR — standalone Tesseract) ───────────
+	// TesseractEngine is always enabled. It runs inside the container using the
+	// system tesseract binary — no API keys, subscriptions, or microservices needed.
+	tessEngine := ocr.NewTesseractEngine(
+		"Tesseract OCR (Standalone)",
+		"", // uses "tesseract" from PATH
+		cfg.OCR.TesseractLang,
+	)
+	ocrManager := ocr.NewManager(tessEngine, nil, ocr.ManagerConfig{
+		AutoRetryThreshold:  cfg.OCR.AutoRetryThreshold,
+		AutoMergeThreshold:  cfg.OCR.AutoMergeThreshold,
+		ConfidenceThreshold: cfg.OCR.ConfidenceThreshold,
+	})
+	ocrManager.RegisterEngine(ocr.ModeTesseract, tessEngine)
+	log.Info().Str("lang", cfg.OCR.TesseractLang).Msg("OCR: Tesseract standalone engine ready")
+
+	invoiceRepo := repository.NewVendorInvoiceRepository(db.DB)
+	// purchaseSvc is already wired above; pass it so invoices can create purchases
+	invoiceSvc := service.NewVendorInvoiceService(invoiceRepo, ocrManager, cfg.Upload.StoragePath, purchaseSvc)
+	invoiceCtrl := controller.NewVendorInvoiceController(invoiceSvc)
+
+	// IMPORTANT: static sub-paths (upload, engines) BEFORE /:id
+	invoicesAny := v1.Group("/vendor-invoices", middleware.Authenticate(jwtManager), middleware.AnyStaff())
+	invoicesAny.Get("/engines", invoiceCtrl.Engines)  // BEFORE /:id
+	invoicesAny.Post("/upload", invoiceCtrl.Upload)   // BEFORE /:id
+	invoicesAny.Get("", invoiceCtrl.List)
+	invoicesAny.Get("/:id", invoiceCtrl.GetByID)
+
+	invoicesAdmin := v1.Group("/vendor-invoices", middleware.Authenticate(jwtManager), middleware.AdminOnly())
+	// /:id/to-purchase MUST be registered before /:id so Fiber's trie matches the sub-path first
+	invoicesAdmin.Post("/:id/to-purchase", invoiceCtrl.CreatePurchaseFromInvoice)
+	invoicesAdmin.Delete("/:id", invoiceCtrl.Delete)
 
 	// ── 404 catch-all (must be last) ─────────────────────────────────
 	app.Use(func(c *fiber.Ctx) error {

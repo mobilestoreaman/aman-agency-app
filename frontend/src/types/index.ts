@@ -713,3 +713,133 @@ export interface VendorLedgerEntry {
   created_by: string
   created_at: string
 }
+
+
+// ── Vendor Invoices (OCR) ─────────────────────────────────────
+
+// OCR runs fully in-house using Tesseract — no subscriptions or external services.
+export type OCRMode = 'auto' | 'tesseract'
+
+export interface ExtractedField {
+  value: string
+  confidence: number
+  needs_review: boolean
+}
+
+export interface ExtractedLineItem {
+  description: ExtractedField
+  quantity: ExtractedField
+  unit_price: ExtractedField
+  amount: ExtractedField
+  hsn_code: ExtractedField
+  tax_rate: ExtractedField
+}
+
+export interface InvoiceExtraction {
+  vendor_name: ExtractedField
+  vendor_gstin: ExtractedField
+  vendor_phone: ExtractedField
+  vendor_address: ExtractedField
+  vendor_email: ExtractedField
+  invoice_number: ExtractedField
+  invoice_date: ExtractedField
+  due_date: ExtractedField
+  payment_terms: ExtractedField
+  subtotal: ExtractedField
+  cgst: ExtractedField
+  sgst: ExtractedField
+  igst: ExtractedField
+  tax_amount: ExtractedField
+  total_amount: ExtractedField
+  notes: ExtractedField
+  line_items: ExtractedLineItem[]
+  overall_confidence: number
+  low_confidence_count: number
+}
+
+export interface OCRMetrics {
+  mode: OCRMode
+  engine_used: string
+  processing_ms: number
+  retry_count: number
+  primary_confidence?: number
+  alternate_confidence?: number
+}
+
+export interface FieldConflict {
+  field: string
+  primary_value: string
+  alt_value: string
+  selected_value: string
+  selected_by: string
+  primary_conf: number
+  alt_conf: number
+}
+
+export interface OCRComparison {
+  primary_engine: string
+  alternate_engine: string
+  primary_confidence: number
+  alt_confidence: number
+  primary_time_ms: number
+  alt_time_ms: number
+  conflicts?: FieldConflict[]
+  auto_merged: boolean
+}
+
+export type InvoiceStatus = 'pending' | 'processing' | 'done' | 'failed' | 'needs_review'
+
+export interface VendorInvoice {
+  id: string
+  vendor_id?: string
+  purchase_id?: string
+  original_name: string
+  mime_type: string
+  file_size_bytes: number
+  status: InvoiceStatus
+  processing_error?: string
+  extraction?: InvoiceExtraction
+  ocr_metrics?: OCRMetrics
+  ocr_comparison?: OCRComparison
+  uploaded_by: string
+  created_at: string
+  updated_at: string
+}
+
+// ── Invoice-to-Purchase Wizard Types ─────────────────────────────
+
+/** One device line item as the admin fills it in during wizard review. */
+export interface WizardItem {
+  /** OCR-extracted raw description text */
+  description: string
+  /** Matched/selected product ID (objectId string) */
+  product_id: string
+  /** Product display label shown in UI */
+  product_label: string
+  imei1: string
+  imei2?: string
+  condition: 'new' | 'used' | 'refurbished'
+  color?: string
+  storage?: string
+  purchase_price: number
+  selling_price?: number
+}
+
+/** Payload for POST /vendor-invoices/:id/to-purchase */
+export interface CreatePurchaseFromInvoiceRequest {
+  vendor_id:    string
+  items:        InvoicePurchaseItemReq[]
+  notes?:       string
+  purchased_at?: string
+}
+
+export interface InvoicePurchaseItemReq {
+  product_id:     string
+  imei1:          string
+  imei2?:         string
+  condition:      string
+  color?:         string
+  storage?:       string
+  purchase_price: number
+  selling_price?: number
+}
