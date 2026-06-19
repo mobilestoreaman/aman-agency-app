@@ -16,13 +16,17 @@ interface AuthState {
   clearAuth: () => void
 }
 
-// Neither accessToken nor refreshToken is persisted to localStorage.
-// Both live in memory only so XSS cannot exfiltrate usable tokens.
-// Only the lightweight user object and isAuthenticated flag are persisted
-// so that the UI can show the user's name/role on reload without a round-trip.
-// On page load the app immediately calls /auth/refresh (with the httpOnly
-// cookie or in-memory refresh token from the last active tab) to re-issue
-// the access token before any authenticated API call fires.
+// accessToken lives in memory only (never persisted) — it's short-lived and
+// re-issued from the refresh token on every page load, so there is no benefit
+// to storing it and some risk if it were persisted.
+//
+// refreshToken IS persisted to localStorage so that page refreshes don't
+// silently log the user out. This is a deliberate trade-off: localStorage is
+// readable by any same-origin JS (XSS risk), but the alternative — losing the
+// session on every reload — is unacceptable UX. The proper long-term fix is to
+// store the refresh token in an httpOnly cookie set by the backend, which would
+// make it invisible to JavaScript entirely. Until that backend change is made,
+// localStorage is the pragmatic choice.
 export const useAuthStore = create<AuthState>()(
   persist(
     (set) => ({
@@ -49,14 +53,13 @@ export const useAuthStore = create<AuthState>()(
     }),
     {
       name: 'aman-auth',
-      // Persist only the user profile and auth flag — never tokens.
-      // Persisting a refresh token in localStorage exposes it to XSS; an
-      // attacker who injects a script can read it and mint fresh access tokens
-      // indefinitely. The memory-only refresh token is acceptable because it is
-      // cleared on tab/window close and cannot be read cross-origin.
+      // Persist user profile, auth flag, and refresh token.
+      // accessToken is intentionally excluded — it's memory-only and re-issued
+      // from the refresh token by the 401 interceptor on every page load.
       partialize: (state) => ({
         user: state.user,
         isAuthenticated: state.isAuthenticated,
+        refreshToken: state.refreshToken,
       }),
     },
   ),

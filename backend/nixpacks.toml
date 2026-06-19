@@ -1,0 +1,11 @@
+# Nixpacks configuration for Railway deployment
+# Installs system packages required for standalone OCR (Tesseract) and PDF processing.
+# These are installed into the runtime image alongside the Go binary.
+
+[phases.setup]
+aptPkgs = [
+  "tesseract-ocr",
+  "tesseract-ocr-eng",
+  "poppler-utils",
+  "imagemagick",
+]
