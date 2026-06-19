@@ -45,11 +45,12 @@ RUN addgroup -S appgroup && adduser -S appuser -G appgroup
 #   tesseract-ocr-eng: English language tessdata
 #   poppler-utils    : pdftoppm — converts PDF pages to JPEG for Tesseract
 #   imagemagick      : optional image enhancement (deskew, contrast, denoise)
-RUN apk add --no-cache \
+RUN apk update && apk add --no-cache \
       ca-certificates tzdata \
       tesseract-ocr tesseract-ocr-data-eng \
       poppler-utils \
-      imagemagick
+      imagemagick && \
+    tesseract --version
 
 WORKDIR /app
 
