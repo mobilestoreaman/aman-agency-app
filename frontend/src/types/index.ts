@@ -717,8 +717,10 @@ export interface VendorLedgerEntry {
 
 // ── Vendor Invoices (OCR) ─────────────────────────────────────
 
-// OCR runs fully in-house using Tesseract — no subscriptions or external services.
-export type OCRMode = 'auto' | 'tesseract'
+// OCR runs fully in-house — no subscriptions or external services required.
+// 'paddleocr' uses the Python ocr-service container (set OCR_SERVICE_URL env).
+// Falls back to Tesseract automatically when the service is unreachable.
+export type OCRMode = 'auto' | 'tesseract' | 'paddleocr'
 
 export interface ExtractedField {
   value: string
@@ -733,6 +735,11 @@ export interface ExtractedLineItem {
   amount: ExtractedField
   hsn_code: ExtractedField
   tax_rate: ExtractedField
+  // Device-specific (populated for smartphone/electronics invoices)
+  imei?: ExtractedField
+  model_code?: ExtractedField
+  color?: ExtractedField
+  storage?: ExtractedField
 }
 
 export interface InvoiceExtraction {
@@ -810,7 +817,7 @@ export interface VendorInvoice {
 
 /** One device line item as the admin fills it in during wizard review. */
 export interface WizardItem {
-  /** OCR-extracted raw description text */
+  /** OCR-extracted raw description text (from invoice line item) */
   description: string
   /** Matched/selected product ID (objectId string) */
   product_id: string
@@ -823,6 +830,10 @@ export interface WizardItem {
   storage?: string
   purchase_price: number
   selling_price?: number
+  /** OCR-extracted quantity (display only, for admin reference) */
+  ocr_qty?: string
+  /** OCR-extracted HSN code (display only) */
+  ocr_hsn?: string
 }
 
 /** Payload for POST /vendor-invoices/:id/to-purchase */

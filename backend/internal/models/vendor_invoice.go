@@ -33,6 +33,11 @@ type ExtractedLineItem struct {
 	Amount      ExtractedField `bson:"amount"      json:"amount"`
 	HSNCode     ExtractedField `bson:"hsn_code"    json:"hsn_code"`
 	TaxRate     ExtractedField `bson:"tax_rate"    json:"tax_rate"`
+	// Device-specific fields — populated for smartphone / electronics invoices
+	IMEI      ExtractedField `bson:"imei"       json:"imei"`
+	ModelCode ExtractedField `bson:"model_code" json:"model_code"`
+	Color     ExtractedField `bson:"color"      json:"color"`
+	Storage   ExtractedField `bson:"storage"    json:"storage"`
 }
 
 // InvoiceExtractionResult is the structured output from any OCR engine.

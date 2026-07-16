@@ -623,21 +623,39 @@ func Setup(app *fiber.App, db *database.Client, cfg *config.Config) {
 		return nil
 	})
 
-	// ── Step 22: Vendor Invoices (OCR — standalone Tesseract) ───────────
-	// TesseractEngine is always enabled. It runs inside the container using the
-	// system tesseract binary — no API keys, subscriptions, or microservices needed.
+	// ── Step 22: Vendor Invoices (OCR) ─────────────────────────────────
+	// TesseractEngine is always available as a standalone fallback.
+	// When OCR_SERVICE_URL is set, RemoteEngine (PaddleOCR) becomes the
+	// primary engine and falls back to Tesseract automatically if unreachable.
 	tessEngine := ocr.NewTesseractEngine(
 		"Tesseract OCR (Standalone)",
 		"", // uses "tesseract" from PATH
 		cfg.OCR.TesseractLang,
 	)
-	ocrManager := ocr.NewManager(tessEngine, nil, ocr.ManagerConfig{
+
+	managerCfg := ocr.ManagerConfig{
 		AutoRetryThreshold:  cfg.OCR.AutoRetryThreshold,
 		AutoMergeThreshold:  cfg.OCR.AutoMergeThreshold,
 		ConfidenceThreshold: cfg.OCR.ConfidenceThreshold,
-	})
+	}
+
+	var primaryEngine ocr.Engine = tessEngine
+	if cfg.OCR.ServiceURL != "" {
+		// PaddleOCR microservice is available — use it as primary with Tesseract fallback.
+		remoteEngine := ocr.NewRemoteEngine(cfg.OCR.ServiceURL, tessEngine, nil)
+		primaryEngine = remoteEngine
+		log.Info().
+			Str("url", cfg.OCR.ServiceURL).
+			Msg("OCR: PaddleOCR remote engine registered as primary (Tesseract fallback enabled)")
+	} else {
+		log.Info().Str("lang", cfg.OCR.TesseractLang).Msg("OCR: Tesseract standalone engine ready (set OCR_SERVICE_URL to enable PaddleOCR)")
+	}
+
+	ocrManager := ocr.NewManager(primaryEngine, nil, managerCfg)
 	ocrManager.RegisterEngine(ocr.ModeTesseract, tessEngine)
-	log.Info().Str("lang", cfg.OCR.TesseractLang).Msg("OCR: Tesseract standalone engine ready")
+	if cfg.OCR.ServiceURL != "" {
+		ocrManager.RegisterEngine(ocr.ModePaddleOCR, primaryEngine)
+	}
 
 	invoiceRepo := repository.NewVendorInvoiceRepository(db.DB)
 	// purchaseSvc is already wired above; pass it so invoices can create purchases

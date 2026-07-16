@@ -1,0 +1,28 @@
+# Python bytecode — never copy compiled cache into Docker images
+**/__pycache__/
+**/*.pyc
+**/*.pyo
+**/*.pyd
+
+# Virtual environments
+.venv/
+venv/
+env/
+
+# IDE and OS
+.DS_Store
+.git/
+.gitignore
+*.swp
+*.swo
+
+# Logs
+*.log
+
+# Test artifacts
+**/.pytest_cache/
+**/htmlcov/
+**/.coverage
+
+# Node
+node_modules/

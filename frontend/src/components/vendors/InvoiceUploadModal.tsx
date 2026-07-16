@@ -1,5 +1,5 @@
 import { useCallback, useRef, useState } from 'react'
-import { Upload, FileText, X, Zap, ScanText } from 'lucide-react'
+import { Upload, FileText, X, Zap, ScanText, Cpu } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import {
@@ -22,10 +22,11 @@ interface Props {
 const ACCEPTED = '.pdf,.jpg,.jpeg,.png'
 const MAX_MB = 20
 
-// Standalone OCR — Tesseract runs entirely in-house, no subscription needed.
+// All OCR engines run entirely in-house — no subscription or external service.
 const MODE_ICONS: Record<OCRMode, React.ElementType> = {
-  auto:      Zap,
-  tesseract: ScanText,
+  auto:       Zap,
+  paddleocr:  Cpu,
+  tesseract:  ScanText,
 }
 
 export default function InvoiceUploadModal({ open, onClose, onUploaded }: Props) {

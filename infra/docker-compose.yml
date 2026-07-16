@@ -25,6 +25,8 @@ volumes:
     driver: local
   certbot_www:      # ACME challenge webroot
     driver: local
+  paddle_models:    # Pre-downloaded PaddleOCR / PP-Structure model weights
+    driver: local
 
 # ── Shared network ────────────────────────────────────────────
 networks:
@@ -73,6 +75,37 @@ services:
     # ports:
     #   - "27017:27017"
 
+  # ── PaddleOCR Microservice ────────────────────────────────
+  # Standalone Python service — no paid APIs, no subscriptions.
+  # The Go backend calls this at http://ocr-service:8001/extract.
+  # Set OCR_SERVICE_URL=http://ocr-service:8001 in infra/.env to enable.
+  # Omit or set OCR_SERVICE_URL="" to use Tesseract-only mode.
+  ocr-service:
+    build:
+      context: ..
+      dockerfile: ocr-service/Dockerfile
+    container_name: aman_ocr_service
+    restart: unless-stopped
+    networks:
+      - app_net
+    volumes:
+      # PaddleOCR always downloads models to ~/.paddleocr (= /home/ocr/.paddleocr
+      # for the non-root "ocr" user).  Mounting the volume there ensures the
+      # ~700 MB det+rec weights survive container rebuilds and are only
+      # downloaded once.  The old /opt/paddleocr mount was wrong — it was never
+      # written to, so models re-downloaded every cold start and failed.
+      - paddle_models:/home/ocr/.paddleocr
+    deploy:
+      resources:
+        limits:
+          memory: 1536M   # PaddleOCR needs ~1–1.2 GB peak on CPU
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8001/health')"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 120s   # model warm-up can take 90 s on first launch
+
   # ── Go Fiber Backend ───────────────────────────────────────
   backend:
     build:
@@ -92,6 +125,8 @@ services:
     depends_on:
       mongo:
         condition: service_healthy
+      ocr-service:
+        condition: service_started   # RemoteEngine falls back to Tesseract if unhealthy
     networks:
       - app_net
     healthcheck:

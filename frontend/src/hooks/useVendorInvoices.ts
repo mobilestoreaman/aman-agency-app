@@ -28,17 +28,22 @@ export const INVOICE_STATUS_COLORS: Record<InvoiceStatus, string> = {
   needs_review: 'text-amber-600',
 }
 
-// Standalone OCR modes — Tesseract runs entirely in-house, no API key required.
+// Standalone OCR modes — all engines run entirely in-house, no subscriptions required.
 export const OCR_MODE_OPTIONS: { value: OCRMode; label: string; description: string }[] = [
   {
     value: 'auto',
     label: 'Auto (Recommended)',
-    description: 'Standalone Tesseract OCR — processes invoices in-house with no internet or subscription needed.',
+    description: 'Uses the best available engine — PaddleOCR when running, Tesseract otherwise. No external service.',
+  },
+  {
+    value: 'paddleocr',
+    label: 'PaddleOCR (Accurate)',
+    description: 'Deep-learning OCR with table detection and layout analysis. Best for Indian GST invoices.',
   },
   {
     value: 'tesseract',
-    label: 'Tesseract OCR',
-    description: 'Open-source OCR engine running entirely inside the server — no external service required.',
+    label: 'Tesseract OCR (Fast)',
+    description: 'Open-source OCR engine running entirely inside the server — lightweight and always available.',
   },
 ]
 

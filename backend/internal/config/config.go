@@ -27,13 +27,21 @@ type Config struct {
 
 // OCRConfig controls the invoice OCR pipeline.
 //
-// The engine is Tesseract — fully standalone, open-source, runs inside the
-// container with no internet access, subscriptions, or microservices needed.
+// The primary engine is configured via OCR_SERVICE_URL:
+//   - When set:   RemoteEngine calls the Python PaddleOCR microservice (ocr-service)
+//                 and falls back to TesseractEngine automatically if unreachable.
+//   - When unset: TesseractEngine only (fully standalone, no microservice required).
+//
 // Ensure the container has: tesseract-ocr tesseract-ocr-eng poppler-utils imagemagick
 type OCRConfig struct {
 	// TesseractLang is the Tesseract language code(s), e.g. "eng" or "eng+hin".
 	// Multiple languages are joined with "+". Default: "eng".
 	TesseractLang string // OCR_TESSERACT_LANG (default: eng)
+
+	// ServiceURL is the base URL of the Python OCR microservice.
+	// When non-empty, RemoteEngine (PaddleOCR) is registered as primary engine.
+	// Empty string → Tesseract only.
+	ServiceURL string // OCR_SERVICE_URL (default: "")
 
 	// ── Quality thresholds ────────────────────────────────────────────────
 	AutoRetryThreshold  float64 // OCR_AUTO_RETRY_THRESHOLD  (default: 0.75)
@@ -144,11 +152,12 @@ func Load() (*Config, error) {
 	// ── CORS ─────────────────────────────────────────────────────────
 	cfg.CORS.AllowedOrigins = getEnv("CORS_ALLOWED_ORIGINS", "http://localhost")
 
-	// ── OCR (Tesseract — standalone, no subscriptions required) ─────────
-	cfg.OCR.TesseractLang = getEnv("OCR_TESSERACT_LANG", "eng")
-	cfg.OCR.AutoRetryThreshold = getEnvFloat("OCR_AUTO_RETRY_THRESHOLD", 0.75)
-	cfg.OCR.AutoMergeThreshold = getEnvFloat("OCR_AUTO_MERGE_THRESHOLD", 0.15)
-	cfg.OCR.ConfidenceThreshold = getEnvFloat("OCR_CONFIDENCE_THRESHOLD", 0.70)
+	// ── OCR ──────────────────────────────────────────────────────────────
+	cfg.OCR.TesseractLang        = getEnv("OCR_TESSERACT_LANG", "eng")
+	cfg.OCR.ServiceURL           = getEnv("OCR_SERVICE_URL", "")  // empty → Tesseract only
+	cfg.OCR.AutoRetryThreshold   = getEnvFloat("OCR_AUTO_RETRY_THRESHOLD", 0.75)
+	cfg.OCR.AutoMergeThreshold   = getEnvFloat("OCR_AUTO_MERGE_THRESHOLD", 0.15)
+	cfg.OCR.ConfidenceThreshold  = getEnvFloat("OCR_CONFIDENCE_THRESHOLD", 0.70)
 
 	return cfg, nil
 }

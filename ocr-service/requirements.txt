@@ -1,0 +1,24 @@
+# ── Web framework ─────────────────────────────────────────────────────────────
+fastapi==0.111.0
+uvicorn[standard]==0.30.1
+
+# ── OCR ───────────────────────────────────────────────────────────────────────
+paddlepaddle==2.6.2
+paddleocr==2.7.3
+
+# ── Computer vision ───────────────────────────────────────────────────────────
+opencv-python-headless==4.9.0.80
+Pillow==10.3.0
+numpy==1.26.4
+
+# ── PDF rasterisation ─────────────────────────────────────────────────────────
+PyMuPDF==1.24.3
+
+# ── Tesseract Python binding (fallback) ───────────────────────────────────────
+pytesseract==0.3.13
+
+# ── Fuzzy matching (column header synonym matching) ───────────────────────────
+rapidfuzz==3.9.3
+
+# ── Data validation ───────────────────────────────────────────────────────────
+pydantic==2.7.1

@@ -1,9 +1,9 @@
-// Package ocr provides a standalone invoice OCR pipeline powered entirely by
-// Tesseract, an open-source OCR engine that runs inside the container with no
-// external API calls, subscriptions, or microservices required.
+// Package ocr provides a standalone invoice OCR pipeline with no paid APIs.
 //
 // Supported engines:
-//   - TesseractEngine: Tesseract CLI (raw text → InvoiceTextParser → structured fields)
+//   - TesseractEngine:  Tesseract CLI (raw text → InvoiceTextParser → structured fields)
+//   - RemoteEngine:     Delegates to the Python PaddleOCR microservice (ocr-service:8001)
+//                       with transparent fallback to TesseractEngine when unreachable
 //
 // All engines implement the Engine interface and are composed by Manager.
 // Adding a new engine requires only implementing Engine — no other changes needed.
@@ -32,12 +32,16 @@ const (
 
 	// ModeTesseract explicitly selects the Tesseract standalone engine.
 	ModeTesseract OCRMode = "tesseract"
+
+	// ModePaddleOCR selects the Python PaddleOCR microservice (RemoteEngine).
+	// Falls back to TesseractEngine automatically if the service is unreachable.
+	ModePaddleOCR OCRMode = "paddleocr"
 )
 
 // ParseMode converts a raw string to OCRMode, defaulting to ModeAuto.
 func ParseMode(s string) OCRMode {
 	switch OCRMode(s) {
-	case ModePrimary, ModeTesseract:
+	case ModePrimary, ModeTesseract, ModePaddleOCR:
 		return OCRMode(s)
 	default:
 		return ModeAuto

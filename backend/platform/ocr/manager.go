@@ -85,7 +85,15 @@ func (m *Manager) Process(ctx context.Context, mode OCRMode, fileBytes []byte, m
 			eng = m.primary
 		}
 		return m.runSingle(ctx, start, mode, eng, fileBytes, mimeType)
-	default: // ModeAuto, ModePrimary — use primary (Tesseract standalone)
+	case ModePaddleOCR:
+		// Explicit PaddleOCR selection: look up named registration.
+		// If not registered, auto mode handles it (PaddleOCR may be primary).
+		eng, ok := m.named[string(ModePaddleOCR)]
+		if !ok || eng == nil {
+			eng = m.primary // transparent fallback to whatever primary is
+		}
+		return m.runSingle(ctx, start, mode, eng, fileBytes, mimeType)
+	default: // ModeAuto, ModePrimary — use primary
 		return m.runAuto(ctx, start, fileBytes, mimeType)
 	}
 }
@@ -271,14 +279,21 @@ func (m *Manager) runBoth(ctx context.Context, start time.Time, fileBytes []byte
 // AvailableEngines returns a map of mode → engine name for all registered engines.
 // Used by the frontend to know which modes are available.
 func (m *Manager) AvailableEngines() map[string]string {
-	engineName := "Tesseract OCR (Standalone)"
+	primaryName := "Tesseract OCR (Standalone)"
 	if m.primary != nil {
-		engineName = m.primary.Name()
+		primaryName = m.primary.Name()
 	}
-	return map[string]string{
+	result := map[string]string{
 		"auto":      "Auto (Recommended)",
-		"tesseract": engineName,
+		"tesseract": "Tesseract OCR (Standalone)",
 	}
+	// Override auto description with primary engine name
+	result["auto"] = "Auto — " + primaryName
+	// Expose PaddleOCR mode if it was registered
+	if eng, ok := m.named[string(ModePaddleOCR)]; ok && eng != nil {
+		result[string(ModePaddleOCR)] = eng.Name()
+	}
+	return result
 }
 
 // toOCRMetrics converts a ProcessResult into the OCRMetrics model for DB storage.
