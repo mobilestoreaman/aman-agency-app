@@ -2,10 +2,11 @@ import { apiClient } from './client'
 import type { ApiResponse, PaginatedResponse, VendorInvoice, OCRMode, CreatePurchaseFromInvoiceRequest, Purchase } from '@/types'
 
 export interface VendorInvoiceListParams {
-  vendor_id?: string
-  status?: string
-  page?: number
-  limit?: number
+  vendor_id?:   string
+  purchase_id?: string
+  status?:      string
+  page?:        number
+  limit?:       number
 }
 
 export const vendorInvoicesApi = {
@@ -45,4 +46,18 @@ export const vendorInvoicesApi = {
    */
   createPurchaseFromInvoice: (invoiceId: string, req: CreatePurchaseFromInvoiceRequest) =>
     apiClient.post<ApiResponse<Purchase>>(`/vendor-invoices/${invoiceId}/to-purchase`, req),
+
+  /**
+   * Link a reference photo invoice to an existing purchase.
+   * Called by the manual purchase wizard after creating the purchase.
+   */
+  linkPurchase: (invoiceId: string, purchaseId: string) =>
+    apiClient.patch<ApiResponse<{ linked: boolean }>>(`/vendor-invoices/${invoiceId}/link-purchase`, { purchase_id: purchaseId }),
+
+  /**
+   * Returns the URL to stream the raw invoice file (image or PDF).
+   * Use as <img src=...> for images or open in a new tab for PDFs.
+   * The backend serves it with auth so we must use the /api path with credentials.
+   */
+  fileUrl: (invoiceId: string) => `/api/v1/vendor-invoices/${invoiceId}/file`,
 }

@@ -32,6 +32,11 @@ type VendorInvoiceService interface {
 	// CreatePurchaseFromInvoice converts a completed invoice into a purchase record.
 	// It calls PurchaseService.Create and then links the invoice to the new purchase.
 	CreatePurchaseFromInvoice(ctx context.Context, invoiceID string, req dto.CreatePurchaseFromInvoiceRequest) (*dto.PurchaseResponse, error)
+	// LinkPurchase writes purchaseID onto the invoice document.
+	// Used by the manual purchase wizard after creating a purchase from a reference photo.
+	LinkPurchase(ctx context.Context, invoiceID, purchaseID string) error
+	// ViewFile reads the stored invoice file from disk and returns (bytes, mimeType).
+	ViewFile(ctx context.Context, id string) ([]byte, string, error)
 }
 
 type vendorInvoiceService struct {
@@ -206,6 +211,40 @@ func (s *vendorInvoiceService) Delete(ctx context.Context, id string) error {
 		return apperror.BadRequest("invalid invoice ID")
 	}
 	return s.repo.Delete(ctx, oid)
+}
+
+// LinkPurchase writes purchaseID onto the invoice so it can be found from a purchase.
+func (s *vendorInvoiceService) LinkPurchase(ctx context.Context, invoiceID, purchaseID string) error {
+	invOID, err := primitive.ObjectIDFromHex(invoiceID)
+	if err != nil {
+		return apperror.BadRequest("invalid invoice ID")
+	}
+	purOID, err := primitive.ObjectIDFromHex(purchaseID)
+	if err != nil {
+		return apperror.BadRequest("invalid purchase ID")
+	}
+	return s.repo.SetPurchaseID(ctx, invOID, purOID)
+}
+
+// ViewFile reads the stored invoice file from disk and returns its bytes and MIME type.
+func (s *vendorInvoiceService) ViewFile(ctx context.Context, id string) ([]byte, string, error) {
+	oid, err := primitive.ObjectIDFromHex(id)
+	if err != nil {
+		return nil, "", apperror.BadRequest("invalid invoice ID")
+	}
+	inv, err := s.repo.FindByID(ctx, oid)
+	if err != nil {
+		return nil, "", err
+	}
+	data, err := os.ReadFile(inv.StoredPath)
+	if err != nil {
+		return nil, "", apperror.Internal(fmt.Errorf("read invoice file: %w", err))
+	}
+	mimeType := inv.MimeType
+	if mimeType == "" {
+		mimeType = "application/octet-stream"
+	}
+	return data, mimeType, nil
 }
 
 // AvailableEngines returns the set of OCR engines configured on this server.

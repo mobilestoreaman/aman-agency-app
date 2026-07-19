@@ -664,14 +664,16 @@ func Setup(app *fiber.App, db *database.Client, cfg *config.Config) {
 
 	// IMPORTANT: static sub-paths (upload, engines) BEFORE /:id
 	invoicesAny := v1.Group("/vendor-invoices", middleware.Authenticate(jwtManager), middleware.AnyStaff())
-	invoicesAny.Get("/engines", invoiceCtrl.Engines)  // BEFORE /:id
-	invoicesAny.Post("/upload", invoiceCtrl.Upload)   // BEFORE /:id
+	invoicesAny.Get("/engines", invoiceCtrl.Engines)       // BEFORE /:id
+	invoicesAny.Post("/upload", invoiceCtrl.Upload)        // BEFORE /:id
 	invoicesAny.Get("", invoiceCtrl.List)
 	invoicesAny.Get("/:id", invoiceCtrl.GetByID)
+	invoicesAny.Get("/:id/file", invoiceCtrl.ViewFile)     // stream raw file (image/PDF)
 
 	invoicesAdmin := v1.Group("/vendor-invoices", middleware.Authenticate(jwtManager), middleware.AdminOnly())
-	// /:id/to-purchase MUST be registered before /:id so Fiber's trie matches the sub-path first
+	// sub-paths MUST be registered before /:id so Fiber's trie matches them first
 	invoicesAdmin.Post("/:id/to-purchase", invoiceCtrl.CreatePurchaseFromInvoice)
+	invoicesAdmin.Patch("/:id/link-purchase", invoiceCtrl.LinkPurchase)  // link ref photo to purchase
 	invoicesAdmin.Delete("/:id", invoiceCtrl.Delete)
 
 	// ── 404 catch-all (must be last) ─────────────────────────────────

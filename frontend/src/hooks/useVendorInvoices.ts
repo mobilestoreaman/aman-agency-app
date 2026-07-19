@@ -48,10 +48,11 @@ export const OCR_MODE_OPTIONS: { value: OCRMode; label: string; description: str
 ]
 
 interface InvoiceListParams {
-  vendor_id?: string
-  status?: string
-  page?: number
-  limit?: number
+  vendor_id?:   string
+  purchase_id?: string
+  status?:      string
+  page?:        number
+  limit?:       number
 }
 
 export function useVendorInvoices(params?: InvoiceListParams) {
@@ -108,6 +109,40 @@ export function useAvailableOCREngines() {
     queryKey: invoiceKeys.engines(),
     queryFn: () => vendorInvoicesApi.getEngines().then((r) => r.data.data ?? {}),
     staleTime: Infinity, // engine list doesn't change at runtime
+  })
+}
+
+/**
+ * Finds the reference photo invoice linked to a purchase.
+ * Returns undefined when the purchase has no linked invoice.
+ */
+export function useInvoiceByPurchaseId(purchaseId: string | undefined) {
+  return useQuery({
+    queryKey: invoiceKeys.list({ purchase_id: purchaseId }),
+    queryFn: () =>
+      vendorInvoicesApi.list({ purchase_id: purchaseId, limit: 1 })
+        .then((r) => r.data.data?.[0] ?? null),
+    enabled: !!purchaseId,
+    staleTime: 60_000,
+  })
+}
+
+/**
+ * Links a reference photo invoice to an existing purchase.
+ * Called after the manual purchase wizard creates the purchase.
+ */
+export function useLinkInvoicePurchase() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: ({ invoiceId, purchaseId }: { invoiceId: string; purchaseId: string }) =>
+      vendorInvoicesApi.linkPurchase(invoiceId, purchaseId),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: invoiceKeys.all })
+    },
+    // Silent — this is a background linking step, don't toast on failure
+    onError: (err) => {
+      console.warn('Failed to link invoice to purchase:', getApiError(err))
+    },
   })
 }
 

@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Plus, Pencil, Trash2, Search, TrendingDown, PackageCheck, Download, ScanText } from 'lucide-react'
+import { Plus, Pencil, Trash2, Search, TrendingDown, PackageCheck, Download, ClipboardList } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
@@ -14,6 +14,7 @@ import PageHeader from '@/components/shared/PageHeader'
 import ConfirmDialog from '@/components/shared/ConfirmDialog'
 import PurchaseFormModal     from '@/components/purchases/PurchaseFormModal'
 import InvoiceScanWizard    from '@/components/purchases/InvoiceScanWizard'
+import PurchaseDetailSheet  from '@/components/purchases/PurchaseDetailSheet'
 import { usePurchases, useDeletePurchase, useReceivePurchase } from '@/hooks/usePurchases'
 import { useVendors } from '@/hooks/useVendors'
 import { useIsAdmin } from '@/store/authStore'
@@ -51,6 +52,7 @@ export default function PurchasesPage() {
   const [editing, setEditing]           = useState<Purchase | null>(null)
   const [deleting, setDeleting]         = useState<Purchase | null>(null)
   const [receiving, setReceiving]       = useState<Purchase | null>(null)
+  const [viewing, setViewing]           = useState<Purchase | null>(null)
   const [isExporting, setExporting]     = useState(false)
 
   const q = useDebounce(search)
@@ -146,14 +148,14 @@ export default function PurchasesPage() {
       cell:   (p) => {
         const first = p.items[0]
         return (
-          <div>
-            <p className="font-medium">
+          <div className="cursor-pointer group">
+            <p className="font-medium group-hover:text-primary transition-colors">
               {first ? `${first.brand_name} ${first.product_name}` : '—'}
             </p>
-            <p className="text-xs text-muted-foreground">
+            <p className="text-xs text-muted-foreground group-hover:text-primary/70 transition-colors">
               {p.items.length === 1
                 ? `IMEI: ${first?.imei1}`
-                : `${p.items.length} devices`}
+                : `${p.items.length} devices — click to view all`}
             </p>
           </div>
         )
@@ -193,7 +195,10 @@ export default function PurchasesPage() {
       header: '',
       cell:   (p) =>
         isAdmin ? (
-          <div className="flex items-center justify-end gap-1">
+          <div
+            className="flex items-center justify-end gap-1"
+            onClick={(e) => e.stopPropagation()}
+          >
             {/* "Receive Stock" is only shown for pending purchases */}
             {p.status === 'pending' && (
               <Button
@@ -260,7 +265,7 @@ export default function PurchasesPage() {
             {isAdmin && (
               <>
                 <Button variant="outline" onClick={() => setScanOpen(true)} className="gap-1.5">
-                  <ScanText className="h-4 w-4" /> Scan Invoice
+                  <ClipboardList className="h-4 w-4" /> New Purchase
                 </Button>
                 <Button onClick={openCreate} className="gap-1.5">
                   <Plus className="h-4 w-4" /> Record Purchase
@@ -343,6 +348,7 @@ export default function PurchasesPage() {
         meta={data?.meta}
         onPageChange={setPage}
         emptyMessage="No purchases found. Adjust filters or record the first purchase."
+        onRowClick={(p) => setViewing(p)}
         mobileCard={{
           top:     ['items', 'status'],
           middle:  ['total'],
@@ -388,11 +394,17 @@ export default function PurchasesPage() {
         confirmLabel="Delete purchase"
       />
 
-      {/* Invoice scan wizard — opens from "Scan Invoice" button */}
+      {/* Invoice scan wizard — opens from "New Purchase" button */}
       <InvoiceScanWizard
         open={scanOpen}
         onClose={() => setScanOpen(false)}
         onPurchaseCreated={() => setScanOpen(false)}
+      />
+
+      {/* Purchase detail sheet — opens on row click */}
+      <PurchaseDetailSheet
+        purchase={viewing}
+        onClose={() => setViewing(null)}
       />
     </div>
   )

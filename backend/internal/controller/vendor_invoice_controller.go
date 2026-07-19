@@ -150,6 +150,50 @@ func (ctrl *VendorInvoiceController) CreatePurchaseFromInvoice(c *fiber.Ctx) err
 	})
 }
 
+// LinkPurchase godoc
+// @Summary      Link an invoice to an existing purchase
+// @Description  Writes the purchase_id onto the invoice document so the reference photo can be retrieved from the purchase detail view.
+// @Tags         VendorInvoices
+// @Accept       json
+// @Produce      json
+// @Security     BearerAuth
+// @Param        id    path  string  true  "Invoice ID"
+// @Param        body  body  object  true  "purchase_id"
+// @Success      200  {object}  map[string]interface{}
+// @Router       /vendor-invoices/{id}/link-purchase [patch]
+func (ctrl *VendorInvoiceController) LinkPurchase(c *fiber.Ctx) error {
+	var body struct {
+		PurchaseID string `json:"purchase_id"`
+	}
+	if err := c.BodyParser(&body); err != nil || body.PurchaseID == "" {
+		return apperror.BadRequest("purchase_id is required")
+	}
+	if err := ctrl.svc.LinkPurchase(c.Context(), c.Params("id"), body.PurchaseID); err != nil {
+		return err
+	}
+	return response.OK(c, fiber.Map{"linked": true})
+}
+
+// ViewFile godoc
+// @Summary      Stream the invoice file
+// @Description  Returns the raw invoice image or PDF so the browser can display it.
+// @Tags         VendorInvoices
+// @Produce      application/octet-stream
+// @Security     BearerAuth
+// @Param        id  path  string  true  "Invoice ID"
+// @Success      200
+// @Failure      404  {object}  map[string]interface{}
+// @Router       /vendor-invoices/{id}/file [get]
+func (ctrl *VendorInvoiceController) ViewFile(c *fiber.Ctx) error {
+	data, mimeType, err := ctrl.svc.ViewFile(c.Context(), c.Params("id"))
+	if err != nil {
+		return err
+	}
+	c.Set("Content-Type", mimeType)
+	c.Set("Cache-Control", "private, max-age=86400")
+	return c.Send(data)
+}
+
 // Engines godoc
 // @Summary      List available OCR engines
 // @Description  Returns the set of OCR modes supported by this deployment.

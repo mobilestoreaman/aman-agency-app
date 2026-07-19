@@ -1,17 +1,17 @@
 /**
- * InvoiceScanWizard — 4-step invoice-to-purchase flow
+ * InvoiceScanWizard — 4-step manual purchase entry flow
  *
- * Step 1  Upload     → scan invoice file (photo or PDF)
- * Step 2  Scanning   → poll until OCR done
- * Step 3  Vendor     → admin selects vendor from dropdown (no OCR guessing)
- * Step 4  Devices    → review extracted devices, fill IMEI + match product
- * Step 5  Confirm    → review totals and create purchase
+ * Step 1  Photo    → optional invoice photo for reference (no OCR)
+ * Step 2  Vendor   → select / create vendor
+ * Step 3  Devices  → enter each device manually (IMEI, product match, price…)
+ * Step 4  Confirm  → review summary and create purchase
  */
 import { useState, useCallback, useRef, useEffect } from 'react'
 import {
   Upload, FileText, X, CheckCircle2, AlertCircle, Loader2,
-  ChevronRight, ChevronLeft, Building2, ShoppingCart, ScanText,
+  ChevronRight, ChevronLeft, Building2, ShoppingCart,
   Plus, Trash2, Search, UserPlus, Camera, RotateCcw, Package,
+  ImagePlus,
 } from 'lucide-react'
 import { Button }   from '@/components/ui/button'
 import { Input }    from '@/components/ui/input'
@@ -23,21 +23,16 @@ import {
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from '@/components/ui/select'
-import {
-  useVendorInvoice,
-  useUploadVendorInvoice,
-  useCreatePurchaseFromInvoice,
-} from '@/hooks/useVendorInvoices'
+import { useUploadVendorInvoice, useLinkInvoicePurchase } from '@/hooks/useVendorInvoices'
 import { useVendors, useCreateVendor } from '@/hooks/useVendors'
-import { useProducts }                 from '@/hooks/useProducts'
-import { useDebounce }                 from '@/hooks/useDebounce'
-import type {
-  VendorInvoice, WizardItem, Vendor, Product, InvoicePurchaseItemReq,
-} from '@/types'
+import { useProducts }               from '@/hooks/useProducts'
+import { useCreatePurchase }         from '@/hooks/usePurchases'
+import { useDebounce }               from '@/hooks/useDebounce'
+import type { WizardItem, Vendor, Product } from '@/types'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
-type WizardStep = 'upload' | 'processing' | 'vendor' | 'devices' | 'confirm'
+type WizardStep = 'photo' | 'vendor' | 'devices' | 'confirm'
 
 interface Props {
   open:    boolean
@@ -51,11 +46,10 @@ const MAX_MB   = 20
 // ─── Step indicator ───────────────────────────────────────────────────────────
 
 const STEPS: { id: WizardStep; label: string }[] = [
-  { id: 'upload',     label: 'Upload'  },
-  { id: 'processing', label: 'Scanning'},
-  { id: 'vendor',     label: 'Vendor'  },
-  { id: 'devices',    label: 'Devices' },
-  { id: 'confirm',    label: 'Confirm' },
+  { id: 'photo',   label: 'Photo'   },
+  { id: 'vendor',  label: 'Vendor'  },
+  { id: 'devices', label: 'Devices' },
+  { id: 'confirm', label: 'Confirm' },
 ]
 
 function StepIndicator({ current }: { current: WizardStep }) {
@@ -85,21 +79,25 @@ function StepIndicator({ current }: { current: WizardStep }) {
   )
 }
 
-// ─── Step 1: Upload ───────────────────────────────────────────────────────────
+// ─── Step 1: Photo (optional) ─────────────────────────────────────────────────
 
 type InputMode = 'file' | 'camera'
 
-function UploadStep({ onUploaded }: { onUploaded: (inv: VendorInvoice) => void }) {
-  const [inputMode,    setInputMode]   = useState<InputMode>('file')
-  const [file,         setFile]        = useState<File | null>(null)
-  const [dragOver,     setDragOver]    = useState(false)
-  const [cameraError,  setCameraError] = useState<string | null>(null)
-  const [streaming,    setStreaming]   = useState(false)
+function PhotoStep({ onSkip, onUploaded }: {
+  onSkip:     () => void
+  onUploaded: (invoiceId: string) => void
+}) {
+  const [inputMode,   setInputMode]  = useState<InputMode>('file')
+  const [file,        setFile]       = useState<File | null>(null)
+  const [dragOver,    setDragOver]   = useState(false)
+  const [cameraError, setCameraError]= useState<string | null>(null)
+  const [streaming,   setStreaming]  = useState(false)
 
   const inputRef  = useRef<HTMLInputElement>(null)
   const videoRef  = useRef<HTMLVideoElement>(null)
   const streamRef = useRef<MediaStream | null>(null)
-  const upload    = useUploadVendorInvoice('auto')
+  // 'auto' mode — upload for archival only, OCR runs in background (results ignored)
+  const upload = useUploadVendorInvoice('auto')
 
   const startCamera = useCallback(async () => {
     setCameraError(null)
@@ -161,12 +159,25 @@ function UploadStep({ onUploaded }: { onUploaded: (inv: VendorInvoice) => void }
     if (inputMode === 'camera') startCamera()
   }
 
+  const handleUpload = () => {
+    if (!file) return
+    upload.mutate(file, {
+      onSuccess: (inv) => onUploaded(inv.id),
+    })
+  }
+
   return (
     <div className="space-y-4">
       <div className="space-y-1">
-        <h3 className="font-semibold text-base">Add Invoice</h3>
+        <div className="flex items-center gap-2">
+          <h3 className="font-semibold text-base">Invoice Photo</h3>
+          <span className="text-xs text-muted-foreground bg-muted px-2 py-0.5 rounded-full">
+            Optional
+          </span>
+        </div>
         <p className="text-sm text-muted-foreground">
-          Take a photo or upload a PDF/image. The OCR will extract all devices automatically.
+          Attach a photo of the invoice for future reference. You can skip this and
+          fill all details manually.
         </p>
       </div>
 
@@ -195,7 +206,7 @@ function UploadStep({ onUploaded }: { onUploaded: (inv: VendorInvoice) => void }
       {inputMode === 'file' && !file && (
         <div
           className={[
-            'flex flex-col items-center justify-center rounded-lg border-2 border-dashed py-12 px-4 cursor-pointer transition-colors',
+            'flex flex-col items-center justify-center rounded-lg border-2 border-dashed py-10 px-4 cursor-pointer transition-colors',
             dragOver
               ? 'border-primary bg-primary/5'
               : 'border-muted-foreground/25 hover:border-primary/50 hover:bg-muted/40',
@@ -205,7 +216,7 @@ function UploadStep({ onUploaded }: { onUploaded: (inv: VendorInvoice) => void }
           onDragLeave={() => setDragOver(false)}
           onDrop={handleDrop}
         >
-          <ScanText className="h-10 w-10 text-muted-foreground mb-3" />
+          <ImagePlus className="h-9 w-9 text-muted-foreground mb-3" />
           <p className="text-sm font-medium">Drop invoice here or click to browse</p>
           <p className="text-xs text-muted-foreground mt-1">PDF, JPEG, PNG · max {MAX_MB} MB</p>
           <input ref={inputRef} type="file" accept={ACCEPTED} className="hidden"
@@ -240,7 +251,7 @@ function UploadStep({ onUploaded }: { onUploaded: (inv: VendorInvoice) => void }
           )}
           {streaming && (
             <Button className="w-full gap-2" onClick={capturePhoto}>
-              <Camera className="h-4 w-4" /> Capture Invoice
+              <Camera className="h-4 w-4" /> Capture Photo
             </Button>
           )}
         </div>
@@ -270,49 +281,23 @@ function UploadStep({ onUploaded }: { onUploaded: (inv: VendorInvoice) => void }
         </p>
       )}
 
-      <div className="flex justify-end">
-        <Button onClick={() => file && upload.mutate(file, { onSuccess: onUploaded })}
-          disabled={!file || upload.isPending}>
-          {upload.isPending
-            ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" />Uploading…</>
-            : <>Scan Invoice <ChevronRight className="ml-1 h-4 w-4" /></>}
+      <div className="flex justify-between">
+        <Button variant="outline" onClick={onSkip}>
+          Skip <ChevronRight className="ml-1 h-4 w-4" />
         </Button>
+        {file && (
+          <Button onClick={handleUpload} disabled={upload.isPending}>
+            {upload.isPending
+              ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" />Saving…</>
+              : <>Attach &amp; Continue <ChevronRight className="ml-1 h-4 w-4" /></>}
+          </Button>
+        )}
       </div>
     </div>
   )
 }
 
-// ─── Step 2: Processing ───────────────────────────────────────────────────────
-
-function ProcessingStep({
-  invoiceId, onDone, onFailed,
-}: {
-  invoiceId: string
-  onDone:    (inv: VendorInvoice) => void
-  onFailed:  (msg: string) => void
-}) {
-  const { data: invoice } = useVendorInvoice(invoiceId)
-
-  useEffect(() => {
-    if (!invoice) return
-    if (invoice.status === 'done' || invoice.status === 'needs_review') onDone(invoice)
-    else if (invoice.status === 'failed') onFailed(invoice.processing_error ?? 'OCR failed')
-  }, [invoice?.status])
-
-  return (
-    <div className="flex flex-col items-center justify-center py-16 space-y-4">
-      <Loader2 className="h-10 w-10 animate-spin text-primary" />
-      <div className="text-center">
-        <p className="font-medium">Scanning invoice…</p>
-        <p className="text-sm text-muted-foreground mt-1">
-          Extracting devices and prices. Usually takes 5–20 seconds.
-        </p>
-      </div>
-    </div>
-  )
-}
-
-// ─── Step 3: Vendor dropdown ──────────────────────────────────────────────────
+// ─── Step 2: Vendor ───────────────────────────────────────────────────────────
 
 interface VendorStepProps {
   selectedVendorId: string
@@ -322,16 +307,14 @@ interface VendorStepProps {
 }
 
 function VendorStep({ selectedVendorId, onSelect, onBack, onNext }: VendorStepProps) {
-  const [showCreate,  setShowCreate]  = useState(false)
-  const [newName,     setNewName]     = useState('')
-  const [newPhone,    setNewPhone]    = useState('')
-  const [newAddress,  setNewAddress]  = useState('')
-  const [searchText,  setSearchText]  = useState('')
+  const [showCreate, setShowCreate] = useState(false)
+  const [newName,    setNewName]    = useState('')
+  const [newPhone,   setNewPhone]   = useState('')
+  const [newAddress, setNewAddress] = useState('')
+  const [searchText, setSearchText] = useState('')
 
-  // Load all vendors (high limit so the dropdown has everything)
   const { data: vendorsData, isLoading } = useVendors({ limit: 200 })
-  const vendors = vendorsData?.data ?? []
-
+  const vendors    = vendorsData?.data ?? []
   const createVendor = useCreateVendor()
 
   const filtered = searchText.trim()
@@ -361,13 +344,12 @@ function VendorStep({ selectedVendorId, onSelect, onBack, onNext }: VendorStepPr
       <div>
         <h3 className="font-semibold text-base">Select Vendor</h3>
         <p className="text-sm text-muted-foreground mt-0.5">
-          Choose which vendor this invoice is from.
+          Choose which vendor this purchase is from.
         </p>
       </div>
 
       {!showCreate ? (
         <div className="space-y-3">
-          {/* Search filter */}
           <div className="relative">
             <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground pointer-events-none" />
             <Input
@@ -378,7 +360,6 @@ function VendorStep({ selectedVendorId, onSelect, onBack, onNext }: VendorStepPr
             />
           </div>
 
-          {/* Vendor list */}
           <div className="rounded-md border divide-y max-h-64 overflow-y-auto">
             {isLoading ? (
               <div className="flex items-center justify-center py-8">
@@ -391,8 +372,7 @@ function VendorStep({ selectedVendorId, onSelect, onBack, onNext }: VendorStepPr
             ) : (
               filtered.map((v) => (
                 <button
-                  key={v.id}
-                  type="button"
+                  key={v.id} type="button"
                   onClick={() => onSelect(v.id, v.name)}
                   className={[
                     'w-full text-left px-3 py-2.5 text-sm transition-colors flex items-center justify-between',
@@ -418,7 +398,6 @@ function VendorStep({ selectedVendorId, onSelect, onBack, onNext }: VendorStepPr
           </Button>
         </div>
       ) : (
-        /* Inline create form */
         <div className="space-y-3 rounded-lg border p-4 bg-muted/20">
           <p className="text-sm font-medium flex items-center gap-2">
             <UserPlus className="h-4 w-4" /> New Vendor
@@ -449,7 +428,9 @@ function VendorStep({ selectedVendorId, onSelect, onBack, onNext }: VendorStepPr
       )}
 
       <div className="flex justify-between pt-2">
-        <Button variant="outline" onClick={onBack}><ChevronLeft className="mr-1 h-4 w-4" />Back</Button>
+        <Button variant="outline" onClick={onBack}>
+          <ChevronLeft className="mr-1 h-4 w-4" />Back
+        </Button>
         <Button onClick={onNext} disabled={!selectedVendorId}>
           Continue <ChevronRight className="ml-1 h-4 w-4" />
         </Button>
@@ -458,7 +439,7 @@ function VendorStep({ selectedVendorId, onSelect, onBack, onNext }: VendorStepPr
   )
 }
 
-// ─── Step 4: Device row ───────────────────────────────────────────────────────
+// ─── Step 3: Device row ───────────────────────────────────────────────────────
 
 function DeviceRow({
   item, index, onChange, onRemove, canRemove,
@@ -469,7 +450,7 @@ function DeviceRow({
   onRemove: (idx: number) => void
   canRemove: boolean
 }) {
-  const [productSearch, setProductSearch] = useState(item.description.slice(0, 60))
+  const [productSearch, setProductSearch] = useState(item.product_label || '')
   const [showDropdown,  setShowDropdown]  = useState(false)
   const dSearch = useDebounce(productSearch, 400)
 
@@ -491,38 +472,21 @@ function DeviceRow({
 
   return (
     <div className="rounded-lg border bg-card overflow-hidden">
-      {/* ── OCR extracted header — read-only reference ── */}
-      <div className="bg-muted/40 border-b px-3 py-2 flex items-start justify-between gap-2">
-        <div className="flex items-start gap-2 min-w-0">
-          <Package className="h-4 w-4 text-muted-foreground mt-0.5 shrink-0" />
-          <div className="min-w-0">
-            <p className="text-sm font-medium leading-snug truncate">
-              {item.description || `Device ${index + 1}`}
-            </p>
-            <div className="flex flex-wrap gap-2 mt-0.5">
-              {item.ocr_qty && (
-                <span className="text-xs text-muted-foreground">Qty: {item.ocr_qty}</span>
-              )}
-              {item.purchase_price > 0 && (
-                <span className="text-xs text-muted-foreground">
-                  ₹{item.purchase_price.toLocaleString()}
-                </span>
-              )}
-              {item.ocr_hsn && (
-                <span className="text-xs text-muted-foreground">HSN: {item.ocr_hsn}</span>
-              )}
-            </div>
-          </div>
+      {/* ── Device header ── */}
+      <div className="bg-muted/40 border-b px-3 py-2 flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <Package className="h-4 w-4 text-muted-foreground" />
+          <span className="text-sm font-medium">Device {index + 1}</span>
         </div>
         {canRemove && (
-          <Button variant="ghost" size="icon" className="h-6 w-6 shrink-0 text-muted-foreground hover:text-red-600"
+          <Button variant="ghost" size="icon" className="h-6 w-6 text-muted-foreground hover:text-red-600"
             onClick={() => onRemove(index)}>
             <Trash2 className="h-3.5 w-3.5" />
           </Button>
         )}
       </div>
 
-      {/* ── Fields admin fills in ── */}
+      {/* ── Fields ── */}
       <div className="p-3 space-y-3">
         {/* Product match */}
         <div className="relative">
@@ -562,7 +526,7 @@ function DeviceRow({
           )}
         </div>
 
-        {/* IMEI — most important field, given visual prominence */}
+        {/* IMEI */}
         <div>
           <Label className="text-xs font-semibold">
             IMEI * <span className="font-normal text-muted-foreground">(15 digits)</span>
@@ -588,7 +552,7 @@ function DeviceRow({
           )}
         </div>
 
-        {/* Condition + Purchase Price row */}
+        {/* Condition + Purchase Price */}
         <div className="grid grid-cols-2 gap-2">
           <div>
             <Label className="text-xs">Condition *</Label>
@@ -626,9 +590,11 @@ function DeviceRow({
           </div>
         </div>
 
-        {/* Selling price (optional) */}
+        {/* Selling price */}
         <div>
-          <Label className="text-xs">Selling Price ₹ <span className="text-muted-foreground">(optional)</span></Label>
+          <Label className="text-xs">
+            Selling Price ₹ <span className="text-muted-foreground">(optional)</span>
+          </Label>
           <Input
             type="number" min="0" className="text-sm h-8 mt-1"
             value={item.selling_price ?? ''}
@@ -641,12 +607,10 @@ function DeviceRow({
   )
 }
 
-// ─── Step 4: Devices ─────────────────────────────────────────────────────────
+// ─── Step 3: Devices ─────────────────────────────────────────────────────────
 
 interface DevicesStepProps {
-  invoice:       VendorInvoice
   items:         WizardItem[]
-  ocrItemCount:  number
   onChangeItems: (items: WizardItem[]) => void
   onBack:        () => void
   onNext:        () => void
@@ -657,7 +621,7 @@ const EMPTY_ITEM: WizardItem = {
   imei1: '', condition: 'new', purchase_price: 0,
 }
 
-function DevicesStep({ invoice, items, ocrItemCount, onChangeItems, onBack, onNext }: DevicesStepProps) {
+function DevicesStep({ items, onChangeItems, onBack, onNext }: DevicesStepProps) {
   const update = (idx: number, patch: Partial<WizardItem>) =>
     onChangeItems(items.map((it, i) => i === idx ? { ...it, ...patch } : it))
 
@@ -671,83 +635,33 @@ function DevicesStep({ invoice, items, ocrItemCount, onChangeItems, onBack, onNe
     (it) => it.product_id && it.imei1.length === 15 && it.purchase_price > 0
   )
 
-  const extracted      = invoice.extraction
-  const nothingFromOCR = ocrItemCount === 0
-  const manualCount    = items.length - ocrItemCount
-  const hasItems       = items.length > 0
-
   return (
     <div className="space-y-4">
       <div>
-        <h3 className="font-semibold text-base">Devices</h3>
+        <h3 className="font-semibold text-base">Add Devices</h3>
         <p className="text-sm text-muted-foreground mt-0.5">
-          {nothingFromOCR
-            ? 'OCR could not extract devices from this invoice — add them manually below.'
-            : <>
-                <strong className="text-foreground">{ocrItemCount}</strong> device{ocrItemCount !== 1 ? 's' : ''} extracted from invoice.
-                {manualCount > 0 && <> + <strong className="text-foreground">{manualCount}</strong> added manually.</>}
-                {' '}Match each to a product and enter the IMEI.
-              </>}
+          Enter each device purchased. Match to a product in the system and fill in the IMEI.
         </p>
       </div>
 
-      {/* OCR summary banner — only show when OCR returned useful data */}
-      {extracted && !nothingFromOCR && (
-        <div className="rounded-md bg-muted/40 border px-3 py-2 text-xs text-muted-foreground flex flex-wrap gap-x-4 gap-y-1">
-          {extracted.invoice_number?.value && (
-            <span>Invoice <strong className="text-foreground">#{extracted.invoice_number.value}</strong></span>
-          )}
-          {extracted.invoice_date?.value && (
-            <span>Date <strong className="text-foreground">{extracted.invoice_date.value}</strong></span>
-          )}
-          {extracted.total_amount?.value && (
-            <span>Total <strong className="text-foreground">₹{extracted.total_amount.value}</strong></span>
-          )}
-          {extracted.vendor_gstin?.value && (
-            <span>GSTIN <strong className="text-foreground">{extracted.vendor_gstin.value}</strong></span>
-          )}
-        </div>
-      )}
+      <div className="space-y-3 max-h-[420px] overflow-y-auto pr-0.5">
+        {items.map((it, i) => (
+          <DeviceRow
+            key={i} item={it} index={i}
+            onChange={update} onRemove={remove}
+            canRemove={items.length > 1}
+          />
+        ))}
+      </div>
 
-      {/* Nothing extracted — friendly empty state */}
-      {nothingFromOCR && !hasItems && (
-        <div className="rounded-lg border border-dashed border-amber-300 bg-amber-50 dark:bg-amber-950/20 dark:border-amber-800 p-6 text-center space-y-3">
-          <Package className="h-10 w-10 text-amber-400 mx-auto" />
-          <div>
-            <p className="font-medium text-amber-900 dark:text-amber-200">No devices found in invoice</p>
-            <p className="text-sm text-amber-700 dark:text-amber-400 mt-1">
-              The OCR couldn't read the device table (poor image quality, rotated scan, or unsupported layout).
-              You can add all devices manually below.
-            </p>
-          </div>
-          <Button onClick={addRow} className="gap-2">
-            <Plus className="h-4 w-4" /> Add First Device
-          </Button>
-        </div>
-      )}
-
-      {/* Device cards */}
-      {hasItems && (
-        <div className="space-y-3 max-h-[420px] overflow-y-auto pr-0.5">
-          {items.map((it, i) => (
-            <DeviceRow
-              key={i} item={it} index={i}
-              onChange={update} onRemove={remove}
-              canRemove={items.length > 1}
-            />
-          ))}
-        </div>
-      )}
-
-      {/* Add more — only show as secondary action when there are already items */}
-      {hasItems && (
-        <Button variant="outline" size="sm" className="w-full" onClick={addRow}>
-          <Plus className="mr-2 h-4 w-4" /> Add device manually
-        </Button>
-      )}
+      <Button variant="outline" size="sm" className="w-full" onClick={addRow}>
+        <Plus className="mr-2 h-4 w-4" /> Add another device
+      </Button>
 
       <div className="flex justify-between pt-2">
-        <Button variant="outline" onClick={onBack}><ChevronLeft className="mr-1 h-4 w-4" />Back</Button>
+        <Button variant="outline" onClick={onBack}>
+          <ChevronLeft className="mr-1 h-4 w-4" />Back
+        </Button>
         <Button onClick={onNext} disabled={!allValid}>
           Review <ChevronRight className="ml-1 h-4 w-4" />
         </Button>
@@ -756,33 +670,31 @@ function DevicesStep({ invoice, items, ocrItemCount, onChangeItems, onBack, onNe
   )
 }
 
-// ─── Step 5: Confirm ─────────────────────────────────────────────────────────
+// ─── Step 4: Confirm ─────────────────────────────────────────────────────────
 
 interface ConfirmStepProps {
-  invoice:           VendorInvoice
-  vendorName:        string
-  items:             WizardItem[]
-  notes:             string
-  purchasedAt:       string
+  vendorName:          string
+  items:               WizardItem[]
+  notes:               string
+  purchasedAt:         string
   onChangeNotes:       (v: string) => void
   onChangePurchasedAt: (v: string) => void
-  onBack:            () => void
-  onSubmit:          () => void
-  submitting:        boolean
+  onBack:              () => void
+  onSubmit:            () => void
+  submitting:          boolean
 }
 
 function ConfirmStep({
-  invoice, vendorName, items, notes, purchasedAt,
+  vendorName, items, notes, purchasedAt,
   onChangeNotes, onChangePurchasedAt, onBack, onSubmit, submitting,
 }: ConfirmStepProps) {
-  const total     = items.reduce((s, it) => s + it.purchase_price, 0)
-  const extracted = invoice.extraction
+  const total = items.reduce((s, it) => s + it.purchase_price, 0)
 
   return (
     <div className="space-y-5">
       <div>
-        <h3 className="font-semibold text-base">Create Purchase</h3>
-        <p className="text-sm text-muted-foreground mt-0.5">Review and confirm before saving.</p>
+        <h3 className="font-semibold text-base">Review Purchase</h3>
+        <p className="text-sm text-muted-foreground mt-0.5">Confirm details before saving.</p>
       </div>
 
       <div className="rounded-lg border divide-y text-sm">
@@ -792,24 +704,21 @@ function ConfirmStep({
           <span className="font-medium">{vendorName}</span>
         </div>
 
-        {/* Invoice meta */}
-        {(extracted?.invoice_number?.value || extracted?.invoice_date?.value) && (
-          <div className="px-3 py-2 text-muted-foreground text-xs">
-            {extracted?.invoice_number?.value && <>Invoice #{extracted.invoice_number.value}</>}
-            {extracted?.invoice_date?.value && <> · {extracted.invoice_date.value}</>}
-          </div>
-        )}
-
         {/* Device list */}
         <div className="px-3 py-2 space-y-1.5 max-h-52 overflow-y-auto">
           {items.map((it, i) => (
             <div key={i} className="flex justify-between items-start gap-2">
               <div className="min-w-0 flex-1">
                 <p className="text-muted-foreground truncate">
-                  {it.product_label || it.description || `Device ${i + 1}`}
+                  {it.product_label || `Device ${i + 1}`}
                 </p>
                 {it.imei1 && (
                   <p className="text-xs font-mono text-muted-foreground/70">{it.imei1}</p>
+                )}
+                {(it.color || it.storage) && (
+                  <p className="text-xs text-muted-foreground/70">
+                    {[it.color, it.storage].filter(Boolean).join(' · ')}
+                  </p>
                 )}
               </div>
               <span className="font-medium shrink-0">₹{it.purchase_price.toLocaleString()}</span>
@@ -856,79 +765,43 @@ function ConfirmStep({
 // ─── Main Wizard ──────────────────────────────────────────────────────────────
 
 export default function InvoiceScanWizard({ open, onClose, onPurchaseCreated }: Props) {
-  const [step,             setStep]            = useState<WizardStep>('upload')
+  const [step,             setStep]            = useState<WizardStep>('photo')
   const [invoiceId,        setInvoiceId]       = useState<string | null>(null)
-  const [invoice,          setInvoice]         = useState<VendorInvoice | null>(null)
-  const [ocrError,         setOcrError]        = useState<string | null>(null)
   const [selectedVendorId, setSelectedVendorId]= useState('')
   const [vendorName,       setVendorName]      = useState('')
-  const [items,            setItems]           = useState<WizardItem[]>([])
-  const [ocrItemCount,     setOcrItemCount]    = useState(0)   // how many came from OCR
+  const [items,            setItems]           = useState<WizardItem[]>([{ ...EMPTY_ITEM }])
   const [notes,            setNotes]           = useState('')
   const [purchasedAt,      setPurchasedAt]     = useState('')
 
-  const createPurchase = useCreatePurchaseFromInvoice()
-
-  const buildItems = (inv: VendorInvoice): WizardItem[] => {
-    const lineItems = inv.extraction?.line_items ?? []
-    // Return empty array when OCR found nothing — don't create fake placeholder items
-    if (lineItems.length === 0) return []
-    return lineItems.map((li) => ({
-      description:    li.description?.value ?? '',
-      product_id:     '',
-      product_label:  '',
-      // Pre-populate IMEI from OCR if extracted (Samsung batch numbers, etc.)
-      imei1:          li.imei?.value?.replace(/\D/g, '') ?? '',
-      condition:      'new' as const,
-      purchase_price: parseFloat(li.unit_price?.value?.replace(/,/g, '') ?? '0') || 0,
-      // Pre-populate color & storage from model-code parsing
-      color:          li.color?.value   || undefined,
-      storage:        li.storage?.value || undefined,
-      ocr_qty:        li.quantity?.value || undefined,
-      ocr_hsn:        li.hsn_code?.value || undefined,
-    }))
-  }
-
-  const handleOCRDone = (inv: VendorInvoice) => {
-    setInvoice(inv)
-    const built = buildItems(inv)
-    setItems(built)
-    setOcrItemCount(built.length)
-    // Pre-fill purchase date from invoice date if available
-    const d = inv.extraction?.invoice_date?.value
-    if (d) {
-      const m = d.match(/(\d{2})\/(\d{2})\/(\d{4})/)
-      if (m) setPurchasedAt(`${m[3]}-${m[2]}-${m[1]}`)
-    }
-    setStep('vendor')
-  }
+  const createPurchase   = useCreatePurchase()
+  const linkInvoice      = useLinkInvoicePurchase()
 
   const handleSubmit = () => {
-    if (!invoiceId || !selectedVendorId || items.length === 0) return
-
-    const reqItems: InvoicePurchaseItemReq[] = items.map((it) => ({
-      product_id:     it.product_id,
-      imei1:          it.imei1,
-      imei2:          it.imei2 || undefined,
-      condition:      it.condition,
-      color:          it.color || undefined,
-      storage:        it.storage || undefined,
-      purchase_price: it.purchase_price,
-      selling_price:  it.selling_price || undefined,
-    }))
+    if (!selectedVendorId || items.length === 0) return
 
     createPurchase.mutate(
       {
-        invoiceId,
-        req: {
-          vendor_id:    selectedVendorId,
-          items:        reqItems,
-          notes:        notes || undefined,
-          purchased_at: purchasedAt ? new Date(purchasedAt).toISOString() : undefined,
-        },
+        vendor_id:    selectedVendorId,
+        items:        items.map((it) => ({
+          product_id:     it.product_id,
+          imei1:          it.imei1,
+          imei2:          it.imei2 || undefined,
+          condition:      it.condition,
+          color:          it.color || undefined,
+          storage:        it.storage || undefined,
+          purchase_price: it.purchase_price,
+          selling_price:  it.selling_price || undefined,
+        })),
+        notes:        notes || undefined,
+        purchased_at: purchasedAt ? new Date(purchasedAt).toISOString() : undefined,
       },
       {
-        onSuccess: (purchase) => {
+        onSuccess: (res) => {
+          const purchase = (res as { data: { data: { id: string } } }).data.data
+          // Link the reference photo to this purchase (fire-and-forget)
+          if (invoiceId) {
+            linkInvoice.mutate({ invoiceId, purchaseId: purchase.id })
+          }
           onPurchaseCreated?.(purchase.id)
           handleClose()
         },
@@ -937,9 +810,11 @@ export default function InvoiceScanWizard({ open, onClose, onPurchaseCreated }: 
   }
 
   const handleClose = () => {
-    setStep('upload'); setInvoiceId(null); setInvoice(null)
-    setOcrError(null); setSelectedVendorId(''); setVendorName('')
-    setItems([]); setOcrItemCount(0); setNotes(''); setPurchasedAt('')
+    setStep('photo')
+    setInvoiceId(null)
+    setSelectedVendorId(''); setVendorName('')
+    setItems([{ ...EMPTY_ITEM }])
+    setNotes(''); setPurchasedAt('')
     createPurchase.reset()
     onClose()
   }
@@ -949,59 +824,41 @@ export default function InvoiceScanWizard({ open, onClose, onPurchaseCreated }: 
       <DialogContent className="sm:max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
-            <ScanText className="h-5 w-5 text-primary" />
-            Scan Invoice → Purchase
+            <ShoppingCart className="h-5 w-5 text-primary" />
+            New Purchase
           </DialogTitle>
         </DialogHeader>
 
         <div className="py-2">
           <StepIndicator current={step} />
 
-          {step === 'upload' && (
-            <UploadStep onUploaded={(inv) => { setInvoiceId(inv.id); setStep('processing') }} />
-          )}
-
-          {step === 'processing' && invoiceId && !ocrError && (
-            <ProcessingStep invoiceId={invoiceId} onDone={handleOCRDone}
-              onFailed={(msg) => setOcrError(msg)} />
-          )}
-
-          {step === 'processing' && ocrError && (
-            <div className="py-10 text-center space-y-4">
-              <AlertCircle className="h-10 w-10 text-red-500 mx-auto" />
-              <div>
-                <p className="font-medium text-red-700">Scan Failed</p>
-                <p className="text-sm text-muted-foreground mt-1">{ocrError}</p>
-              </div>
-              <Button variant="outline" onClick={() => { setStep('upload'); setOcrError(null) }}>
-                Try Again
-              </Button>
-            </div>
+          {step === 'photo' && (
+            <PhotoStep
+              onSkip={() => setStep('vendor')}
+              onUploaded={(id) => { setInvoiceId(id); setStep('vendor') }}
+            />
           )}
 
           {step === 'vendor' && (
             <VendorStep
               selectedVendorId={selectedVendorId}
               onSelect={(id, name) => { setSelectedVendorId(id); setVendorName(name) }}
-              onBack={() => setStep('upload')}
+              onBack={() => setStep('photo')}
               onNext={() => setStep('devices')}
             />
           )}
 
-          {step === 'devices' && invoice && (
+          {step === 'devices' && (
             <DevicesStep
-              invoice={invoice}
               items={items}
-              ocrItemCount={ocrItemCount}
               onChangeItems={setItems}
               onBack={() => setStep('vendor')}
               onNext={() => setStep('confirm')}
             />
           )}
 
-          {step === 'confirm' && invoice && (
+          {step === 'confirm' && (
             <ConfirmStep
-              invoice={invoice}
               vendorName={vendorName}
               items={items}
               notes={notes}

@@ -76,6 +76,12 @@ func (r *vendorInvoiceRepository) List(ctx context.Context, f dto.VendorInvoiceF
 			filter["vendor_id"] = oid
 		}
 	}
+	if f.PurchaseID != "" {
+		oid, err := primitive.ObjectIDFromHex(f.PurchaseID)
+		if err == nil {
+			filter["purchase_id"] = oid
+		}
+	}
 	if f.Status != "" {
 		filter["status"] = f.Status
 	}

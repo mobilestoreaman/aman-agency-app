@@ -40,13 +40,14 @@ type UpdateVendorInvoiceRequest struct {
 
 // VendorInvoiceFilter carries query-string parameters for listing invoices.
 type VendorInvoiceFilter struct {
-	VendorID string `query:"vendor_id"`
-	Status   string `query:"status"`
-	Search   string `query:"search"`
-	From     string `query:"from"`
-	To       string `query:"to"`
-	Page     int    `query:"page"`
-	Limit    int    `query:"limit"`
+	VendorID   string `query:"vendor_id"`
+	PurchaseID string `query:"purchase_id"`
+	Status     string `query:"status"`
+	Search     string `query:"search"`
+	From       string `query:"from"`
+	To         string `query:"to"`
+	Page       int    `query:"page"`
+	Limit      int    `query:"limit"`
 }
 
 // ─── Response DTOs ────────────────────────────────────────────────────────────
